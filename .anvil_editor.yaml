@@ -1,7 +1,10 @@
 unique_ids:
   assets:
+    AMSport sans fond.png: '1759416028256937201010136.2407'
     theme.css: 6G44GIEQQRJLILWU6GQSQO5BTDFT5ZI3
-  forms: {}
+  forms:
+    Main: '1759415917666160805650256.65305'
   modules: {}
   scripts: {}
-  server_modules: {}
+  server_modules:
+    Wrinting_offres: '1759417725261747789594644.7252'
