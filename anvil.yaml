@@ -37,3 +37,4 @@ services:
   source: /runtime/services/tables.yml
 startup: {module: Main, type: form}
 startup_form: null
+uplink_visible: true
