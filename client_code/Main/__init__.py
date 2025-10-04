@@ -19,7 +19,7 @@ class Main(MainTemplate):
         offres = anvil.server.call("get_sst_offres",self.text_box_url.text, self.text_box_mot_clef.text)   # uplink sur Pi5
         if offres:
             for offre in offres:
-                result = anvil.server.call("sov_offres", offres)
+                result = anvil.server.call("sov_offres", offre)
                 if result == "ok":
                     alert(f"{offre['titre']} sauvée !")
                 else:
