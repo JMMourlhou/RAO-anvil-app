@@ -15,6 +15,9 @@ db_schema:
     - admin_ui: {order: -1, width: 200}
       name: date_scraping
       type: datetime
+    - admin_ui: {order: 1.5, width: 200}
+      name: organisme
+      type: string
     server: full
     title: appels_offres
 dependencies:

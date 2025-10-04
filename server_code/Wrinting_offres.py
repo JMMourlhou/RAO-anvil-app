@@ -11,7 +11,8 @@ def writing_offres(offre):
         app_tables.appels_offres.add_row(
             titre=offre['titre'],
             lien=offre['lien'],
-            source="BOAMP",
+            organisme=offre['organisme'],
+            source="e-marchespublics.com",
             date_scraping=datetime.now()
         )
         result = "ok"
