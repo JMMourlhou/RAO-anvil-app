@@ -1,1 +1,50 @@
+color_scheme:
+  colors:
+  - {color: '#6750A4', name: Primary}
+  - {color: '#EADDFF', name: Primary Container}
+  - {color: '#FFFFFF', name: On Primary}
+  - {color: '#21005E', name: On Primary Container}
+  - {color: '#625B71', name: Secondary}
+  - {color: '#E8DEF8', name: Secondary Container}
+  - {color: '#FFFFFF', name: On Secondary}
+  - {color: '#1D192B', name: On Secondary Container}
+  - {color: '#7D5260', name: Tertiary}
+  - {color: '#FFD8E4', name: Tertiary Container}
+  - {color: '#FFFFFF', name: On Tertiary}
+  - {color: '#370B1E', name: On Tertiary Container}
+  - {color: '#B3261E', name: Error}
+  - {color: '#FFFBFE', name: Background}
+  - {color: '#FFFBFE', name: Surface}
+  - {color: '#1C1B1F', name: On Background}
+  - {color: '#1C1B1F', name: On Surface}
+  - {color: '#E7E0EC', name: Surface Variant}
+  - {color: '#49454E', name: On Surface Variant}
+  - {color: '#79747E', name: Outline}
+  - {color: 'rgba(29, 27, 32, 0.38)', name: On Disabled}
+  - {color: 'rgba(29, 27, 32, 0.12)', name: Disabled Container}
+  - {color: 'rgba(255, 255, 255, 0.08)', name: Light Overlay 1}
+  - {color: 'rgba(255, 255, 255, 0.12)', name: Light Overlay 2}
+  - {color: 'rgba(29, 25, 43, 0.08)', name: Dark Overlay 1}
+  - {color: 'rgba(29, 25, 43, 0.12)', name: Dark Overlay 2}
+  - {color: 'rgba(103, 80, 164, 0.05)', name: Primary Overlay 1}
+  - {color: 'rgba(103, 80, 164, 0.08)', name: Primary Overlay 2}
+  - {color: 'rgba(103, 80, 164, 0.12)', name: Primary Overlay 3}
+  - {color: '#C4C7C5', name: Outline Variant}
+  - {color: '#FFFFFF', name: On Error}
+  - {color: '#F7F2FA', name: Surface Container Low}
+  - {color: '#ECE6F0', name: Surface Container High}
+  - {color: '#E6E0E9', name: Surface Container Highest}
+  - {color: 'rgba(29, 27, 32, 0.04)', name: Disabled Container 2}
+  - {color: 'rgba(179, 38, 30, 0.08)', name: Error Overlay 1}
+  - {color: 'rgba(179, 38, 30, 0.12)', name: Error Overlay 2}
+  - {color: 'rgba(29, 25, 43, 0.16)', name: Dark Overlay 3}
+  - {color: '#410E0B', name: On Error Container}
+  - {color: '#F3EDF7', name: Surface Container}
+  - {color: '#322F35', name: Inverse Surface}
+  - {color: '#F5EFF7', name: Inverse On Surface}
+  - {color: 'rgba(73,69,79, 0.08)', name: On Surface Variant Overlay 1}
+  - {color: 'rgba(73,69,79, 0.12)', name: On Surface Variant Overlay 2}
+  - {color: 'rgba(245,239,247, 0.08)', name: Inverse On Surface Overlay 1}
+  - {color: 'rgba(245,239,247, 0.12)', name: Inverse On Surface Overlay 2}
+  preset_groups: []
 roles: []

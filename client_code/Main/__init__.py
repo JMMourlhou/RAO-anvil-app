@@ -24,3 +24,5 @@ class Main(MainTemplate):
                     alert(f"{offre['titre']} sauvée !")
                 else:
                     alert(result)
+        else:
+            alert("Pas d'offres")
