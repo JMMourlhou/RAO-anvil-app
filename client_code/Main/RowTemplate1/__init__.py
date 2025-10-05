@@ -16,6 +16,7 @@ class RowTemplate1(RowTemplate1Template):
         self.text_1.text = self.item['date_publication']
         self.text_2.text = self.item['titre']
         self.link_1.text = self.item['lien']
+        self.text_3.text = self.item['departement']
 
     def link_1_click(self, **event_args):
         """This method is called clicked"""
@@ -24,8 +25,16 @@ class RowTemplate1(RowTemplate1Template):
 
     def checkbox_1_change(self, **event_args):
         """This method is called when the component is checked or unchecked"""
-        result = anvil.server.call("check", self.checkbox_1.checked)
+        result = anvil.server.call("check", self.item, self.checkbox_1.checked)
         if not result:
-            alert("Erreur en modif")
+            alert("Erreur en Modification")
+
+    def toggle_icon_button_1_click(self, **event_args):
+        result = anvil.server.call("del_1", self.item)
+        if not result:
+            alert("Erreur en Effacement")
+        else:
+            open_form('Main')
+        
         
         

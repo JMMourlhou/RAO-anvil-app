@@ -4,7 +4,7 @@ components:
     - components:
       - layout_properties: {slot: card-content-container-slot}
         name: Titre
-        properties: {align: center, bold: true, italic: true, line_height: '', scale: large, style: body, text: Recherche des appels d'offres SST}
+        properties: {align: center, bold: true, italic: true, line_height: '', scale: large, style: body, text: Recherche des appels d'offres SST, text_color: 'theme:Primary'}
         type: form:dep_lin1x4oec0ytd:_Components.Text
       - layout_properties: {slot: card-content-container-slot}
         name: text_box_url
@@ -15,19 +15,30 @@ components:
         properties: {label: Mots clefs, leading_icon: 'mi:key', placeholder: Entrer le mot clé recherché, text: SST}
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       - components:
-        - layout_properties: {grid_position: 'HMDRWH,AQTANR'}
+        - event_bindings: {pressed_enter: text_box_nb_jours_pressed_enter}
+          layout_properties: {grid_position: 'HMDRWH,AQTANR'}
           name: text_box_nb_jours
-          properties: {label: Recherche sur les x derniers jours, placeholder: Nb de jours, text: '1'}
+          properties: {label: Recherche sur les x derniers jours, leading_icon: 'mi:search', placeholder: Nb de jours, text: '1'}
           type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
         layout_properties: {slot: card-content-container-slot}
         name: column_panel_2
         properties: {}
         type: ColumnPanel
-      - event_bindings: {click: search_click}
+      - components:
+        - event_bindings: {click: button_1_click}
+          layout_properties: {grid_position: 'DKYSIH,IBZICI'}
+          name: button_1
+          properties: {align: center, icon: 'mi:shadow_minus', text: Tout Effacer}
+          type: form:dep_lin1x4oec0ytd:_Components.Button
+        - event_bindings: {click: search_click}
+          layout_properties: {grid_position: 'DKYSIH,VHBPTV'}
+          name: search
+          properties: {align: center, text: Rechercher}
+          type: form:dep_lin1x4oec0ytd:_Components.Button
         layout_properties: {slot: card-content-container-slot}
-        name: search
-        properties: {align: center, text: Rechercher}
-        type: form:dep_lin1x4oec0ytd:_Components.Button
+        name: column_panel_1
+        properties: {}
+        type: ColumnPanel
       - components:
         - components:
           - name: repeating_panel_1
@@ -35,7 +46,7 @@ components:
             type: RepeatingPanel
           layout_properties: {slot: card-content-slot}
           name: data_grid_1
-          properties: {rows_per_page: 5}
+          properties: {auto_header: true, background: '', rows_per_page: 4}
           type: DataGrid
         layout_properties: {slot: card-content-container-slot}
         name: card_2
