@@ -1,7 +1,7 @@
 allow_embedding: false
 db_schema:
   appels_offres:
-    client: none
+    client: search
     columns:
     - admin_ui: {order: 0, width: 446}
       name: titre

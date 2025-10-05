@@ -22,7 +22,7 @@ class Main(MainTemplate):
             for offre in offres:
                 result = anvil.server.call("sov_offres", offre)
                 if result == "ok":
-                    alert(f"{offre['titre']} sauvée !")
+                    print(f"{offre['titre']} sauvée !")
                 else:
                     alert(result)
         else:
