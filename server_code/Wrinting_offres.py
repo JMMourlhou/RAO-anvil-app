@@ -5,15 +5,18 @@ import anvil.server
 from datetime import datetime
 # =========================================================================
 @anvil.server.callable           # écriture des offres
-def writing_offres(offre):
+def sov_offres(offre):
     result=""
     try:
         app_tables.appels_offres.add_row(
-            titre=offre['titre'],
-            lien=offre['lien'],
-            organisme=offre['organisme'],
-            source="e-marchespublics.com",
-            date_scraping=datetime.now()
+            titre             = offre['titre'],
+            lien              = offre['lien'],
+            organisme         = offre['organisme'],
+            source            = "e-marchespublics.com",
+            date_scraping     = datetime.now(),
+            date_publication  = offre['date_publication'],
+            code_cpv          = offre['cpv'],
+            acheteur          = offre['acheteur']
         )
         result = "ok"
     except Exception as e:

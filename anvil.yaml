@@ -12,11 +12,17 @@ db_schema:
     - admin_ui: {order: 2, width: 200}
       name: source
       type: string
-    - admin_ui: {order: -1, width: 200}
+    - admin_ui: {order: 3, width: 200}
       name: date_scraping
       type: datetime
     - admin_ui: {order: 1.5, width: 200}
-      name: organisme
+      name: acheteur
+      type: string
+    - admin_ui: {order: -1, width: 200}
+      name: date_publication
+      type: date
+    - admin_ui: {order: 4, width: 200}
+      name: code_cpv
       type: string
     server: full
     title: appels_offres
