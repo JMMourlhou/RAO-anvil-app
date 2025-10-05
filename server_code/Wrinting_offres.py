@@ -6,21 +6,36 @@ from datetime import datetime
 # =========================================================================
 @anvil.server.callable           # écriture des offres
 def sov_offres(offre):
-    result=""
+    """Enregistre une offre dans la table appels_offres"""
     try:
+        # Protection : toutes les clés existent
+        titre            = offre.get("titre", "")
+        lien             = offre.get("lien", "")
+        organisme        = offre.get("organisme", offre.get("acheteur", ""))
+        source           = offre.get("source", "")
+        date_scraping    = offre.get("date_scraping", datetime.now().isoformat())
+        date_publication = offre.get("date_publication", None)
+        code_cpv         = offre.get("cpv", "")
+        acheteur         = offre.get("acheteur", "")
+
+        # Insertion
         app_tables.appels_offres.add_row(
-            titre             = offre['titre'],
-            lien              = offre['lien'],
-            organisme         = offre['organisme'],
-            source            = "e-marchespublics.com",
-            date_scraping     = datetime.now(),
-            date_publication  = offre['date_publication'],
-            code_cpv          = offre['cpv'],
-            acheteur          = offre['acheteur']
+            titre             = titre,
+            lien              = lien,
+            organisme         = organisme,
+            source            = source,
+            date_scraping     = datetime.fromisoformat(date_scraping[:19]),
+            date_publication  = date_publication,
+            code_cpv          = code_cpv,
+            acheteur          = acheteur,
         )
-        result = "ok"
+
+        return "ok"
+
     except Exception as e:
-        result = e
-    return result
+        # 🔒 Toujours renvoyer du texte sérialisable
+        msg = f"Erreur insertion : {type(e).__name__} - {e}"
+        print(msg)
+        return msg
     
             

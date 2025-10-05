@@ -3,10 +3,10 @@ db_schema:
   appels_offres:
     client: none
     columns:
-    - admin_ui: {order: 0, width: 200}
+    - admin_ui: {order: 0, width: 446}
       name: titre
       type: string
-    - admin_ui: {order: 1, width: 200}
+    - admin_ui: {order: 1, width: 339}
       name: lien
       type: string
     - admin_ui: {order: 2, width: 200}
@@ -23,6 +23,9 @@ db_schema:
       type: date
     - admin_ui: {order: 4, width: 200}
       name: code_cpv
+      type: string
+    - admin_ui: {order: 5, width: 200}
+      name: organisme
       type: string
     server: full
     title: appels_offres
