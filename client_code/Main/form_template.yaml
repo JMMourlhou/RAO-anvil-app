@@ -8,7 +8,7 @@ components:
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       - layout_properties: {slot: card-content-container-slot}
         name: text_box_mot_clef
-        properties: {label: Mots clefs, leading_icon: 'mi:key', placeholder: Entrer le mot clé recherché, text: ''}
+        properties: {label: Mots clefs, leading_icon: 'mi:key', placeholder: Entrer le mot clé recherché, text: sst secour}
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       layout_properties: {slot: card-content-container-slot}
       name: card_content_container_2
