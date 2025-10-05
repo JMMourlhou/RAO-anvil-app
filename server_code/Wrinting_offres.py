@@ -25,6 +25,7 @@ def sov_offres(offre):
         date_publication = offre.get("date_publication", None)
         code_cpv         = offre.get("cpv", "")    
         departement      = offre.get("departement", "")
+        date_limite      = offre.get("datefindiffusion", None)
 
         # Insertion
         app_tables.appels_offres.add_row(
@@ -36,7 +37,8 @@ def sov_offres(offre):
             date_scraping     = datetime.fromisoformat(date_scraping[:19]),
             date_publication  = date_publication,
             code_cpv          = code_cpv,
-            departement       = departement
+            departement       = departement,
+            date_limite       = date_limite
         )
 
         return "ok"
