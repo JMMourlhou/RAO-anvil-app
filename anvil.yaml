@@ -18,9 +18,6 @@ db_schema:
     - admin_ui: {order: -1, width: 137}
       name: date_publication
       type: date
-    - admin_ui: {order: 4, width: 200}
-      name: code_cpv
-      type: string
     - admin_ui: {order: -1.375, width: 200}
       name: acheteur
       type: string
@@ -30,6 +27,9 @@ db_schema:
     - admin_ui: {order: -1.75, width: 116}
       name: departement
       type: string
+    - admin_ui: {order: -3, width: 131}
+      name: vu
+      type: bool
     server: full
     title: appels_offres
 dependencies:

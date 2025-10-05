@@ -23,7 +23,6 @@ def sov_offres(offre):
         source           = offre.get("source", "")
         date_scraping    = offre.get("date_scraping", datetime.now().isoformat())
         date_publication = offre.get("date_publication", None)
-        code_cpv         = offre.get("cpv", "")    
         departement      = offre.get("departement", "")
 
         # Insertion
@@ -35,7 +34,6 @@ def sov_offres(offre):
             source            = source,
             date_scraping     = datetime.fromisoformat(date_scraping[:19]),
             date_publication  = date_publication,
-            code_cpv          = code_cpv,
             departement       = departement,
         )
         return "ok"

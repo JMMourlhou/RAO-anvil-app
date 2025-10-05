@@ -21,5 +21,11 @@ class RowTemplate1(RowTemplate1Template):
         """This method is called clicked"""
         from anvil.js import window
         window.open(self.link_1.text)
+
+    def checkbox_1_change(self, **event_args):
+        """This method is called when the component is checked or unchecked"""
+        result = anvil.server.call("check", self.checkbox_1.checked)
+        if not result:
+            alert("Erreur en modif")
         
         
