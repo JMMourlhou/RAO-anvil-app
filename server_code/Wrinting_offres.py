@@ -6,28 +6,37 @@ from datetime import datetime
 # =========================================================================
 @anvil.server.callable           # écriture des offres
 def sov_offres(offre):
+    # test num avis non existant
+    avis_num         = offre.get("idweb", "")
+    row = app_tables.appels_offres.get(avis_num=avis_num)
+    if row:
+        msg = f"Avis num {avis_num} existant."
+        print(msg)
+        return msg
+        
     """Enregistre une offre dans la table appels_offres"""
     try:
         # Protection : toutes les clés existent
         titre            = offre.get("titre", "")
         lien             = offre.get("lien", "")
-        organisme        = offre.get("organisme", offre.get("acheteur", ""))
+        acheteur         = offre.get("acheteur", "")
         source           = offre.get("source", "")
         date_scraping    = offre.get("date_scraping", datetime.now().isoformat())
         date_publication = offre.get("date_publication", None)
-        code_cpv         = offre.get("cpv", "")
-        acheteur         = offre.get("acheteur", "")
+        code_cpv         = offre.get("cpv", "")    
+        departement      = offre.get("departement", "")
 
         # Insertion
         app_tables.appels_offres.add_row(
+            avis_num          = avis_num,
             titre             = titre,
             lien              = lien,
-            organisme         = organisme,
+            acheteur         = acheteur,
             source            = source,
             date_scraping     = datetime.fromisoformat(date_scraping[:19]),
             date_publication  = date_publication,
             code_cpv          = code_cpv,
-            acheteur          = acheteur,
+            departement       = departement
         )
 
         return "ok"
