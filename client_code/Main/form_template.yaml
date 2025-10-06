@@ -4,21 +4,22 @@ components:
     - components:
       - layout_properties: {slot: card-content-container-slot}
         name: Titre
-        properties: {align: center, bold: true, italic: true, line_height: '', scale: large, style: body, text: Recherche des appels d'offres SST, text_color: 'theme:Primary'}
+        properties: {align: center, background_color: 'theme:Tertiary Container', bold: true, italic: true, line_height: '', scale: large, style: body, text: Recherche des appels d'offres SST, text_color: 'theme:On Background'}
         type: form:dep_lin1x4oec0ytd:_Components.Text
       - layout_properties: {slot: card-content-container-slot}
         name: text_box_url
-        properties: {appearance: filled, label: Site, leading_icon: 'mi:web', placeholder: Entrez l'URL du site, text: 'https://www.boamp.fr'}
+        properties: {appearance: outlined, display_text_color: 'theme:Primary', label: Site, label_italic: true, label_underline: false, leading_icon: 'mi:web', placeholder: Entrez l'URL du site, text: 'https://www.boamp.fr', trailing_icon: ''}
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-      - layout_properties: {slot: card-content-container-slot}
+      - event_bindings: {pressed_enter: text_box_mot_clef_pressed_enter}
+        layout_properties: {slot: card-content-container-slot}
         name: text_box_mot_clef
-        properties: {label: Mots clefs, leading_icon: 'mi:key', placeholder: Entrer le mot clé recherché, text: SST}
+        properties: {appearance: outlined, display_text_color: 'theme:Primary', label: Mots clefs, label_italic: true, leading_icon: 'mi:key', placeholder: Entrer le mot clé recherché, text: SST}
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       - components:
         - event_bindings: {pressed_enter: text_box_nb_jours_pressed_enter}
           layout_properties: {grid_position: 'HMDRWH,AQTANR'}
           name: text_box_nb_jours
-          properties: {label: Recherche sur les x derniers jours, leading_icon: 'mi:search', placeholder: Nb de jours, text: '1'}
+          properties: {appearance: outlined, character_limit: 2, display_text_color: 'theme:On Primary Container', label: Recherche sur les x derniers jours, label_italic: true, leading_icon: 'mi:search', placeholder: Nb de jours, text: '10'}
           type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
         layout_properties: {slot: card-content-container-slot}
         name: column_panel_2
@@ -26,27 +27,31 @@ components:
         type: ColumnPanel
       - components:
         - event_bindings: {click: button_1_click}
-          layout_properties: {grid_position: 'DKYSIH,IBZICI'}
+          layout_properties: {}
           name: button_1
-          properties: {align: center, icon: 'mi:shadow_minus', text: Tout Effacer}
+          properties: {align: center, icon: 'mi:delete_outline', text: Tout Effacer, text_color: ''}
           type: form:dep_lin1x4oec0ytd:_Components.Button
+        - layout_properties: {width: 93.96153125000001}
+          name: text_nb_offres
+          properties: {align: center, icon: '', scale: small, style: label, text_color: 'theme:Error'}
+          type: form:dep_lin1x4oec0ytd:_Components.Text
         - event_bindings: {click: search_click}
-          layout_properties: {grid_position: 'DKYSIH,VHBPTV'}
           name: search
           properties: {align: center, text: Rechercher}
           type: form:dep_lin1x4oec0ytd:_Components.Button
         layout_properties: {slot: card-content-container-slot}
-        name: column_panel_1
-        properties: {}
-        type: ColumnPanel
+        name: flow_panel_1
+        properties: {align: justify, vertical_align: middle}
+        type: FlowPanel
       - components:
         - components:
-          - name: repeating_panel_1
-            properties: {item_template: Main.RowTemplate1}
+          - layout_properties: {}
+            name: repeating_panel_1
+            properties: {background: 'theme:Tertiary Container', border: '', item_template: Main.RowTemplate1}
             type: RepeatingPanel
           layout_properties: {slot: card-content-slot}
           name: data_grid_1
-          properties: {auto_header: true, background: '', rows_per_page: 4}
+          properties: {auto_header: true, background: '', rows_per_page: null, show_page_controls: false}
           type: DataGrid
         layout_properties: {slot: card-content-container-slot}
         name: card_2

@@ -11,7 +11,9 @@ class Main(MainTemplate):
     def __init__(self, **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
-        self.repeating_panel_1.items = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
+        list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
+        self.text_nb_offres.text = f"{len(list_offres)} offres"
+        self.repeating_panel_1.items = list_offres
         # Any code you write here will run before the form opens.
 
     def search_click(self, **event_args):
@@ -23,11 +25,13 @@ class Main(MainTemplate):
                 result = anvil.server.call("sov_offres", offre)
                 if result == "ok":
                     print(f"{offre['titre']} sauvée !")
-                    self.repeating_panel_1.items = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
+                    list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
+                    self.text_nb_offres.text = f"{len(list_offres)} offres"
+                    self.repeating_panel_1.items = list_offres
                 else:
                     alert(result)
         else:
-            alert("Pas d'offres")
+            alert("Pas d'offre trouvée !")
 
     def button_1_click(self, **event_args):
         """This method is called when the component is clicked."""
@@ -38,6 +42,10 @@ class Main(MainTemplate):
             open_form('Main')
 
     def text_box_nb_jours_pressed_enter(self, **event_args):
+        """This method is called when the user presses enter in this component."""
+        self.search_click()
+
+    def text_box_mot_clef_pressed_enter(self, **event_args):
         """This method is called when the user presses enter in this component."""
         self.search_click()
             
