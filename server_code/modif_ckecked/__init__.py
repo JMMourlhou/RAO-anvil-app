@@ -13,12 +13,16 @@ def check(row, checked):
         return e
     
 # =========================================================================
-@anvil.server.callable           # éffacements des offres
-def del_all():
+@anvil.server.callable           # éffacements des offres sélectionnées (vu=True)
+def treatment_on_all_checked(list, option):
     try:
-        list = app_tables.appels_offres.search()
         for row in list:
-            row.delete()
+            if option == 3:           # Del all checked
+                row.delete()
+            if option == 1:           # Select all offres
+                row.update(vu=True) 
+            if option == 2:           # Désecte all offres 
+                row.update(vu=False)
         return True
     except Exception as e:
         return e

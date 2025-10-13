@@ -3,7 +3,8 @@ import anvil.tables.query as q
 from anvil.tables import app_tables
 import anvil.server
 from datetime import datetime
-# =========================================================================
+
+
 @anvil.server.callable           # écriture des offres
 def sov_offres(offre):
     # test num avis non existant
@@ -30,7 +31,7 @@ def sov_offres(offre):
             avis_num          = avis_num,
             titre             = titre,
             lien              = lien,
-            acheteur         = acheteur,
+            acheteur          = acheteur,
             source            = source,
             date_scraping     = datetime.fromisoformat(date_scraping[:19]),
             date_publication  = date_publication,
