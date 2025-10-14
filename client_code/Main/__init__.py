@@ -87,13 +87,13 @@ class Main(MainTemplate):
                 else:
                     open_form('Main')
                     
-            if self.option == 3:  # del offres selectionnées 
-                list = app_tables.appels_offres.search(vu=True)
-                result = anvil.server.call("treatment_on_all_checked", list, self.option)
-                if not result:
-                    alert("Erreur en Effacement")
-                else:
-                    open_form('Main')
+        if self.option == 3:  # del offres selectionnées 
+            list = app_tables.appels_offres.search(vu=True)
+            result = anvil.server.call("treatment_on_all_checked", list, self.option)
+            if not result:
+                alert("Erreur en Effacement")
+            else:
+                open_form('Main')
 
         
 
