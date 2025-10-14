@@ -11,19 +11,21 @@ class Main(MainTemplate):
     def __init__(self, **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
+        
         self.option = 0 # pour envoi en sélection(1), déselection(2), del(3)
-        list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
-        if len(list_offres)>0:
-            self.repeating_panel_1.items = list_offres
-            if len(list_offres)==1:
-                self.text_nb_offres.text = f"{len(list_offres)} offre"
-            else:   
-                self.text_nb_offres.text = f"{len(list_offres)} offres"
-            self.column_panel_select.visible = True
-            #alert(f"nb d'offres: {len(list_offres)}")
-        else:
-            self.column_panel_select.visible = False
-            #alert(f"pas d'offres: {len(list_offres)}")
+        with anvil.server.no_loading_indicator:
+            list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
+            if len(list_offres)>0:
+                self.repeating_panel_1.items = list_offres
+                if len(list_offres)==1:
+                    self.text_nb_offres.text = f"{len(list_offres)} offre"
+                else:   
+                    self.text_nb_offres.text = f"{len(list_offres)} offres"
+                self.column_panel_select.visible = True
+                #alert(f"nb d'offres: {len(list_offres)}")
+            else:
+                self.column_panel_select.visible = False
+                #alert(f"pas d'offres: {len(list_offres)}")
         
         # Any code you write here will run before the form opens.
 
@@ -76,21 +78,22 @@ class Main(MainTemplate):
         self.traitement()
 
     def traitement(self):
-        if self.option == 1 or self.option == 2: # Tout sélectionner(1) ou Tout délectionner(2) 
-            list = app_tables.appels_offres.search()
-            result = anvil.server.call("treatment_on_all_checked", list, self.option)
-            if not result:
-                alert("Erreur !")
-            else:
-                open_form('Main')
-                
-        if self.option == 3:  # del offres selectionnées 
-            list = app_tables.appels_offres.search(vu=True)
-            result = anvil.server.call("treatment_on_all_checked", list, self.option)
-            if not result:
-                alert("Erreur en Effacement")
-            else:
-                open_form('Main')
+        with anvil.server.no_loading_indicator:
+            if self.option == 1 or self.option == 2: # Tout sélectionner(1) ou Tout délectionner(2) 
+                list = app_tables.appels_offres.search()
+                result = anvil.server.call("treatment_on_all_checked", list, self.option)
+                if not result:
+                    alert("Erreur !")
+                else:
+                    open_form('Main')
+                    
+            if self.option == 3:  # del offres selectionnées 
+                list = app_tables.appels_offres.search(vu=True)
+                result = anvil.server.call("treatment_on_all_checked", list, self.option)
+                if not result:
+                    alert("Erreur en Effacement")
+                else:
+                    open_form('Main')
 
         
 
