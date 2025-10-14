@@ -5,7 +5,7 @@ import anvil.tables as tables
 import anvil.tables.query as q
 from anvil.tables import app_tables
 import m3.components as m3
-
+from .. import ColourChanger
 
 class Main(MainTemplate):
     def __init__(self, **properties):
@@ -63,7 +63,6 @@ class Main(MainTemplate):
     def button_tout_deselectionner_click(self, **event_args):
         """This method is called when the component is clicked."""
         self.option = 2
-        self.column_panel_select.visible = False
         self.traitement()
         
         
@@ -79,7 +78,7 @@ class Main(MainTemplate):
 
     def traitement(self):
         with anvil.server.no_loading_indicator:
-            if self.option == 1 or self.option == 2: # Tout sélectionner(1) ou Tout délectionner(2) 
+            if self.option == 1 or self.option == 2: # Tout sélectionner(1) ou Tout délectionner(2) sans spinner
                 list = app_tables.appels_offres.search()
                 result = anvil.server.call("treatment_on_all_checked", list, self.option)
                 if not result:
@@ -87,7 +86,7 @@ class Main(MainTemplate):
                 else:
                     open_form('Main')
                     
-        if self.option == 3:  # del offres selectionnées 
+        if self.option == 3:  # del offres selectionnées avec le spinner
             list = app_tables.appels_offres.search(vu=True)
             result = anvil.server.call("treatment_on_all_checked", list, self.option)
             if not result:
@@ -100,5 +99,19 @@ class Main(MainTemplate):
     def button_selection_mailed_click(self, **event_args):
         """This method is called when the component is clicked."""
         pass
+
+    def button_1_click(self, **event_args):
+        """This method is called when the component is clicked."""
+        ColourChanger.set_theme({'Primary 500': '#4CAF50',
+                                 'Primary 700': '#388E3C',
+                                 'Secondary 500': '#FF9800',
+                                 'Secondary 700': '#F57C00'})
+
+    def button_2_click(self, **event_args):
+        """This method is called when the component is clicked."""
+        ColourChanger.set_theme({'Primary 500': '#2196F3',
+                                 'Primary 700': '#1976D2',
+                                 'Secondary 500': '#FF9800',
+                                 'Secondary 700': '#F57C00'})
 
     
