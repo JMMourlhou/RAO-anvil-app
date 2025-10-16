@@ -2,13 +2,11 @@ unique_ids:
   assets:
     AMSport sans fond.png: '1759416028256937201010136.2407'
     Logo F S small croped.png: '1760378726836375084511558.66864'
-    standard-page.html: '176044565276082423376997.7819'
     theme.css: 6G44GIEQQRJLILWU6GQSQO5BTDFT5ZI3
   forms:
     Main: '1759415917666160805650256.65305'
     Main.RowTemplate1: '1759682034622432406168169.7513'
-  modules:
-    ColourChanger: '1760444893198522919780519.2335'
+  modules: {}
   scripts: {}
   server_modules:
     Writing_offres: '1759417725261747789594644.7252'

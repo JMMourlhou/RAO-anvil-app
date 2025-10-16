@@ -5,7 +5,7 @@ import anvil.tables as tables
 import anvil.tables.query as q
 from anvil.tables import app_tables
 import m3.components as m3
-from .. import ColourChanger
+
 
 class Main(MainTemplate):
     def __init__(self, **properties):
@@ -100,18 +100,6 @@ class Main(MainTemplate):
         """This method is called when the component is clicked."""
         pass
 
-    def button_1_click(self, **event_args):
-        """This method is called when the component is clicked."""
-        ColourChanger.set_theme({'Primary 500': '#4CAF50',
-                                 'Primary 700': '#388E3C',
-                                 'Secondary 500': '#FF9800',
-                                 'Secondary 700': '#F57C00'})
 
-    def button_2_click(self, **event_args):
-        """This method is called when the component is clicked."""
-        ColourChanger.set_theme({'Primary 500': '#2196F3',
-                                 'Primary 700': '#1976D2',
-                                 'Secondary 500': '#FF9800',
-                                 'Secondary 700': '#F57C00'})
 
     
