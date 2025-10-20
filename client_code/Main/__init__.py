@@ -40,11 +40,11 @@ class Main(MainTemplate):
         mots_clefs = [m.strip() for m in mots_texte.split(",") if m.strip()]
         depts = [d.strip() for d in deps_texte.split(",") if d.strip()]
         periode = int(self.text_box_nb_jours.text)
-    
+        print(f"Recherche sur les {periode} derniers jours")
         print("🔍 Mots-clés saisis :", mots_clefs)
         print("🗺️ Départements saisis :", depts)
         try:
-            offres = anvil.server.call("get_boamp_offres", mots_clefs , depts, periode)
+            offres = anvil.server.call("get_boamp_offres", mots_clefs , depts, 100, 1, periode)
             if offres:
                 for offre in offres:
                     result = anvil.server.call("sov_offres", offre)
