@@ -1,7 +1,7 @@
 allow_embedding: false
 db_schema:
   appels_offres:
-    client: search
+    client: full
     columns:
     - admin_ui: {order: 0, width: 446}
       name: titre
@@ -30,6 +30,9 @@ db_schema:
     - admin_ui: {order: -3, width: 131}
       name: vu
       type: bool
+    - admin_ui: {order: -0.5, width: 200}
+      name: date_limite_rep
+      type: date
     server: full
     title: appels_offres
 dependencies:

@@ -8,14 +8,23 @@ import m3.components as m3
 
 
 class Main(MainTemplate):
-    def __init__(self, **properties):
+    def __init__(self, mots="SST", nb_jours="10", departements="34", **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
         
         self.option = 0 # pour envoi en sélection(1), déselection(2), del(3)
         with anvil.server.no_loading_indicator:
+            # Réaffichage des paramètres si il y a eu un effacement de toutes les offres
+            if mots != "SST":
+                self.text_box_mot_clef.text=mots
+            if nb_jours != "10":
+                self.text_box_nb_jours.text=nb_jours
+            if departements != "34":
+                self.text_box_departements.text=departements
+                
             list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
             if len(list_offres)>0:
+                self.button_selection_mailed.visible = True
                 self.repeating_panel_1.items = list_offres
                 if len(list_offres)==1:
                     self.text_nb_offres.text = f"{len(list_offres)} offre"
@@ -25,6 +34,7 @@ class Main(MainTemplate):
                 #alert(f"nb d'offres: {len(list_offres)}")
             else:
                 self.column_panel_select.visible = False
+                
                 #alert(f"pas d'offres: {len(list_offres)}")
         
         # Any code you write here will run before the form opens.
@@ -49,16 +59,17 @@ class Main(MainTemplate):
             offres = anvil.server.call("get_boamp_offres", mots_clefs , depts,         100,   1,     periode)
             if offres:
                 for offre in offres:
+                    print(offre)
                     result = anvil.server.call("sov_offres", offre)
-                    if result == "ok":
-                        #print(f"{offre['titre']} sauvée !")
-                        list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
-                        self.text_nb_offres.text = f"{len(list_offres)} offres"
-                        self.repeating_panel_1.items = list_offres
-                        self.column_panel_select.visible = True
-                    else:
+                    if result != "ok":
                         self.column_panel_select.visible = False
                         alert(result)
+                    
+                list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
+                self.text_nb_offres.text = f"{len(list_offres)} offres"
+                self.repeating_panel_1.items = list_offres
+                self.column_panel_select.visible = True
+                self.button_selection_mailed.visible = True
             else:
                 alert("Désolé... pas d'offres trouvées !")
         except Exception as e:
@@ -82,40 +93,51 @@ class Main(MainTemplate):
         self.option = 2
         self.traitement()
         
-        
     def button_tout_selection_click(self, **event_args):
         """This method is called when the component is clicked."""
         self.option = 1
         self.traitement()
-        
-    def button_del_checked_click(self, **event_args):
+
+    def button_inverser_selection_click(self, **event_args):
         """This method is called when the component is clicked."""
-        self.option = 3
+        self.option = 4
         self.traitement()
+        
+    def button_del_all_click(self, **event_args):
+        """This method is called when the component is clicked."""
+        r=alert("Effacer toutes les offres affichées ?",dismissible=False,buttons=[("oui",True),("non",False)])
+        if r :   # oui
+            app_tables.appels_offres.delete_all_rows()
+            open_form('Main',self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
 
     def traitement(self):
-        with anvil.server.no_loading_indicator:
-            if self.option == 1 or self.option == 2: # Tout sélectionner(1) ou Tout délectionner(2) sans spinner
-                list = app_tables.appels_offres.search()
-                result = anvil.server.call("treatment_on_all_checked", list, self.option)
-                if not result:
-                    alert("Erreur !")
-                else:
-                    open_form('Main')
+        #with anvil.server.no_loading_indicator:
+        # self.option 1 = Tout sélectionner   /    2 = Tout déselectionner
+        list = app_tables.appels_offres.search()
+        result = anvil.server.call("treatment_on_all_checked", list, self.option)
+        if not result:
+            alert("Erreur !")
+        else:
+            open_form('Main')
                     
-        if self.option == 3:  # del offres selectionnées avec le spinner
-            list = app_tables.appels_offres.search(vu=True)
-            result = anvil.server.call("treatment_on_all_checked", list, self.option)
-            if not result:
-                alert("Erreur en Effacement")
-            else:
-                open_form('Main')
-
-        
-
+                       
     def button_selection_mailed_click(self, **event_args):
         """This method is called when the component is clicked."""
         pass
+
+    def button_del_checked_click(self, **event_args):
+        """This method is called when the component is clicked."""
+        r=alert("Effacer toutes les offres marquées ?",dismissible=False,buttons=[("oui",True),("non",False)])
+        if r :   # oui
+            list = app_tables.appels_offres.search(vu=True)
+            self.option = 3 # On efface les offres marquées (vu=True)
+            result = anvil.server.call("treatment_on_all_checked", list, self.option)
+            if not result:
+                alert("Erreur !")
+            else:
+                open_form('Main')
+
+    
 
 
 

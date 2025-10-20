@@ -2,25 +2,29 @@ components:
 - components:
   - components:
     - components:
-      - layout_properties: {grid_position: 'PQGQEF,LRCGAB'}
+      - layout_properties: {grid_position: 'WRSRQD,YOANUS PQGQEF,LRCGAB'}
         name: image_1_copy
         properties: {height: 58.697265625, source: _/theme/Logo F S small croped.png}
         type: Image
-      - layout_properties: {grid_position: 'PQGQEF,TLPAXD XWCEXU,ZSIEOF'}
+      - layout_properties: {grid_position: 'WRSRQD,YOANUS PQGQEF,TLPAXD XWCEXU,ZSIEOF'}
         name: spacer_1
         properties: {height: 1.165130615234375}
         type: Spacer
-      - layout_properties: {grid_position: 'PQGQEF,TLPAXD YOFUGZ,VHRHIE'}
+      - layout_properties: {grid_position: 'WRSRQD,YOANUS PQGQEF,TLPAXD YOFUGZ,HOMXPX'}
+        name: spacer_2
+        properties: {height: 34.40367126464844}
+        type: Spacer
+      - layout_properties: {grid_position: 'WRSRQD,YOANUS PQGQEF,TLPAXD YOFUGZ,VHRHIE'}
         name: Titre
-        properties: {align: center, background_color: '', bold: true, font_size: 24, italic: true, line_height: '', scale: large, style: body, text: Recherche Appels d'Offres, text_color: '', underline: false}
+        properties: {align: left, background_color: '', bold: true, font_size: 24, icon: '', italic: true, line_height: '', scale: large, style: body, text: 'Recherche Appels d''Offres   ', text_color: '', underline: false}
         type: form:dep_lin1x4oec0ytd:_Components.Text
-      - layout_properties: {grid_position: 'PQGQEF,TLPAXD DNFPDW,SPIXUA'}
+      - layout_properties: {grid_position: 'WRSRQD,YOANUS PQGQEF,TLPAXD TWLKXW,SVOTHB'}
         name: text_nb_offres
-        properties: {align: center, icon: '', scale: small, style: label, text_color: 'theme:Error'}
+        properties: {align: center, bold: true, font_size: 14, icon: '', scale: small, style: label, text_color: 'theme:Error'}
         type: form:dep_lin1x4oec0ytd:_Components.Text
       layout_properties: {slot: card-content-container-slot}
       name: column_panel_4
-      properties: {col_widths: '{"RPRPNI":50,"LRCGAB":10,"TLPAXD":50}', spacing_above: none, spacing_below: none}
+      properties: {col_widths: '{"LRCGAB":10,"TLPAXD":50,"HOMXPX":15,"VHRHIE":45}', spacing_above: none, spacing_below: none}
       type: ColumnPanel
     - layout_properties: {slot: card-content-container-slot}
       name: text_box_url
@@ -49,13 +53,9 @@ components:
     - components:
       - components:
         - event_bindings: {click: button_search_click}
-          layout_properties: {width: 302.78410302734375}
+          layout_properties: {expand: true, width: 371.5975283203125}
           name: button_search
           properties: {align: center, appearance: filled, background_color: '', icon: 'mi:manage_search', icon_color: 'theme:Erro', icon_size: 33, text: Rechercher, text_color: ''}
-          type: form:dep_lin1x4oec0ytd:_Components.Button
-        - event_bindings: {click: button_selection_mailed_click}
-          name: button_selection_mailed
-          properties: {align: full, icon: 'mi:mail_outline', icon_color: '', icon_size: 33, text: Envoi  offres sélectionnées, text_color: '', visible: false}
           type: form:dep_lin1x4oec0ytd:_Components.Button
         layout_properties: {grid_position: 'QCZVBS,OQWRSX'}
         name: flow_panel_1
@@ -67,23 +67,38 @@ components:
       type: ColumnPanel
     - components:
       - event_bindings: {click: button_tout_selection_click}
-        layout_properties: {grid_position: 'MFXSVF,BNNDTX'}
+        layout_properties: {grid_position: 'MFXSVF,BNNDTX LPSECM,KAGDDS'}
         name: button_tout_selection
         properties: {align: full, icon: 'mi:select_check_box', icon_size: 33, text: Tout sélectionner, text_color: ''}
         type: form:dep_lin1x4oec0ytd:_Components.Button
-      - event_bindings: {click: button_del_checked_click}
-        layout_properties: {grid_position: 'MFXSVF,MIKOST'}
-        name: button_del_checked
-        properties: {align: full, background_color: 'theme:Tertiary Container', icon: 'mi:delete_sweep', icon_color: 'theme:Error', icon_size: 33, text: Enlever les  offres sélectionnées, text_color: 'theme:Primary'}
-        type: form:dep_lin1x4oec0ytd:_Components.Button
       - event_bindings: {click: button_tout_deselectionner_click}
-        layout_properties: {grid_position: 'MFXSVF,TPCTAF'}
+        layout_properties: {grid_position: 'MFXSVF,BNNDTX KTXKPY,MTJDBV'}
         name: button_tout_deselectionner
         properties: {align: full, icon: 'mi:check_box_outline_blank', icon_size: 33, text: Tout désélectionner, text_color: ''}
         type: form:dep_lin1x4oec0ytd:_Components.Button
+      - event_bindings: {click: button_inverser_selection_click}
+        layout_properties: {grid_position: 'MFXSVF,BNNDTX XBRMHA,JESQLK'}
+        name: button_inverser_selection
+        properties: {align: full, icon: 'mi:check_box_outline_blank', icon_size: 33, text: Inverser la Sélection, text_color: ''}
+        type: form:dep_lin1x4oec0ytd:_Components.Button
+      - event_bindings: {click: button_del_all_click}
+        layout_properties: {grid_position: 'MFXSVF,MIKOST WYZUTF,PGIKEK'}
+        name: button_del_all
+        properties: {align: full, background_color: 'theme:Tertiary Container', icon: 'mi:delete_sweep', icon_color: 'theme:Error', icon_size: 33, text: Tout Effacer, text_color: 'theme:Primary'}
+        type: form:dep_lin1x4oec0ytd:_Components.Button
+      - event_bindings: {click: button_del_checked_click}
+        layout_properties: {grid_position: 'MFXSVF,MIKOST KKBFAQ,ZIYZUU'}
+        name: button_del_checked
+        properties: {align: full, background_color: 'theme:Tertiary Container', icon: 'mi:delete_sweep', icon_color: 'theme:Error', icon_size: 33, text: Effacer les offres marquées, text_color: 'theme:Primary'}
+        type: form:dep_lin1x4oec0ytd:_Components.Button
+      - event_bindings: {click: button_selection_mailed_click}
+        layout_properties: {grid_position: 'MFXSVF,MIKOST ONXQWH,ZUYFYM'}
+        name: button_selection_mailed
+        properties: {align: full, background_color: green, icon: 'mi:mail_outline', icon_color: '', icon_size: 33, text: Envoi  offres sélectionnées, text_color: 'theme:Primary', visible: false}
+        type: form:dep_lin1x4oec0ytd:_Components.Button
       layout_properties: {slot: card-content-container-slot}
       name: column_panel_select
-      properties: {col_widths: '{"BNNDTX":22,"TPCTAF":24,"MIKOST":34}', visible: false, wrap_on: mobile}
+      properties: {col_widths: '{"BNNDTX":29,"MIKOST":31}', visible: false, wrap_on: mobile}
       type: ColumnPanel
     - components:
       - components:

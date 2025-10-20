@@ -13,23 +13,25 @@ class RowTemplate1(RowTemplate1Template):
         self.init_components(**properties)
 
         # Any code you write here will run before the form opens.
-        self.text_1.text = str(self.item['date_publication'].strftime("%d/%m/%Y"))
-        self.text_2.text = self.item['titre']
-        self.link_1.text = self.item['lien']
-        self.text_3.text = self.item['departement']
-        self.checkbox_1.checked = self.item['vu']
+        self.text_date_publication.text = str(self.item['date_publication'].strftime("%d/%m/%Y"))
+        self.text_titre.text = self.item['titre']
+        self.link_lien.text = self.item['lien']
+        self.text_departement.text = self.item['departement']
+        self.text_date_limite_rep.text = str(self.item['date_limite_rep'].strftime("%d/%m/%Y"))
+        self.checkbox_vu.checked = self.item['vu']
 
-    def link_1_click(self, **event_args):
+    def link_lien_click(self, **event_args):
         """This method is called clicked"""
         from anvil.js import window
-        self.checkbox_1.checked = True
-        self.checkbox_1_change()
-        window.open(self.link_1.text)
+        self.checkbox_lien.checked = True
+        self.checkbox_lien_change()
+        window.open(self.link_lien.text)
         
 
-    def checkbox_1_change(self, **event_args):
+    def checkbox_vu_change(self, **event_args):
         """This method is called when the component is checked or unchecked"""
-        result = anvil.server.call("check", self.item, self.checkbox_1.checked)
+        with anvil.server.no_loading_indicator:
+            result = anvil.server.call("check", self.item, self.checkbox_vu.checked)
         if not result:
             alert("Erreur en Modification")
 

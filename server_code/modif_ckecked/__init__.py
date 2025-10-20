@@ -23,6 +23,11 @@ def treatment_on_all_checked(list, option):
                 row.update(vu=True) 
             if option == 2:           # Désecte all offres 
                 row.update(vu=False)
+            if option == 4:           # Inverse sélection
+                if row['vu'] is True:
+                    row.update(vu=False)
+                else:
+                    row.update(vu=True)
         return True
     except Exception as e:
         return e
