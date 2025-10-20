@@ -32,22 +32,37 @@ class Main(MainTemplate):
     def button_search_click(self, **event_args):
         """This method is called when the component is clicked."""
         #offres = anvil.server.call("get_sst_offres",self.text_box_url.text, self.text_box_mot_clef.text)   # uplink sur Pi5
-        offres = anvil.server.call("get_boamp_offres", self.text_box_mot_clef.text, int(self.text_box_nb_jours.text))
-        if offres:
-            for offre in offres:
-                result = anvil.server.call("sov_offres", offre)
-                if result == "ok":
-                    #print(f"{offre['titre']} sauvée !")
-                    list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
-                    self.text_nb_offres.text = f"{len(list_offres)} offres"
-                    self.repeating_panel_1.items = list_offres
-                    self.column_panel_select.visible = True
-                else:
-                    self.column_panel_select.visible = False
-                    alert(result)
-        else:
-            alert("Désolé... pas d'offres trouvées !")
+        # --- Lecture et nettoyage des champs texte ---
+        mots_texte = self.text_box_mot_clef.text or ""
+        deps_texte = self.text_box_departements.text or ""
+    
+        # --- Conversion en listes (séparateur = virgule) ---
+        mots_clefs = [m.strip() for m in mots_texte.split(",") if m.strip()]
+        depts = [d.strip() for d in deps_texte.split(",") if d.strip()]
+        periode = int(self.text_box_nb_jours.text)
+    
+        print("🔍 Mots-clés saisis :", mots_clefs)
+        print("🗺️ Départements saisis :", depts)
+        try:
+            offres = anvil.server.call("get_boamp_offres", mots_clefs , depts, periode)
+            if offres:
+                for offre in offres:
+                    result = anvil.server.call("sov_offres", offre)
+                    if result == "ok":
+                        #print(f"{offre['titre']} sauvée !")
+                        list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
+                        self.text_nb_offres.text = f"{len(list_offres)} offres"
+                        self.repeating_panel_1.items = list_offres
+                        self.column_panel_select.visible = True
+                    else:
+                        self.column_panel_select.visible = False
+                        alert(result)
+            else:
+                alert("Désolé... pas d'offres trouvées !")
+        except Exception as e:
+            alert(f"Erreur lors de la recherche : {e}")
 
+            
     def text_box_nb_jours_pressed_enter(self, **event_args):
         """This method is called when the user presses enter in this component."""
         self.button_search_click()
@@ -56,7 +71,7 @@ class Main(MainTemplate):
         """This method is called when the user presses enter in this component."""
         self.button_search_click()
 
-    def text_box_departement_pressed_enter(self, **event_args):
+    def text_box_departements_pressed_enter(self, **event_args):
         """This method is called when the user presses enter in this component."""
         self.button_search_click()
 
