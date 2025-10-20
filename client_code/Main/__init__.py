@@ -44,7 +44,9 @@ class Main(MainTemplate):
         print("🔍 Mots-clés saisis :", mots_clefs)
         print("🗺️ Départements saisis :", depts)
         try:
-            offres = anvil.server.call("get_boamp_offres", mots_clefs , depts, 100, 1, periode)
+            # Appel du script "get_boamp_offres" en uplink sur Pi5
+            #                                                           departements,  rows,  page,  nb de jours
+            offres = anvil.server.call("get_boamp_offres", mots_clefs , depts,         100,   1,     periode)
             if offres:
                 for offre in offres:
                     result = anvil.server.call("sov_offres", offre)
