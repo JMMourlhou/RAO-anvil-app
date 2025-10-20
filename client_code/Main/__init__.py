@@ -20,13 +20,13 @@ class Main(MainTemplate):
                 try:
                     row = app_tables.histo.get(email="jmmourlhou@gmail.com")
                     if row:
-                        alert(f"lecture des param de {row['user_id']} !")
+                        #alert(f"lecture des param de {row['user_id']} !")
                         self.text_box_url.text            = row['url']
                         self.text_box_mot_clef.text       = row['mots_cles']
                         self.text_box_nb_jours.text       = row['nb_jours']
                         self.text_box_departements.text   = row['departements']
                         # =====================================
-                        app_tables.appels_offres.delete_all_rows()
+                        app_tables.appels_offres.delete_all_rows()   # effacer les offres précédentes en table appels_offres
                         # =====================================
                         self.button_search.visible = True
                         # =====================================
@@ -56,6 +56,7 @@ class Main(MainTemplate):
                         self.text_nb_offres.text = f"{len(list_offres)} offre"
                     else:   
                         self.text_nb_offres.text = f"{len(list_offres)} offres"
+                    self.text_nb_offres.visible = True
                     self.column_panel_select.visible = True
                     # =====================================
                     self.button_search.visible = False
@@ -94,7 +95,13 @@ class Main(MainTemplate):
                         alert(result)
                     
                 list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
-                self.text_nb_offres.text = f"{len(list_offres)} offres"
+                
+                if len(list_offres)==1:
+                    self.text_nb_offres.text = f"{len(list_offres)} offre"
+                else:   
+                    self.text_nb_offres.text = f"{len(list_offres)} offres"
+                self.text_nb_offres.visible = True
+                
                 self.repeating_panel_1.items = list_offres
                 self.data_grid_offres.visible = True
                 self.column_panel_select.visible = True

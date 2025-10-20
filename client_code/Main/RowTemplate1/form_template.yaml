@@ -50,9 +50,18 @@ components:
   event_bindings: {click: link_lien_click}
   layout_properties: {column: 'null'}
   name: link_lien
-  properties: {align: center, text: Lien}
+  properties:
+    align: center
+    spacing:
+      margin: [null, null, '5', null]
+    text: Lien
   type: form:dep_lin1x4oec0ytd:_Components.Link
 container:
-  properties: {align: center, background: 'theme:Surface', border: 1px dotted, spacing_above: none}
+  properties:
+    align: center
+    background: theme:Surface
+    border: 1px dotted
+    margin: ['7', null, '7', null]
+    spacing_above: none
   type: DataRowPanel
 is_package: true

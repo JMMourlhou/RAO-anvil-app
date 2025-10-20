@@ -6,6 +6,10 @@ components:
         name: spacer_1
         properties: {height: 1.165130615234375}
         type: Spacer
+      - layout_properties: {grid_position: 'BNEWYG,QVGNKE'}
+        name: text_nb_offres
+        properties: {align: center, bold: true, font_size: 17, icon: '', scale: small, style: label, text_color: 'theme:Light Green', visible: true}
+        type: form:dep_lin1x4oec0ytd:_Components.Text
       - layout_properties: {grid_position: 'YOFUGZ,VHRHIE'}
         name: Titre
         properties: {align: center, background_color: '', bold: true, font_size: 26, icon: '', italic: true, line_height: '', scale: large, style: body, text: 'V.A.O.     -      Veille Appels d''Offres   ', text_color: 'theme:Light Green', underline: false}
@@ -17,23 +21,59 @@ components:
     - event_bindings: {change: button_del_before_modif_param}
       layout_properties: {slot: card-content-container-slot}
       name: text_box_url
-      properties: {appearance: outlined, display_text_color: 'theme:Primary', label: Site, label_italic: true, label_underline: false, leading_icon: 'mi:web_traffic', placeholder: Entrez l'URL du site, text: 'https://www.boamp.fr', trailing_icon: ''}
+      properties:
+        appearance: outlined
+        display_text_color: theme:Primary
+        label: Site
+        label_italic: true
+        label_underline: false
+        leading_icon: mi:web_traffic
+        margin: ['1', null, '1', null]
+        placeholder: Entrez l'URL du site
+        text: https://www.boamp.fr
+        trailing_icon: ''
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_mot_clef_pressed_enter}
       layout_properties: {slot: card-content-container-slot}
       name: text_box_mot_clef
-      properties: {appearance: outlined, display_text_color: 'theme:Primary', label: Mot clef, label_italic: true, leading_icon: 'mi:key', placeholder: Entrer le mot clé recherché, text: SST}
+      properties:
+        appearance: outlined
+        display_text_color: theme:Primary
+        label: Mot clef
+        label_italic: true
+        leading_icon: mi:key
+        margin: ['1', null, '1', null]
+        placeholder: Entrer le mot clé recherché
+        text: SST
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - components:
       - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_nb_jours_pressed_enter}
         layout_properties: {grid_position: 'HMDRWH,AQTANR'}
         name: text_box_nb_jours
-        properties: {appearance: outlined, character_limit: null, display_text_color: 'theme:On Primary Container', label: Recherche sur les x derniers jours, label_italic: true, leading_icon: 'mi:search', placeholder: Nb de jours, text: '10'}
+        properties:
+          appearance: outlined
+          character_limit: null
+          display_text_color: theme:On Primary Container
+          label: Recherche sur les x derniers jours
+          label_italic: true
+          leading_icon: mi:search
+          margin: ['1', null, '1', null]
+          placeholder: Nb de jours
+          text: '10'
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_departements_pressed_enter}
         layout_properties: {grid_position: 'MXYRBM,ZKSOFC'}
         name: text_box_departements
-        properties: {appearance: outlined, display_text_color: 'theme:Primary', label: 'Restreindre la recherche sur 1 ou plusieurs départements:   Exemple: 75, 91 ,94', label_italic: true, leading_icon: 'mi:account_balance_wallet', placeholder: ' ', supporting_text: '', text: ''}
+        properties:
+          appearance: outlined
+          display_text_color: theme:Primary
+          label: 'Restreindre la recherche sur 1 ou plusieurs départements:   Exemple: 75, 91 ,94'
+          label_italic: true
+          leading_icon: mi:account_balance_wallet
+          margin: ['1', null, '1', null]
+          placeholder: ' '
+          supporting_text: ''
+          text: ''
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       layout_properties: {slot: card-content-container-slot}
       name: column_panel_2
@@ -44,7 +84,18 @@ components:
         - event_bindings: {click: button_search_click}
           layout_properties: {expand: true, width: 371.5975283203125}
           name: button_search
-          properties: {align: center, appearance: filled, background_color: '', icon: 'mi:manage_search', icon_color: 'theme:Erro', icon_size: 33, text: Rechercher, text_color: '', visible: false}
+          properties:
+            align: center
+            appearance: filled
+            background_color: ''
+            icon: mi:manage_search
+            icon_color: theme:Erro
+            icon_size: 33
+            spacing:
+              margin: ['0', null, '0', null]
+            text: Rechercher
+            text_color: ''
+            visible: false
           type: form:dep_lin1x4oec0ytd:_Components.Button
         layout_properties: {grid_position: 'QCZVBS,OQWRSX'}
         name: flow_panel_1
@@ -58,32 +109,86 @@ components:
       - event_bindings: {click: button_tout_selection_click}
         layout_properties: {grid_position: 'MFXSVF,BNNDTX LPSECM,KAGDDS'}
         name: button_tout_selection
-        properties: {align: full, icon: 'mi:select_check_box', icon_align: right, icon_size: 33, text: Tout sélectionner, text_color: ''}
+        properties:
+          align: full
+          icon: mi:select_check_box
+          icon_align: right
+          icon_size: 33
+          spacing:
+            margin: ['4', null, '4', null]
+          text: Tout sélectionner
+          text_color: ''
         type: form:dep_lin1x4oec0ytd:_Components.Button
       - event_bindings: {click: button_tout_deselectionner_click}
         layout_properties: {grid_position: 'MFXSVF,BNNDTX KTXKPY,MTJDBV'}
         name: button_tout_deselectionner
-        properties: {align: full, icon: 'mi:check_box_outline_blank', icon_align: right, icon_size: 33, text: Tout désélectionner, text_color: ''}
+        properties:
+          align: full
+          icon: mi:check_box_outline_blank
+          icon_align: right
+          icon_size: 33
+          spacing:
+            margin: ['4', null, '4', null]
+            padding: [null, null, '4', null]
+          text: Tout désélectionner
+          text_color: ''
         type: form:dep_lin1x4oec0ytd:_Components.Button
-      - event_bindings: {click: button_del_all_click}
-        layout_properties: {grid_position: 'MFXSVF,BNNDTX PKIJCB,LUVNZE'}
-        name: button_del_all
-        properties: {align: full, background_color: 'theme:Error', icon: 'mi:delete_sweep', icon_align: right, icon_color: '', icon_size: 33, text: Réinitialisation / Affiner, text_color: 'theme:On Tertiary Container'}
+      - event_bindings: {click: button_del_checked_click}
+        layout_properties: {grid_position: 'MFXSVF,BNNDTX PKIJCB,WOYBVW'}
+        name: button_del_checked
+        properties:
+          align: full
+          background_color: theme:Tertiary Container
+          icon: mi:delete_sweep
+          icon_color: theme:Error
+          icon_size: 33
+          spacing:
+            margin: ['4', null, '4', null]
+          text: Effacer les offres marquées
+          text_color: theme:Primary
         type: form:dep_lin1x4oec0ytd:_Components.Button
       - event_bindings: {click: button_inverser_selection_click}
         layout_properties: {grid_position: 'MFXSVF,MIKOST VBVBRW,QCQJYN'}
         name: button_inverser_selection
-        properties: {align: full, icon: 'mi:circles', icon_size: 33, text: Inverser la Sélection, text_color: ''}
+        properties:
+          align: full
+          icon: mi:circles
+          icon_size: 33
+          spacing:
+            margin: ['4', null, '4', null]
+          text: Inverser la Sélection
+          text_color: ''
         type: form:dep_lin1x4oec0ytd:_Components.Button
       - event_bindings: {click: button_selection_mailed_click}
         layout_properties: {grid_position: 'MFXSVF,MIKOST FJFGZT,HRFIIA'}
         name: button_selection_mailed
-        properties: {align: full, background_color: '', icon: 'mi:mail_outline', icon_color: '', icon_size: 33, text: Envoi  offres sélectionnées, text_color: '', visible: false}
+        properties:
+          align: full
+          background_color: ''
+          icon: mi:mail_outline
+          icon_color: ''
+          icon_size: 33
+          spacing:
+            margin: ['4', null, '4', null]
+            padding: [null, null, null, null]
+          text: Envoi  offres sélectionnées
+          text_color: ''
+          visible: false
         type: form:dep_lin1x4oec0ytd:_Components.Button
-      - event_bindings: {click: button_del_checked_click}
-        layout_properties: {grid_position: 'MFXSVF,MIKOST JVZRIA,SUPSHU'}
-        name: button_del_checked
-        properties: {align: full, background_color: 'theme:Tertiary Container', icon: 'mi:delete_sweep', icon_color: 'theme:Error', icon_size: 33, text: Effacer les offres marquées, text_color: 'theme:Primary'}
+      - event_bindings: {click: button_del_all_click}
+        layout_properties: {grid_position: 'MFXSVF,MIKOST BUTAKP,BHVQOF'}
+        name: button_del_all
+        properties:
+          align: full
+          background_color: theme:Error
+          icon: mi:delete_sweep
+          icon_align: right
+          icon_color: ''
+          icon_size: 33
+          spacing:
+            margin: ['4', null, '4', null]
+          text: Réinitialisation / Affiner
+          text_color: theme:On Tertiary Container
         type: form:dep_lin1x4oec0ytd:_Components.Button
       layout_properties: {slot: card-content-container-slot}
       name: column_panel_select
@@ -91,16 +196,17 @@ components:
       type: ColumnPanel
     - components:
       - layout_properties: {}
-        name: text_nb_offres
-        properties: {align: center, bold: true, font_size: 17, icon: '', scale: small, style: label, text_color: 'theme:Light Green', visible: false}
-        type: form:dep_lin1x4oec0ytd:_Components.Text
-      - layout_properties: {}
         name: repeating_panel_1
         properties: {background: 'theme:Tertiary Container', border: '', item_template: Main.RowTemplate1}
         type: RepeatingPanel
       layout_properties: {slot: card-content-container-slot}
       name: data_grid_offres
-      properties: {auto_header: true, background: '', rows_per_page: null, show_page_controls: false}
+      properties:
+        auto_header: true
+        background: ''
+        margin: ['2', null, '2', null]
+        rows_per_page: null
+        show_page_controls: false
       type: DataGrid
     - layout_properties: {slot: card-content-container-slot}
       name: logo
