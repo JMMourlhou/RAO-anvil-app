@@ -35,6 +35,43 @@ db_schema:
       type: date
     server: full
     title: appels_offres
+  histo:
+    client: search
+    columns:
+    - admin_ui: {order: 1, width: 200}
+      name: mots_cles
+      type: simpleObject
+    - admin_ui: {order: -1, width: 200}
+      name: url
+      type: string
+    - admin_ui: {order: -2, width: 200}
+      name: email
+      type: string
+    - admin_ui: {order: 3, width: 200}
+      name: nb_jours
+      type: number
+    - admin_ui: {order: -1.5, width: 200}
+      name: date_heure
+      type: datetime
+    - admin_ui: {order: 4, width: 200}
+      name: departements
+      type: simpleObject
+    - admin_ui: {order: -3, width: 200}
+      name: user_id
+      type: string
+    server: full
+    title: histo
+  user:
+    client: search
+    columns:
+    - admin_ui: {order: 0, width: 200}
+      name: mail
+      type: string
+    - admin_ui: {order: 1, width: 200}
+      name: id
+      type: string
+    server: full
+    title: user
 dependencies:
 - config: {}
   dep_id: dep_lin1x4oec0ytd

@@ -23,8 +23,7 @@ class RowTemplate1(RowTemplate1Template):
     def link_lien_click(self, **event_args):
         """This method is called clicked"""
         from anvil.js import window
-        self.checkbox_lien.checked = True
-        self.checkbox_lien_change()
+        self.link_lien.checked = True
         window.open(self.link_lien.text)
         
 
@@ -35,12 +34,12 @@ class RowTemplate1(RowTemplate1Template):
         if not result:
             alert("Erreur en Modification")
 
-    def toggle_icon_button_1_click(self, **event_args):
+    def toggle_icon_button_1_click(self, **event_args):  #Effact de la row offre 
         result = anvil.server.call("del_1", self.item)
         if not result:
             alert("Erreur en Effacement")
         else:
-            open_form('Main')
+            open_form('Main', "check") # permet de réafficher
         
         
         
