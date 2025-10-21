@@ -71,6 +71,8 @@ class Main(MainTemplate):
     def button_search_click(self, **event_args):
         """This method is called when the component is clicked."""
         #offres = anvil.server.call("get_sst_offres",self.text_box_url.text, self.text_box_mot_clef.text)   # uplink sur Pi5
+        # Effacement de la table appels offres
+        app_tables.appels_offres.delete_all_rows()
         # --- Lecture et nettoyage des champs texte ---
         mots_texte = self.text_box_mot_clef.text or ""
         deps_texte = self.text_box_departements.text or ""
