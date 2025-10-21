@@ -25,6 +25,9 @@ class RowTemplate1(RowTemplate1Template):
         from anvil.js import window
         self.link_lien.checked = True
         window.open(self.link_lien.text)
+        # marquage de l'offre
+        self.checkbox_vu.checked = True
+        self.checkbox_vu_change()
         
 
     def checkbox_vu_change(self, **event_args):
