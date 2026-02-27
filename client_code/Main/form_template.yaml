@@ -216,7 +216,7 @@ components:
     name: card_content_container_2
     properties: {}
     type: form:dep_lin1x4oec0ytd:_Components.Card.CardContentContainer
-  layout_properties: {grid_position: 'GUQSUI,SFYPJS'}
+  layout_properties: {grid_position: 'GUQSUI,DPZCAR'}
   name: card_1
   properties: {}
   type: form:dep_lin1x4oec0ytd:_Components.Card

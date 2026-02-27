@@ -46,7 +46,7 @@ class Main(MainTemplate):
 
                 #self.option = 0 # pour envoi en sélection(1), déselection(2), del(3)
                 
-                # Je réaffiche le contenu de la table "apels_offres"
+                # Je réaffiche le contenu de la table "appels_offres"
                 list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
                 if len(list_offres)>0:
                     self.button_selection_mailed.visible = True
