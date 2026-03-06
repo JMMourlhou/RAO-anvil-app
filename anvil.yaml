@@ -70,6 +70,34 @@ db_schema:
     - admin_ui: {order: 1, width: 200}
       name: id
       type: string
+    - admin_ui: {order: 2, width: 200}
+      client_hidden: false
+      name: add_rue1
+      type: string
+    - admin_ui: {order: 3, width: 200}
+      client_hidden: false
+      name: add_rue2
+      type: string
+    - admin_ui: {order: 4, width: 200}
+      client_hidden: false
+      name: add_ville
+      type: string
+    - admin_ui: {order: 5, width: 200}
+      client_hidden: false
+      name: add_cp
+      type: string
+    - admin_ui: {order: 6, width: 200}
+      client_hidden: false
+      name: level
+      type: number
+    - admin_ui: {order: 7, width: 200}
+      client_hidden: false
+      name: level_1_nb_tests
+      type: number
+    - admin_ui: {order: 8, width: 200}
+      client_hidden: false
+      name: date_deb
+      type: datetime
     server: full
     title: user
 dependencies:
