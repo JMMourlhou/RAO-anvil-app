@@ -13,11 +13,18 @@ class RowTemplate1(RowTemplate1Template):
         self.init_components(**properties)
 
         # Any code you write here will run before the form opens.
-        self.text_date_publication.text = str(self.item['date_publication'].strftime("%d/%m/%Y"))
+        try:
+            self.text_date_publication.text = str(self.item['date_publication'].strftime("%d/%m/%Y"))
+        except Exception as e:
+            self.text_date_publication.text = "-"
+                
         self.text_titre.text = self.item['titre']
         self.link_lien.text = self.item['lien']
         self.text_departement.text = self.item['departement']
-        self.text_date_limite_rep.text = str(self.item['date_limite_rep'].strftime("%d/%m/%Y"))
+        try:
+            self.text_date_limite_rep.text = str(self.item['date_limite_rep'].strftime("%d/%m/%Y"))
+        except Exception as e:
+            self.text_date_limite_rep.text = "-"
         self.checkbox_vu.checked = self.item['vu']
 
     def link_lien_click(self, **event_args):

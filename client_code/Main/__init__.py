@@ -89,7 +89,7 @@ class Main(MainTemplate):
             #                                                           departements,  rows,  page,  nb de jours
             # offres = anvil.server.call("get_boamp_offres", mots_clefs , depts,         100,   1,     periode)
             offres = anvil.server.call("get_offres_multi_sources", mots_clefs , depts,         100,   1,     periode, sources=["TED"])
-            
+         
             if offres:
                 for offre in offres:
                     print(offre)
@@ -120,10 +120,8 @@ class Main(MainTemplate):
                 with anvil.server.no_loading_indicator:
                     app_tables.appels_offres.delete_all_rows()
                     self.data_grid_offres.visible = False
-                    
-                
         except Exception as e:
-            alert(f"Erreur lors de la recherche : {e}")
+            alert(f"Erreur lors de la requête : {e}")
 
             
     def text_box_nb_jours_pressed_enter(self, **event_args):
