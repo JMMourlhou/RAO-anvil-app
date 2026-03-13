@@ -88,7 +88,7 @@ class Main(MainTemplate):
             # Appel du script "get_offres_multi_sources" en uplink sur Pi5
             #                                                           departements,  rows,  page,  nb de jours
             # offres = anvil.server.call("get_boamp_offres", mots_clefs , depts,         100,   1,     periode)
-            offres = anvil.server.call("get_offres_multi_sources", mots_clefs , depts,         100,   1,     periode, sources=["BOAMP"])
+            offres = anvil.server.call("get_offres_multi_sources", mots_clefs , depts,         100,   1,     periode, sources=["TED"])
             
             if offres:
                 for offre in offres:
