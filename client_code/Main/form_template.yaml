@@ -19,6 +19,10 @@ components:
       properties: {col_widths: '{"HOMXPX":15,"VHRHIE":45}', spacing_above: none, spacing_below: none}
       type: ColumnPanel
     - layout_properties: {slot: card-content-container-slot}
+      name: multi_select_drop_down_platformes
+      properties: {placeholder: Toutes sélectionnées}
+      type: form:dep_o9s8k6rix0i5o:MultiSelectDropDown
+    - layout_properties: {slot: card-content-container-slot}
       name: dropdown_platformes
       properties:
         appearance: outlined
