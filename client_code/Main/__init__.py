@@ -8,15 +8,33 @@ import m3.components as m3
 from .. import Time
 
 class Main(MainTemplate):
-    def __init__(self, origine="", url="https://www.boamp.fr", mots="", nb_jours="1", departements="", **properties):
+    def __init__(self, origine="", url="", mots="", nb_jours="1", departements="", **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
         
         with anvil.server.no_loading_indicator:
 
-            # Init Drop down platformes, triée sur l'id de la plateforme
-            self.dropdown_platformes.items = [(r['id'], r) for r in app_tables.platformes.search(tables.order_by("id", ascending=True))]
+            # init de la drop down plateforme multi sélectable depuis la table 'platformes'
+            rows_platformes = app_tables.platformes.search(tables.order_by("id", ascending=True))
+            # MultiSelectDropDown :
+            # key   = texte affiché
+            # value = valeur récupérée ensuite
+            self.multi_select_drop_down_platformes.items = [
+                {"key": r["id"], "value": r["id"]}
+                for r in rows_platformes
+            ]
+            self.multi_select_drop_down_platformes.placeholder = "Sélectionnez au moins une plateforme"
+            self.multi_select_drop_down_platformes.multiple = True
+            self.multi_select_drop_down_platformes.enable_filtering = False
+            self.multi_select_drop_down_platformes.enable_select_all = True
+            self.multi_select_drop_down_platformes.width = "100%"
+            self.multi_select_drop_down_platformes.background = "#000000"  # dark
+            self.multi_select_drop_down_platformes.foreground = "#00FF00"  # vert clair
+            self.multi_select_drop_down_platformes.spacing_above = "1"
             
+            # Cocher toutes les platformes
+            self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
+        
             if origine == "": # ouverture ou effact complet des offres, je lis les derniers params du user pour les afficher
                 # Affichage des param à partir de la lecture du user dans table histo
                 # pour l'instant, lecture du row 1 table histo du user
@@ -24,7 +42,6 @@ class Main(MainTemplate):
                     row = app_tables.histo.get(email="jmmourlhou@gmail.com")
                     if row:
                         #alert(f"lecture des param de {row['user_id']} !")
-                        self.text_box_url.text            = row['url']
                         self.text_box_mot_clef.text       = row['mots_cles']
                         self.text_box_nb_jours.text       = row['nb_jours']
                         self.text_box_departements.text   = row['departements']
@@ -88,18 +105,15 @@ class Main(MainTemplate):
         print("🔍 Mots-clés saisis :", mots_clefs)
         print("🗺️ Départements saisis :", depts)
         
-        # Initialisation des sources
-        sources=self.dropdown_platformes.selected_value
-        if sources is None:
-            alert("All")
-        else:
-            alert(sources['id'])
-            
+        # Initialisation des platformes sources à partir de la dropdown
+        selected_platformes = self.multi_select_drop_down_platformes.selected
+        print(f"Sources: {selected_platformes}")
+
         try:
             # Appel du script "get_offres_multi_sources" en uplink sur Pi5
             #                                                           departements,  rows,  page,  nb de jours
             # offres = anvil.server.call("get_boamp_offres", mots_clefs , depts,         100,   1,     periode)
-            offres = anvil.server.call("get_offres_multi_sources", mots_clefs , depts,         100,   1,     periode, sources=["TED"])
+            offres = anvil.server.call("get_offres_multi_sources", mots_clefs , depts,         100,   1,     periode, sources=selected_platformes)
          
             if offres:
                 for offre in offres:
@@ -123,7 +137,7 @@ class Main(MainTemplate):
                 self.button_selection_mailed.visible = True
                 # -------------------------------------------
                 # Backup des paramètres
-                self.param_backup(self.text_box_url.text, self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
+                self.param_backup(str(selected_platformes), self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
                 # -------------------------------------------
             else:
                 self.data_grid_offres.visible = False
@@ -197,10 +211,10 @@ class Main(MainTemplate):
             else:
                 open_form('Main', "check")
 
-    def param_backup(self, url, mots_clefs, nb_jours, departements):
+    def param_backup(self, sources, mots_clefs, nb_jours, departements):
         # Backup de la dernière recherche
         date_time = Time.french_zone_time()
-        result = anvil.server.call("backup_param", url, mots_clefs, nb_jours, departements, date_time)
+        result = anvil.server.call("backup_param", sources, mots_clefs, nb_jours, departements, date_time)
         if not result:
             alert(f"Sauvegarde des paramètres non effectuée: {result}")
 
