@@ -61,6 +61,23 @@ db_schema:
       type: string
     server: full
     title: histo
+  platformes:
+    client: search
+    columns:
+    - admin_ui: {order: 0, width: 319}
+      client_hidden: false
+      name: nom
+      type: string
+    - admin_ui: {order: 1, width: 200}
+      client_hidden: false
+      name: url
+      type: string
+    - admin_ui: {order: -1, width: 73}
+      client_hidden: false
+      name: id
+      type: string
+    server: full
+    title: platformes
   user:
     client: search
     columns:
@@ -105,6 +122,9 @@ dependencies:
   dep_id: dep_lin1x4oec0ytd
   resolution_hints: {app_id: 4UK6WHQ6UX7AKELK, name: Material 3 Theme, package_name: m3}
   version: {version_tag: v1.2.6}
+- dep_id: dep_o9s8k6rix0i5o
+  resolution_hints: {app_id: R5XEUR3N4V2RNBKI, name: anvil_extras, package_name: anvil_extras}
+  version: {version_tag: v3.6.1}
 metadata: {logo_img: 'asset:AMSport sans fond.png', title: Scraping Tool for AMS}
 name: ScrapTool
 native_deps: null

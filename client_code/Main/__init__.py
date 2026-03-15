@@ -8,11 +8,14 @@ import m3.components as m3
 from .. import Time
 
 class Main(MainTemplate):
-    def __init__(self, origine="", url="https://www.boamp.fr", mots="", nb_jours="10", departements="", **properties):
+    def __init__(self, origine="", url="https://www.boamp.fr", mots="", nb_jours="1", departements="", **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
         
         with anvil.server.no_loading_indicator:
+
+            # Init Drop down platformes, triée sur l'id de la plateforme
+            self.dropdown_platformes.items = [(r['id'], r) for r in app_tables.platformes.search(tables.order_by("id", ascending=True))]
             
             if origine == "": # ouverture ou effact complet des offres, je lis les derniers params du user pour les afficher
                 # Affichage des param à partir de la lecture du user dans table histo
@@ -84,6 +87,14 @@ class Main(MainTemplate):
         print(f"Recherche sur les {periode} derniers jours")
         print("🔍 Mots-clés saisis :", mots_clefs)
         print("🗺️ Départements saisis :", depts)
+        
+        # Initialisation des sources
+        sources=self.dropdown_platformes.selected_value
+        if sources is None:
+            alert("All")
+        else:
+            alert(sources['id'])
+            
         try:
             # Appel du script "get_offres_multi_sources" en uplink sur Pi5
             #                                                           departements,  rows,  page,  nb de jours

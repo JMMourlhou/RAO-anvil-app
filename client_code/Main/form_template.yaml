@@ -18,6 +18,19 @@ components:
       name: column_panel_4
       properties: {col_widths: '{"HOMXPX":15,"VHRHIE":45}', spacing_above: none, spacing_below: none}
       type: ColumnPanel
+    - layout_properties: {slot: card-content-container-slot}
+      name: dropdown_platformes
+      properties:
+        appearance: outlined
+        items_text_color: theme:Primary
+        label: Choix de la plateforme de recherche
+        label_color: ''
+        margin: ['', null, '10', null]
+        placeholder: 'Toutes les plateformes '
+        selected_bold: true
+        selected_text_color: theme:Primary
+        supporting_text: (Laisser 'Toutes les platformes' pour faire une recherche large)
+      type: form:dep_lin1x4oec0ytd:_Components.DropdownMenu
     - event_bindings: {change: button_del_before_modif_param}
       layout_properties: {slot: card-content-container-slot}
       name: text_box_url
@@ -39,10 +52,10 @@ components:
       properties:
         appearance: outlined
         display_text_color: theme:Primary
-        label: Expression recherchéé (ou plusieurs séparées par une virgule)
+        label: Expression recherchée (ou plusieurs séparées par virgule)
         label_italic: true
         leading_icon: mi:key
-        margin: ['1', null, '1', null]
+        margin: ['10', null, '1', null]
         placeholder: Entrer le ou les mots clé recherchés
         text: SST
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
@@ -67,7 +80,7 @@ components:
         properties:
           appearance: outlined
           display_text_color: theme:Primary
-          label: 'Restreindre la recherche sur 1 ou plusieurs départements:   Exemple: 75, 91 ,94'
+          label: 'Recherche sur 1 ou x départements:   Ex: 75, 91 ,94'
           label_italic: true
           leading_icon: mi:account_balance_wallet
           margin: ['1', null, '1', null]
