@@ -32,6 +32,10 @@ components:
       name: column_panel_4
       properties: {col_widths: '{"VHRHIE":45}', spacing_above: none, spacing_below: none}
       type: ColumnPanel
+    - layout_properties: {slot: card-content-container-slot}
+      name: text_param_summary
+      properties: {align: center, font_size: 12, scale: small, visible: false}
+      type: form:dep_lin1x4oec0ytd:_Components.Text
     - components:
       - layout_properties: {grid_position: 'KGUCAF,JNLTXC'}
         name: Titre_2
@@ -130,6 +134,20 @@ components:
           spacing:
             margin: ['4', null, '4', null]
           text: Tout
+          text_color: ''
+        type: form:dep_lin1x4oec0ytd:_Components.Button
+      - event_bindings: {click: button_del_checked_click}
+        layout_properties: {}
+        name: button_del_checked
+        properties:
+          align: full
+          appearance: elevated
+          icon: mi:select_check_box
+          icon_align: left
+          icon_size: 30
+          spacing:
+            margin: ['4', null, '4', null]
+          text: effacer
           text_color: ''
         type: form:dep_lin1x4oec0ytd:_Components.Button
       - event_bindings: {click: button_tout_deselectionner_click}

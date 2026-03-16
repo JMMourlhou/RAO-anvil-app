@@ -63,7 +63,6 @@ class Main(MainTemplate):
                 # Réaffichage des paramètres si il y a eu un effacement de toutes les offres par le user
                 self.column_panel_params.visible = False
                 
-                
                 #self.option = 0 # pour envoi en sélection(1), déselection(2), del(3)
                 
                 # Je réaffiche le contenu de la table "appels_offres"
@@ -137,7 +136,8 @@ class Main(MainTemplate):
                 
                 self.button_search.visible = False
                 self.column_panel_params.visible = False
-                
+                self.text_param_summary.text = (f"Plateformes:{self.multi_select_drop_down_platformes.selected} / Mots clefs:{self.text_box_mot_clef.text} / sur les {self.text_box_nb_jours.text} derniers jours / {self.text_box_departements.text}")
+                self.text_param_summary.visible = True
                 # -------------------------------------------
                 # Backup des paramètres
                 self.param_backup(selected_platformes, self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
@@ -202,6 +202,7 @@ class Main(MainTemplate):
         """This method is called when the component is clicked."""
         pass
 
+    
     def button_del_checked_click(self, **event_args):
         """This method is called when the component is clicked."""
         r=alert("Effacer toutes les offres marquées ?",dismissible=False,buttons=[("oui",True),("non",False)])
@@ -228,6 +229,18 @@ class Main(MainTemplate):
             app_tables.appels_offres.delete_all_rows()
         #open_form('Main', self.text_box_url.text ,self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
         #open_form('Main', "")
+
+    def button_del_checked_click(self, **event_args):
+        """This method is called when the component is clicked."""
+        r=alert("Effacer toutes les offres marquées ?",dismissible=False,buttons=[("oui",True),("non",False)])
+        if r :   # oui
+            list = app_tables.appels_offres.search(vu=True)
+            self.option = 3 # On efface les offres marquées (vu=True)
+            result = anvil.server.call("treatment_on_all_checked", list, self.option)
+            if not result:
+                alert("Erreur !")
+            else:
+                open_form('Main', "check")
     
         
         
