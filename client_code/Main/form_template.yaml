@@ -32,33 +32,33 @@ components:
       name: column_panel_4
       properties: {col_widths: '{"VHRHIE":45}', spacing_above: none, spacing_below: none}
       type: ColumnPanel
-    - layout_properties: {slot: card-content-container-slot}
-      name: Titre_2
-      properties: {align: center, background_color: '', bold: true, font_size: 12, icon: 'mi:gite', icon_size: 30, italic: true, line_height: '', scale: small, style: label, text: '  Plateformes sélectionnées :', text_color: 'theme:Light Green', underline: false}
-      type: form:dep_lin1x4oec0ytd:_Components.Text
     - components:
-      - layout_properties: {width: 302.45505810546877}
-        name: multi_select_drop_down_platformes
-        properties: {align: center, foreground: '', placeholder: Toutes plateformes  sélectionnées}
-        type: form:dep_o9s8k6rix0i5o:MultiSelectDropDown
-      layout_properties: {slot: card-content-container-slot}
-      name: flow_panel_2
-      properties: {align: center}
-      type: FlowPanel
-    - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_mot_clef_pressed_enter}
-      layout_properties: {slot: card-content-container-slot}
-      name: text_box_mot_clef
-      properties:
-        appearance: outlined
-        display_text_color: theme:Primary
-        label: Expression recherchée (ou plusieurs séparées par virgule)
-        label_italic: true
-        leading_icon: mi:key
-        margin: ['25', null, '1', null]
-        placeholder: Entrer le ou les mots clé recherchés
-        text: SST
-      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-    - components:
+      - layout_properties: {grid_position: 'KGUCAF,JNLTXC'}
+        name: Titre_2
+        properties: {align: center, background_color: '', bold: true, font_size: 12, icon: 'mi:gite', icon_size: 30, italic: true, line_height: '', scale: small, style: label, text: '  Plateformes sélectionnées :', text_color: 'theme:Light Green', underline: false}
+        type: form:dep_lin1x4oec0ytd:_Components.Text
+      - components:
+        - layout_properties: {width: 302.45505810546877}
+          name: multi_select_drop_down_platformes
+          properties: {align: center, foreground: '', placeholder: Toutes plateformes  sélectionnées}
+          type: form:dep_o9s8k6rix0i5o:MultiSelectDropDown
+        layout_properties: {grid_position: 'PZQHKH,XJSYHA'}
+        name: flow_panel_2
+        properties: {align: center}
+        type: FlowPanel
+      - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_mot_clef_pressed_enter}
+        layout_properties: {grid_position: 'RPCUCS,HQZJWK'}
+        name: text_box_mot_clef
+        properties:
+          appearance: outlined
+          display_text_color: theme:Primary
+          label: Expression recherchée (ou plusieurs séparées par virgule)
+          label_italic: true
+          leading_icon: mi:key
+          margin: ['25', null, '1', null]
+          placeholder: Entrer le ou les mots clé recherchés
+          text: SST
+        type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_nb_jours_pressed_enter}
         layout_properties: {grid_position: 'QDUGSL,OQJALU'}
         name: text_box_nb_jours
@@ -88,7 +88,7 @@ components:
           text: ''
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       layout_properties: {slot: card-content-container-slot}
-      name: column_panel_1
+      name: column_panel_params
       properties: {col_spacing: small, col_widths: '{"OQJALU":25,"GFGQBM":35}', wrap_on: never}
       type: ColumnPanel
     - components:

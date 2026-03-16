@@ -8,7 +8,7 @@ import m3.components as m3
 from .. import Time
 
 class Main(MainTemplate):
-    def __init__(self, origine="", url="", mots="", nb_jours="1", departements="", **properties):
+    def __init__(self, origine="", sources="", mots="", nb_jours="1", departements="", **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
         
@@ -32,11 +32,12 @@ class Main(MainTemplate):
             self.multi_select_drop_down_platformes.background = "#00FF00"  # vert clair
             self.multi_select_drop_down_platformes.spacing_above = "1"
             
-            # Cocher toutes les platformes
-            self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
-        
             if origine == "": # ouverture ou effact complet des offres, je lis les derniers params du user pour les afficher
                 # Affichage des param à partir de la lecture du user dans table histo
+                
+                # Cocher toutes les platformes si 1ere entrée
+                self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
+                
                 # pour l'instant, lecture du row 1 table histo du user
                 try:
                     row = app_tables.histo.get(email="jmmourlhou@gmail.com")
@@ -55,14 +56,16 @@ class Main(MainTemplate):
 
             if origine=="check": # il y a eu un traitement de marquage sur les offres affichées par le user
                 # Réaffichage des paramètres si il y a eu un effacement de toutes les offres par le user
+                self.column_panel_params.visible = False
+                # relecture du fichier histo pour ce user
+                row = app_tables.histo.get(email="jmmourlhou@gmail.com")
+                self.text_box_mot_clef.text=row["mots_cles"]
+                self.text_box_nb_jours.text=row["nb_jours"]
+                self.text_box_departements.text=row['departements']
+                # Cocher toutes les platformes cochées en histo
+                alert(row['sources'])
+                self.multi_select_drop_down_platformes.selected = row['sources']
                 
-                if mots != "":
-                    self.text_box_mot_clef.text=mots
-                if nb_jours != "10":
-                    self.text_box_nb_jours.text=nb_jours
-                if departements != "":
-                    self.text_box_departements.text=departements
-
                 #self.option = 0 # pour envoi en sélection(1), déselection(2), del(3)
                 
                 # Je réaffiche le contenu de la table "appels_offres"
@@ -113,7 +116,6 @@ class Main(MainTemplate):
             #                                                           departements,  rows,  page,  nb de jours
             # offres = anvil.server.call("get_boamp_offres", mots_clefs , depts,         100,   1,     periode)
             offres = anvil.server.call("get_offres_multi_sources", mots_clefs , depts,         100,   1,     periode, sources=selected_platformes)
-         
             if offres:
                 for offre in offres:
                     print(offre)
@@ -134,10 +136,13 @@ class Main(MainTemplate):
                 self.data_grid_offres.visible = True
                 self.flow_panel_select.visible = True
                 self.button_selection_mailed.visible = True
+                
                 self.button_search.visible = False
+                self.column_panel_params.visible = False
+                
                 # -------------------------------------------
                 # Backup des paramètres
-                self.param_backup(str(selected_platformes), self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
+                self.param_backup(selected_platformes, self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
                 # -------------------------------------------
             else:
                 self.data_grid_offres.visible = False
@@ -182,7 +187,7 @@ class Main(MainTemplate):
         if r :   # oui
             app_tables.appels_offres.delete_all_rows()
             #open_form('Main', self.text_box_url.text ,self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
-            open_form('Main', "")
+            open_form('Main', "check")
 
     def traitement(self):
         #with anvil.server.no_loading_indicator:

@@ -41,10 +41,6 @@ db_schema:
     - admin_ui: {order: 1, width: 200}
       name: mots_cles
       type: simpleObject
-    - admin_ui: {order: -1, width: 200}
-      client_hidden: false
-      name: sources
-      type: string
     - admin_ui: {order: -2, width: 200}
       name: email
       type: string
@@ -60,6 +56,10 @@ db_schema:
     - admin_ui: {order: -3, width: 200}
       name: user_id
       type: string
+    - admin_ui: {order: 5, width: 200}
+      client_hidden: false
+      name: sources
+      type: simpleObject
     server: full
     title: histo
   platformes:
