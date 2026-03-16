@@ -26,7 +26,7 @@ components:
         type: form:dep_lin1x4oec0ytd:_Components.Text
       - layout_properties: {grid_position: 'USXOHH,THWLLT'}
         name: text_nb_offres
-        properties: {align: center, bold: true, font_size: 17, icon: '', scale: small, style: label, text_color: 'theme:Error', visible: true}
+        properties: {align: center, bold: true, font_size: 17, icon: '', scale: small, style: label, text_color: orange, visible: true}
         type: form:dep_lin1x4oec0ytd:_Components.Text
       layout_properties: {slot: card-content-container-slot}
       name: column_panel_4
@@ -34,7 +34,7 @@ components:
       type: ColumnPanel
     - layout_properties: {slot: card-content-container-slot}
       name: text_param_summary
-      properties: {align: center, font_size: 12, scale: small, visible: false}
+      properties: {align: center, font_size: 12, scale: small, text_color: orange, visible: false}
       type: form:dep_lin1x4oec0ytd:_Components.Text
     - components:
       - layout_properties: {grid_position: 'KGUCAF,JNLTXC'}

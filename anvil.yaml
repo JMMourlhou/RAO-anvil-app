@@ -126,10 +126,10 @@ dependencies:
 - dep_id: dep_o9s8k6rix0i5o
   resolution_hints: {app_id: R5XEUR3N4V2RNBKI, name: anvil_extras, package_name: anvil_extras}
   version: {version_tag: v3.6.1}
-metadata: {logo_img: 'asset:Service Web small_transparent-logo.png', title: Scraping Tool for AMS}
-name: ScrapTool
+metadata: {description: Moteur de recherche pour Appels d'Offres, logo_img: 'asset:Service Web small_transparent-logo.png', title: 'Recherche d''Appel d''Offres '}
+name: appel_doffres
 native_deps: null
-package_name: ScrapTool
+package_name: appel_doffres
 runtime_options:
   client_version: '3'
   server_spec: {base: python310-minimal}
