@@ -28,8 +28,8 @@ class Main(MainTemplate):
             self.multi_select_drop_down_platformes.enable_filtering = False
             self.multi_select_drop_down_platformes.enable_select_all = True
             self.multi_select_drop_down_platformes.width = "100%"
-            self.multi_select_drop_down_platformes.background = "#000000"  # dark
-            self.multi_select_drop_down_platformes.foreground = "#00FF00"  # vert clair
+            #self.multi_select_drop_down_platformes.foreground = "#000000"  # dark
+            self.multi_select_drop_down_platformes.background = "#00FF00"  # vert clair
             self.multi_select_drop_down_platformes.spacing_above = "1"
             
             # Cocher toutes les platformes
@@ -55,8 +55,7 @@ class Main(MainTemplate):
 
             if origine=="check": # il y a eu un traitement de marquage sur les offres affichées par le user
                 # Réaffichage des paramètres si il y a eu un effacement de toutes les offres par le user
-                if url != "https://www.boamp.fr":
-                    self.text_box_url.text = url
+                
                 if mots != "":
                     self.text_box_mot_clef.text=mots
                 if nb_jours != "10":
@@ -77,12 +76,12 @@ class Main(MainTemplate):
                     else:   
                         self.text_nb_offres.text = f"{len(list_offres)} offres"
                     self.text_nb_offres.visible = True
-                    self.column_panel_select.visible = True
+                    self.flow_panel_select.visible = True
                     # =====================================
                     self.button_search.visible = False
                     # =====================================
                 else:
-                    self.column_panel_select.visible = False
+                    self.flow_panel_select.visible = False
                 
                 #alert(f"pas d'offres: {len(list_offres)}")
             
@@ -120,7 +119,7 @@ class Main(MainTemplate):
                     print(offre)
                     result = anvil.server.call("sov_offres", offre)
                     if result != "ok":
-                        self.column_panel_select.visible = False
+                        self.flow_panel_select.visible = False
                         alert(result)
                     
                 list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
@@ -133,8 +132,9 @@ class Main(MainTemplate):
                 
                 self.repeating_panel_1.items = list_offres
                 self.data_grid_offres.visible = True
-                self.column_panel_select.visible = True
+                self.flow_panel_select.visible = True
                 self.button_selection_mailed.visible = True
+                self.button_search.visible = False
                 # -------------------------------------------
                 # Backup des paramètres
                 self.param_backup(str(selected_platformes), self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
