@@ -56,7 +56,7 @@ components:
         properties:
           appearance: outlined
           display_text_color: theme:Primary
-          label: Expression recherchée (ou plusieurs séparées par virgule)
+          label: Expression recherchée (sst, ue = sst et ue)
           label_italic: true
           leading_icon: mi:key
           margin: ['25', null, '1', null]
