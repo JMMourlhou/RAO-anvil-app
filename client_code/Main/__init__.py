@@ -35,9 +35,8 @@ class Main(MainTemplate):
             if origine == "": # ouverture ou effact complet des offres, je lis les derniers params du user pour les afficher
                 # Affichage des param à partir de la lecture du user dans table histo
                 
-                # Cocher toutes les platformes si 1ere entrée
-                self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
                 
+
                 # pour l'instant, lecture du row 1 table histo du user
                 try:
                     row = app_tables.histo.get(email="jmmourlhou@gmail.com")
@@ -46,6 +45,12 @@ class Main(MainTemplate):
                         self.text_box_mot_clef.text       = row['mots_cles']
                         self.text_box_nb_jours.text       = row['nb_jours']
                         self.text_box_departements.text   = row['departements']
+                        src = row['sources']
+                        if src is not None:
+                            self.multi_select_drop_down_platformes.selected = row['sources']
+                        else:
+                            # Cocher toutes les platformes si 1ere entrée
+                            self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
                         # =====================================
                         app_tables.appels_offres.delete_all_rows()   # effacer les offres précédentes en table appels_offres
                         # =====================================
@@ -57,14 +62,7 @@ class Main(MainTemplate):
             if origine=="check": # il y a eu un traitement de marquage sur les offres affichées par le user
                 # Réaffichage des paramètres si il y a eu un effacement de toutes les offres par le user
                 self.column_panel_params.visible = False
-                # relecture du fichier histo pour ce user
-                row = app_tables.histo.get(email="jmmourlhou@gmail.com")
-                self.text_box_mot_clef.text=row["mots_cles"]
-                self.text_box_nb_jours.text=row["nb_jours"]
-                self.text_box_departements.text=row['departements']
-                # Cocher toutes les platformes cochées en histo
-                alert(row['sources'])
-                self.multi_select_drop_down_platformes.selected = row['sources']
+                
                 
                 #self.option = 0 # pour envoi en sélection(1), déselection(2), del(3)
                 
@@ -187,7 +185,7 @@ class Main(MainTemplate):
         if r :   # oui
             app_tables.appels_offres.delete_all_rows()
             #open_form('Main', self.text_box_url.text ,self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
-            open_form('Main', "check")
+            open_form('Main', "")
 
     def traitement(self):
         #with anvil.server.no_loading_indicator:
