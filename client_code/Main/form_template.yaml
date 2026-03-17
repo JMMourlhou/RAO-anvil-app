@@ -15,7 +15,7 @@ components:
           font_size: 24
           icon: mi:image_search
           icon_color: theme:Light Green
-          icon_size: 50
+          icon_size: 60
           italic: true
           line_height: ''
           scale: large
@@ -58,7 +58,7 @@ components:
         properties:
           appearance: outlined
           display_text_color: theme:Primary
-          label: 'Expression possible ET  OU, par ex:   sst ET formation      Secourisme OU secouriste'
+          label: 'Expression possible ET, et, OU, ou, par ex:   sst ET formation   /   Secourisme OU secouriste'
           label_italic: true
           leading_icon: mi:key
           margin: ['25', null, '1', null]
