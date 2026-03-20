@@ -1,0 +1,8 @@
+components: []
+container:
+  properties:
+    html: |-
+      <div anvil-name="zone_desc" style="max-height: 400px; overflow: auto; line-height: 1.5;">
+      </div>
+  type: HtmlTemplate
+is_package: true

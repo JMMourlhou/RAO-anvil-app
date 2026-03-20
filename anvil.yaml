@@ -128,7 +128,7 @@ dependencies:
   version: {version_tag: v3.6.1}
 metadata: {description: Moteur de Recherche pour Appels d'Offres, logo_img: 'asset:Logo_F_S_small.png', title: 'Recherche Appel Offres '}
 name: recherche_appels_offres
-native_deps: null
+native_deps: {head_html: <script src="_/theme/keyword_nav.js"></script>}
 package_name: recherche_appels_offres
 runtime_options:
   client_version: '3'
