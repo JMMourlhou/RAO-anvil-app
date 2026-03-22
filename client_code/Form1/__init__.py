@@ -36,6 +36,7 @@ class Form1(Form1Template):
 
         self.button_aller_mot.enabled = True
 
+    @handle("button_aller_mot", "click")
     def button_aller_mot_click(self, **event_args):
         if self.comp_html is not None:
             ok = self.comp_html.aller_a_occurrence("kw_hit_1")

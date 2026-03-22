@@ -26,6 +26,7 @@ def sov_offres(offre):
         date_publication = offre.get("date_publication", None)
         date_limite_rep  = offre.get("date_limite_reponse", None)
         departement      = offre.get("departement", "")
+        search_text      = offre.get("search_text", "")
 
         # Insertion
         app_tables.appels_offres.add_row(
@@ -38,6 +39,7 @@ def sov_offres(offre):
             date_publication  = date_publication,
             date_limite_rep   = date_limite_rep,
             departement       = departement,
+            search_text       = search_text
         )
         return "ok"
 

@@ -33,6 +33,10 @@ db_schema:
     - admin_ui: {order: -0.5, width: 200}
       name: date_limite_rep
       type: date
+    - admin_ui: {order: 4, width: 200}
+      client_hidden: false
+      name: search_text
+      type: string
     server: full
     title: appels_offres
   histo:

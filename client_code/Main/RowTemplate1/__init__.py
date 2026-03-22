@@ -13,32 +13,39 @@ class RowTemplate1(RowTemplate1Template):
         self.comp_html = None
         self.hit_ids = []
         self.hit_index = -1
-
-        # identifiant unique par ligne du repeating panel
         raw_uid = str(
-            self.item.get("idweb")
-            or self.item.get("lien")
+            self.item_value("idweb")
+            or self.item_value("lien")
             or id(self)
         )
         self.container_id = "zone_" + re.sub(r"[^A-Za-z0-9_-]", "_", raw_uid)
-
+    
         self.button_aller_mot.enabled = False
-
+    
         try:
             self.text_date_publication.text = str(self.item['date_publication'].strftime("%d/%m/%Y"))
         except Exception:
             self.text_date_publication.text = "-"
-
-        self.text_titre.text = self.item.get('titre', "")
-        self.link_lien.text = self.item.get('lien', "")
-        self.text_departement.text = self.item.get('departement', "")
-
+    
+        self.text_titre.text = self.item_value('titre', "")
+        self.link_lien.text = self.item_value('lien', "")
+        self.text_departement.text = self.item_value('departement', "")
+        
         try:
             self.text_date_limite_rep.text = str(self.item['date_limite_rep'].strftime("%d/%m/%Y"))
         except Exception:
             self.text_date_limite_rep.text = "-"
+    
+        self.checkbox_vu.checked = self.item_value('vu', False)
 
-        self.checkbox_vu.checked = self.item.get('vu', False)
+    def item_value(self, key, default=None):
+        try:
+            value = self.item[key]
+            if value is None:
+                return default
+            return value
+        except Exception:
+            return default
 
     def link_lien_click(self, **event_args):
         from anvil.js import window
@@ -61,30 +68,28 @@ class RowTemplate1(RowTemplate1Template):
             open_form('Main', "check")
 
     def extraire_mots_cles(self):
-        """
-        Lit la textbox du formulaire principal.
-        Séparateurs gérés : virgule, point-virgule, retour ligne.
-        """
-        brut = (self.f.text_box_mot_clef.text or "").strip()
+        brut = (self.f.text_box_mot_clef.text or "").strip().lower()
         if not brut:
             return []
-
-        morceaux = [m.strip() for m in re.split(r"[,\n;]+", brut) if m.strip()]
+    
+        # normalisation simple
+        texte = brut.replace(";", ",").replace("\n", ",")
+        texte = texte.replace(" et ", ",")
+        texte = texte.replace(" ou ", ",")
+    
+        morceaux = [m.strip() for m in texte.split(",") if m.strip()]
         return morceaux
 
     def button_generer_html_click(self, **event_args):
         """Affiche le texte avec mots-clés surlignés dans cette ligne"""
 
-        # prends la description si elle existe, sinon le titre
+        # prends le contenu de l'offre
         texte = (
-            self.item.get("description")
-            or self.item.get("descriptif")
-            or self.item.get("titre")
+            self.item["search_text"]
             or ""
         )
-
         mots_cles = self.extraire_mots_cles()
-
+        alert(mots_cles)
         if not texte:
             alert("Aucun texte disponible pour cette offre")
             return
