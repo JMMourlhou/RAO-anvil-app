@@ -53,7 +53,7 @@ components:
         properties: {align: center}
         type: FlowPanel
       - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_mot_clef_pressed_enter}
-        layout_properties: {grid_position: 'RPCUCS,HQZJWK'}
+        layout_properties: {grid_position: 'KGWBAT,XTPCYH'}
         name: text_box_mot_clef
         properties:
           appearance: outlined

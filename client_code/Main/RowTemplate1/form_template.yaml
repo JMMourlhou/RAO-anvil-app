@@ -56,6 +56,11 @@ components:
       margin: [null, null, '5', null]
     text: Lien
   type: form:dep_lin1x4oec0ytd:_Components.Link
+- event_bindings: {click: button_generer_html_click}
+  layout_properties: {column: 'null'}
+  name: button_generer_html
+  properties: {align: center}
+  type: form:dep_lin1x4oec0ytd:_Components.Button
 container:
   properties:
     align: center
