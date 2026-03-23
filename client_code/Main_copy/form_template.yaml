@@ -217,10 +217,14 @@ components:
         text_color: ''
         visible: false
       type: form:dep_lin1x4oec0ytd:_Components.Button
-    - layout_properties: {slot: card-content-container-slot}
-      name: repeating_panel_2
-      properties: {item_template: Main.ItemTemplate1_jm, visible: false}
-      type: RepeatingPanel
+    - components:
+      - name: repeating_panel_1
+        properties: {item_template: Main_copy.RowTemplate2}
+        type: RepeatingPanel
+      layout_properties: {slot: card-content-container-slot}
+      name: data_grid_1
+      properties: {}
+      type: DataGrid
     - layout_properties: {slot: card-content-container-slot}
       name: logo
       properties: {height: '200', source: _/theme/Service Web small_transparent.png}
@@ -230,10 +234,6 @@ components:
     properties:
       margin: ['16', '10', '16', '10']
     type: form:dep_lin1x4oec0ytd:_Components.Card.CardContentContainer
-  - layout_properties: {slot: card-content-slot}
-    name: repeating_panel_1
-    properties: {item_template: Main.ItemTemplate1_jm, visible: false}
-    type: RepeatingPanel
   layout_properties: {grid_position: 'GUQSUI,DPZCAR'}
   name: card_1
   properties: {}
