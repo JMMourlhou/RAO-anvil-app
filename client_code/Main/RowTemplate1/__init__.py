@@ -19,23 +19,23 @@ class RowTemplate1(RowTemplate1Template):
             or id(self)
         )
         self.container_id = "zone_" + re.sub(r"[^A-Za-z0-9_-]", "_", raw_uid)
-    
+
         self.button_aller_mot.visible = False
-    
+
         try:
             self.text_date_publication.text = str(self.item['date_publication'].strftime("%d/%m/%Y"))
         except Exception:
             self.text_date_publication.text = "-"
-    
+
         self.text_titre.text = self.item_value('titre', "")
         self.link_lien.text = self.item_value('lien', "")
         self.text_departement.text = self.item_value('departement', "")
-        
+
         try:
             self.text_date_limite_rep.text = str(self.item['date_limite_rep'].strftime("%d/%m/%Y"))
         except Exception:
             self.text_date_limite_rep.text = "-"
-    
+
         self.checkbox_vu.checked = self.item_value('vu', False)
 
     def item_value(self, key, default=None):
@@ -71,30 +71,30 @@ class RowTemplate1(RowTemplate1Template):
         brut = (self.f.text_box_mot_clef.text or "").strip().lower()
         if not brut:
             return []
-    
+
         # normalisation simple
         texte = brut.replace(";", ",").replace("\n", ",")
         texte = texte.replace(" et ", ",")
         texte = texte.replace(" ou ", ",")
-    
+
         morceaux = [m.strip() for m in texte.split(",") if m.strip()]
         return morceaux
 
     def button_generer_html_click(self, **event_args):
         """Affiche le texte avec mots-clés surlignés dans cette ligne"""
-        
+
         # Ne plus afficher les détails
         if self.column_panel_detail.visible is True:
             self.column_panel_detail.visible = False
             return
-            
+
         # prends le contenu de l'offre
         texte = (
             self.item["search_text"]
             or ""
         )
         mots_cles = self.extraire_mots_cles()
-        
+
         if not texte:
             alert("Aucun texte disponible pour cette offre !")
             return
@@ -141,7 +141,7 @@ class RowTemplate1(RowTemplate1Template):
     def generer_html_mots_cles(self, texte, mots_cles, container_id):
         texte = texte or ""
         mots_cles = [m.strip() for m in (mots_cles or []) if m and m.strip()]
-    
+
         style_html = """
         <style>
         .kw-hit {
@@ -154,7 +154,7 @@ class RowTemplate1(RowTemplate1Template):
         }
         </style>
         """
-    
+
         if not mots_cles:
             contenu = self.escape_html(texte).replace("\n", "<br>")
             html_genere = f"""
@@ -164,50 +164,50 @@ class RowTemplate1(RowTemplate1Template):
             </div>
             """
             return html_genere, []
-    
+
         mots_uniques = sorted(set(mots_cles), key=len, reverse=True)
-    
+
         pattern = re.compile(
             "|".join(re.escape(m) for m in mots_uniques),
             re.IGNORECASE
         )
-    
+
         morceaux = []
         hit_ids = []
         last = 0
         num = 0
-    
+
         for match in pattern.finditer(texte):
             morceaux.append(self.escape_html(texte[last:match.start()]))
-    
+
             num += 1
             hit_id = f"{container_id}_kw_hit_{num}"
             hit_ids.append(hit_id)
-    
+
             mot_trouve = self.escape_html(match.group(0))
             morceaux.append(f'<mark id="{hit_id}" class="kw-hit">{mot_trouve}</mark>')
-    
+
             last = match.end()
-    
+
         morceaux.append(self.escape_html(texte[last:]))
-    
+
         contenu = "".join(morceaux).replace("\n", "<br>")
-    
+
         html_genere = f"""
         {style_html}
         <div id="{container_id}">
         {contenu}
         </div>
         """
-    
+
         return html_genere, hit_ids
 
     def escape_html(self, s):
         s = s or ""
         return (
-        s.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace('"', "&quot;")
-            .replace("'", "&#x27;")
+            s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace('"', "&quot;")
+                .replace("'", "&#x27;")
         )    
