@@ -82,20 +82,25 @@ class RowTemplate1(RowTemplate1Template):
 
     def button_generer_html_click(self, **event_args):
         """Affiche le texte avec mots-clés surlignés dans cette ligne"""
-
+        
+        # Ne plus afficher les détails
+        if self.column_panel_detail.visible is True:
+            self.column_panel_detail.visible = False
+            return
+            
         # prends le contenu de l'offre
         texte = (
             self.item["search_text"]
             or ""
         )
         mots_cles = self.extraire_mots_cles()
-        alert(mots_cles)
+        
         if not texte:
-            alert("Aucun texte disponible pour cette offre")
+            alert("Aucun texte disponible pour cette offre !")
             return
 
         if not mots_cles:
-            alert("Aucun mot-clé saisi")
+            alert("Aucun mot-clé saisi !")
             return
 
         html_genere, self.hit_ids = self.generer_html_mots_cles(
@@ -111,7 +116,7 @@ class RowTemplate1(RowTemplate1Template):
         # ce column_panel_affichage doit être dans RowTemplate1
         self.column_panel_affichage.clear()
         self.column_panel_affichage.add_component(self.comp_html)
-
+        self.column_panel_detail.visible = True
         self.button_aller_mot.enabled = len(self.hit_ids) > 0
 
         if self.hit_ids:
@@ -122,11 +127,11 @@ class RowTemplate1(RowTemplate1Template):
     def button_aller_mot_click(self, **event_args):
         """Va à l'occurrence suivante"""
         if self.comp_html is None:
-            alert("Aucun texte affiché")
+            alert("Aucun texte affiché !")
             return
 
         if not self.hit_ids:
-            alert("Aucune occurrence trouvée")
+            alert("Aucune occurrence trouvée !")
             return
 
         self.hit_index = (self.hit_index + 1) % len(self.hit_ids)
