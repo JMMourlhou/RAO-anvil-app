@@ -130,7 +130,7 @@ dependencies:
 - dep_id: dep_o9s8k6rix0i5o
   resolution_hints: {app_id: R5XEUR3N4V2RNBKI, name: anvil_extras, package_name: anvil_extras}
   version: {version_tag: v3.6.1}
-metadata: {description: Moteur de Recherche pour Appels d'Offres, logo_img: 'asset:Logo_F_S_small.png', title: Moteur de Recherche pour Appels d'Offres}
+metadata: {description: Moteur de Recherche pour Appels d'Offres, logo_img: 'asset:Logo_F_S_small.png', title: SAO - Surveillance Appels d'Offres}
 name: https://surv-apl-offres.anvil.app
 native_deps: {head_html: <script src="_/theme/keyword_nav.js"></script>}
 package_name: https___surv_apl_offres_anvil_app

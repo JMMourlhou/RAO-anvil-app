@@ -1,7 +1,18 @@
 components:
+- components: []
+  layout_properties: {}
+  name: flow_panel_1
+  properties:
+    align: justify
+    gap: tiny
+    spacing:
+      margin: [null, null, null, '0']
+      padding: [null, '2', null, '2']
+    vertical_align: middle
+  type: FlowPanel
 - components:
   - event_bindings: {change: checkbox_vu_change}
-    layout_properties: {width: 39.55086938476563}
+    layout_properties: {grid_position: 'WAYBCS,GFSQUY'}
     name: checkbox_vu
     properties:
       allow_indeterminate: false
@@ -11,32 +22,29 @@ components:
       text: ''
     type: form:dep_lin1x4oec0ytd:_Components.Checkbox
   - event_bindings: {click: toggle_icon_button_1_click}
-    layout_properties: {}
+    layout_properties: {grid_position: 'WAYBCS,KAQUEG'}
     name: toggle_icon_button_1
-    properties: {appearance: standard, icon: 'mi:delete'}
+    properties:
+      appearance: standard
+      icon: mi:delete
+      margin: [null, '0', null, '0']
     type: form:dep_lin1x4oec0ytd:_Components.ToggleIconButton
-  - layout_properties: {width: 118.47364775390625}
+  - layout_properties: {grid_position: 'WAYBCS,SDCQDR'}
     name: text_date_publication
     properties: {background_color: '', text: Date, text_color: 'theme:Light Green'}
     type: form:dep_lin1x4oec0ytd:_Components.Text
-  - layout_properties: {width: 116.40478505859375}
+  - layout_properties: {grid_position: 'WAYBCS,RGGXRF'}
     name: text_date_limite_rep
     properties: {background_color: '', bold: true, text: Date, text_color: orange}
     type: form:dep_lin1x4oec0ytd:_Components.Text
-  - layout_properties: {expand: false, width: 229.68295068359373}
+  - layout_properties: {grid_position: 'WAYBCS,UTIYCZ'}
     name: text_departement
     properties: {align: center, icon_color: '', scale: small, text: Dépt, text_color: 'theme:Light Green'}
     type: form:dep_lin1x4oec0ytd:_Components.Text
-  layout_properties: {}
-  name: flow_panel_1
-  properties:
-    align: justify
-    gap: tiny
-    spacing:
-      margin: [null, null, null, '0']
-      padding: [null, '10', null, '10']
-    vertical_align: middle
-  type: FlowPanel
+  layout_properties: {column: 'null'}
+  name: column_panel_1
+  properties: {col_widths: '{"GFSQUY":7,"KAQUEG":5,"SDCQDR":15,"RGGXRF":16,"UTIYCZ":17}', wrap_on: never}
+  type: ColumnPanel
 - layout_properties: {column: 'null'}
   name: text_titre
   properties:
