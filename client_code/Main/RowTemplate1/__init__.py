@@ -83,6 +83,10 @@ class RowTemplate1(RowTemplate1Template):
     def button_generer_html_click(self, **event_args):
         """Affiche le texte avec mots-clés surlignés dans cette ligne"""
 
+        # check du check_box 'vu'
+        self.checkbox_vu.checked = True
+        self.checkbox_vu_change()
+        
         # Ne plus afficher les détails
         if self.column_panel_detail.visible is True:
             self.column_panel_detail.visible = False
