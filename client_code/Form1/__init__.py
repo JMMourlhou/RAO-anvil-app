@@ -6,7 +6,7 @@ class Form1(Form1Template):
     def __init__(self, **properties):
         self.init_components(**properties)
         self.comp_html = None
-        self.button_aller_mot.enabled = False
+        self.button_aller_mot.visible = False
 
     def button_charger_test_click(self, **event_args):
         html_genere = """
@@ -34,7 +34,7 @@ class Form1(Form1Template):
         self.column_panel_affichage.clear()
         self.column_panel_affichage.add_component(self.comp_html)
 
-        self.button_aller_mot.enabled = True
+        self.button_aller_mot.visible = True
 
     @handle("button_aller_mot", "click")
     def button_aller_mot_click(self, **event_args):

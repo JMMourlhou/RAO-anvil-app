@@ -11,7 +11,6 @@ class Main(MainTemplate):
     def __init__(self, origine="", sources="", mots="", nb_jours="1", departements="", **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
-        
         with anvil.server.no_loading_indicator:
 
             # init de la drop down plateforme multi sélectable depuis la table 'platformes'
@@ -69,8 +68,8 @@ class Main(MainTemplate):
                 list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
                 if len(list_offres)>0:
                     self.button_selection_mailed.visible = True
-                    self.data_grid_offres.visible = True
-                    self.repeating_panel_1.items = list_offres
+                    self.repeating_panel_2.visible = True
+                    self.repeating_panel_2.items = list_offres
                     if len(list_offres)==1:
                         self.text_nb_offres.text = f"{len(list_offres)} offre"
                     else:   
@@ -129,8 +128,9 @@ class Main(MainTemplate):
                     self.text_nb_offres.text = f"{len(list_offres)} offres"
                 self.text_nb_offres.visible = True
                 
-                self.repeating_panel_1.items = list_offres
-                self.data_grid_offres.visible = True
+                self.repeating_panel_2.items = list_offres
+                
+                self.repeating_panel_2.visible = True
                 self.flow_panel_select.visible = True
                 self.button_selection_mailed.visible = True
                 
@@ -143,11 +143,11 @@ class Main(MainTemplate):
                 self.param_backup(selected_platformes, self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
                 # -------------------------------------------
             else:
-                self.data_grid_offres.visible = False
+                self.repeating_panel_2.visible = False
                 alert("Désolé... pas d'offres trouvées !")
                 with anvil.server.no_loading_indicator:
                     app_tables.appels_offres.delete_all_rows()
-                    self.data_grid_offres.visible = False
+                    self.repeating_panel_2.visible = False
         except Exception as e:
             alert(f"Erreur lors de la requête : {e}")
 

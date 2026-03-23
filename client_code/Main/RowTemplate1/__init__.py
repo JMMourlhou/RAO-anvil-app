@@ -3,7 +3,7 @@ from anvil import *
 import anvil.server
 import re
 from ...recherche_mk_html import recherche_mk_html
-
+import m3.components as m3
 
 class RowTemplate1(RowTemplate1Template):
     def __init__(self, **properties):
@@ -20,7 +20,7 @@ class RowTemplate1(RowTemplate1Template):
         )
         self.container_id = "zone_" + re.sub(r"[^A-Za-z0-9_-]", "_", raw_uid)
     
-        self.button_aller_mot.enabled = False
+        self.button_aller_mot.visible = False
     
         try:
             self.text_date_publication.text = str(self.item['date_publication'].strftime("%d/%m/%Y"))
@@ -117,7 +117,8 @@ class RowTemplate1(RowTemplate1Template):
         self.column_panel_affichage.clear()
         self.column_panel_affichage.add_component(self.comp_html)
         self.column_panel_detail.visible = True
-        self.button_aller_mot.enabled = len(self.hit_ids) > 0
+        if len(self.hit_ids) > 0:
+            self.button_aller_mot.visible = True
 
         if self.hit_ids:
             # va directement à la 1ère occurrence
