@@ -48,22 +48,33 @@ db_schema:
     - admin_ui: {order: -2, width: 200}
       name: email
       type: string
-    - admin_ui: {order: 3, width: 200}
+    - admin_ui: {order: 3, width: 116}
+      client_hidden: false
       name: nb_jours
       type: number
     - admin_ui: {order: -1.5, width: 200}
       name: date_heure
       type: datetime
-    - admin_ui: {order: 4, width: 200}
+    - admin_ui: {order: 4, width: 127}
+      client_hidden: false
       name: departements
       type: simpleObject
-    - admin_ui: {order: -3, width: 200}
+    - admin_ui: {order: -3, width: 138}
+      client_hidden: false
       name: user_id
       type: string
     - admin_ui: {order: 5, width: 200}
       client_hidden: false
       name: sources
       type: simpleObject
+    - admin_ui: {order: 6, width: 200}
+      client_hidden: false
+      name: offres
+      type: simpleObject
+    - admin_ui: {order: 5.5, width: 120}
+      client_hidden: false
+      name: nb_offres
+      type: number
     server: full
     title: histo
   platformes:
