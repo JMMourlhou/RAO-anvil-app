@@ -114,7 +114,7 @@ class Main(MainTemplate):
             offres = anvil.server.call("get_offres_multi_sources", mots_clefs , depts,         100,   1,     periode, sources=selected_platformes)
             if offres:
                 for offre in offres:
-                    print(offre)
+                    #print(offre)
                     result = anvil.server.call("sov_offres", offre)
                     if result != "ok":
                         self.flow_panel_select.visible = False
