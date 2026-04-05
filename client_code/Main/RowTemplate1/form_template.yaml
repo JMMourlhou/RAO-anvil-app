@@ -76,18 +76,6 @@ components:
   properties: {align: center, icon: 'mi:search', icon_color: '', text: Vérification}
   type: form:dep_lin1x4oec0ytd:_Components.Button
 - components:
-  - event_bindings: {click: button_aller_mot_click}
-    layout_properties: {grid_position: 'SAPYBP,TBLSFX'}
-    name: button_aller_mot
-    properties:
-      align: center
-      appearance: filled
-      background_color: theme:Light Green
-      icon: mi:navigate_next
-      spacing:
-        margin: [null, '2', null, '2']
-        padding: [null, '10', null, '10']
-    type: form:dep_lin1x4oec0ytd:_Components.Button
   - layout_properties: {grid_position: 'SAPYBP,QWTBKN'}
     name: column_panel_affichage
     properties:
