@@ -96,7 +96,19 @@ class RowTemplate1(RowTemplate1Template):
             return
 
         # contenu à afficher
-        texte = self.item_value("search_text", "")
+        #texte = self.item_value("search_text", "")
+        try:
+            texte_source = self.item_value("search_text", "")
+        except Exception:
+            texte_source = ""
+        
+        if not texte_source:
+            try:
+                texte_source = self.item["titre"]
+            except Exception:
+                texte_source = ""
+        
+        texte = self.format_search_text_for_display(texte_source)
         mots_cles = self.extraire_mots_cles()
 
         if not texte:
@@ -117,3 +129,64 @@ class RowTemplate1(RowTemplate1Template):
         self.comp_html.charger(texte, mots_cles)
 
         self.column_panel_detail.visible = True
+
+    def format_search_text_for_display(self, texte):
+        """
+        Rend le texte plus lisible avant surbrillance :
+        - garde les retours à la ligne existants
+        - ajoute des sauts de ligne avant les libellés fréquents
+        - compacte les espaces
+        """
+        texte = str(texte or "")
+    
+        # normalisation des fins de ligne
+        texte = texte.replace("\r\n", "\n").replace("\r", "\n")
+    
+        # compacte les espaces, mais garde les \n
+        lignes = [re.sub(r"[ \t]+", " ", ligne).strip() for ligne in texte.split("\n")]
+        texte = "\n".join(lignes)
+    
+        labels = [
+            "Titre :",
+            "Acheteur :",
+            "Date de publication :",
+            "Date limite :",
+            "Date limite de réception des offres :",
+            "Référence :",
+            "Nature :",
+            "Procédure :",
+            "Lieu :",
+            "Nom :",
+            "Nom officiel :",
+            "Adresse :",
+            "Ville :",
+            "Code postal :",
+            "Email :",
+            "Téléphone :",
+            "Site web :",
+            "Lien :",
+            "Note :",
+            "Description :",
+            "Informations complémentaires :",
+            "Eléments de preuve :",
+            "Eléments de jugement :",
+            "Critère :",
+            "Type :",
+            "Arrangement financier :",
+        ]
+    
+        # ajoute un saut de ligne avant chaque label
+        for label in labels:
+            texte = re.sub(
+                rf"\s*{re.escape(label)}\s*",
+                f"\n\n{label} ",
+                texte
+            )
+    
+        # nettoie les débuts/fins
+        texte = texte.strip()
+    
+        # évite les triples sauts de ligne
+        texte = re.sub(r"\n{3,}", "\n\n", texte)
+    
+        return texte   
