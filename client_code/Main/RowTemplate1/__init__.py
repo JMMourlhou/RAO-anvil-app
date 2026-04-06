@@ -135,6 +135,7 @@ class RowTemplate1(RowTemplate1Template):
         Rend le texte plus lisible avant surbrillance :
         - garde les retours à la ligne existants
         - ajoute des sauts de ligne avant les libellés fréquents
+        - supprime quelques lignes techniques parasites
         - compacte les espaces
         """
         texte = str(texte or "")
@@ -173,6 +174,7 @@ class RowTemplate1(RowTemplate1Template):
             "Critère :",
             "Type :",
             "Arrangement financier :",
+            "Type d'avis :",
         ]
     
         # ajoute un saut de ligne avant chaque label
@@ -183,10 +185,35 @@ class RowTemplate1(RowTemplate1Template):
                 texte
             )
     
-        # nettoie les débuts/fins
-        texte = texte.strip()
+        # met aussi les URL seules sur leur propre ligne
+        texte = re.sub(r"\s+(https?://)", r"\n\1", texte)
+    
+        # supprime quelques lignes techniques fréquentes
+        lignes = []
+        a_supprimer = {
+            "epo-procurement-document",
+            "non-restricted-document",
+        }
+    
+        for ligne in texte.split("\n"):
+            l = ligne.strip()
+            if not l:
+                lignes.append("")
+                continue
+    
+            l_norm = l.lower()
+    
+            if l_norm in a_supprimer:
+                continue
+    
+            if re.fullmatch(r"Heure\s*:\s*\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?", l, flags=re.I):
+                continue
+    
+            lignes.append(l)
+    
+        texte = "\n".join(lignes)
     
         # évite les triples sauts de ligne
         texte = re.sub(r"\n{3,}", "\n\n", texte)
     
-        return texte   
+        return texte.strip()
