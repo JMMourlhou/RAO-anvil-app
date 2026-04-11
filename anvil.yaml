@@ -39,6 +39,11 @@ db_schema:
       type: string
     server: full
     title: appels_offres
+  files:
+    client: none
+    columns: []
+    server: full
+    title: files
   globale_variables:
     client: none
     columns:
@@ -173,6 +178,10 @@ db_schema:
       client_hidden: false
       name: n_password_failures
       type: number
+    - admin_ui: {order: 16, width: 200}
+      client_hidden: false
+      name: email
+      type: string
     server: full
     title: users
 dependencies:
@@ -197,6 +206,9 @@ services:
 - client_config: {}
   server_config: {}
   source: /runtime/services/tables.yml
+- client_config: {allow_signup: false, confirm_email: true, enable_automatically: true, use_email: true, use_token: true}
+  server_config: {user_table: users}
+  source: /runtime/services/anvil/users.yml
 startup: {module: Main, type: form}
 startup_form: null
 uplink_visible: true

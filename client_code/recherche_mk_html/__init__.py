@@ -1,5 +1,6 @@
 from ._anvil_designer import recherche_mk_htmlTemplate
 from anvil import *
+import anvil.users
 
 class recherche_mk_html(recherche_mk_htmlTemplate):
     def __init__(self, **properties):

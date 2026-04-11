@@ -1,5 +1,6 @@
 from ._anvil_designer import RowTemplate1Template
 from anvil import *
+import anvil.users
 import anvil.server
 import re
 from ...recherche_mk_html import recherche_mk_html

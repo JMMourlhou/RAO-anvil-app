@@ -20,18 +20,3 @@
         position: absolute;
     }
 }
-
-.col-padding.col-padding-tiny { padding: 0 2px; }
-.column-panel.col-padding-tiny > .anvil-panel-section > .anvil-panel-section-container > .anvil-panel-section-gutter { margin: 0 -2px; }
-
-.col-padding.col-padding-small { padding: 0 4px; }
-.column-panel.col-padding-small > .anvil-panel-section > .anvil-panel-section-container > .anvil-panel-section-gutter { margin: 0 -4px; }
-
-.col-padding.col-padding-medium { padding: 0 8px; }
-.column-panel.col-padding-medium > .anvil-panel-section > .anvil-panel-section-container > .anvil-panel-section-gutter { margin: 0 -8px; }
-
-.col-padding.col-padding-large { padding: 0 12px; }
-.column-panel.col-padding-large > .anvil-panel-section > .anvil-panel-section-container > .anvil-panel-section-gutter { margin: 0 -12px; }
-
-.col-padding.col-padding-huge { padding: 0 20px; }
-.column-panel.col-padding-huge > .anvil-panel-section > .anvil-panel-section-container > .anvil-panel-section-gutter { margin: 0 -20px; }
