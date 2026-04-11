@@ -39,6 +39,23 @@ db_schema:
       type: string
     server: full
     title: appels_offres
+  globale_variables:
+    client: none
+    columns:
+    - admin_ui: {order: 0, width: 200}
+      client_hidden: false
+      name: name
+      type: string
+    - admin_ui: {order: 1, width: 263}
+      client_hidden: false
+      name: value
+      type: simpleObject
+    - admin_ui: {order: 2, width: 200}
+      client_hidden: false
+      name: commentaires
+      type: string
+    server: full
+    title: globale_variables
   histo:
     client: search
     columns:
