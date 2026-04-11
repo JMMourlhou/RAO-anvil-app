@@ -59,10 +59,6 @@ db_schema:
       client_hidden: false
       name: departements
       type: simpleObject
-    - admin_ui: {order: -3, width: 138}
-      client_hidden: false
-      name: user_id
-      type: string
     - admin_ui: {order: 5, width: 200}
       client_hidden: false
       name: sources
@@ -94,14 +90,11 @@ db_schema:
       type: string
     server: full
     title: platformes
-  user:
+  users:
     client: search
     columns:
     - admin_ui: {order: 0, width: 200}
       name: mail
-      type: string
-    - admin_ui: {order: 1, width: 200}
-      name: id
       type: string
     - admin_ui: {order: 2, width: 200}
       client_hidden: false
@@ -119,20 +112,52 @@ db_schema:
       client_hidden: false
       name: add_cp
       type: string
+    - admin_ui: {order: 0.5, width: 200}
+      client_hidden: false
+      name: confirmed_email
+      type: bool
+    - admin_ui: {order: 0.75, width: 200}
+      client_hidden: false
+      name: enabled
+      type: bool
+    - admin_ui: {order: 0.875, width: 200}
+      client_hidden: false
+      name: signed_up
+      type: datetime
+    - admin_ui: {order: 0.9375, width: 200}
+      client_hidden: false
+      name: last_login
+      type: bool
+    - admin_ui: {order: 1.5, width: 200}
+      client_hidden: false
+      name: nom
+      type: string
+    - admin_ui: {order: 1.75, width: 200}
+      client_hidden: false
+      name: prenom
+      type: string
+    - admin_ui: {order: 1.875, width: 200}
+      client_hidden: false
+      name: entreprise
+      type: string
     - admin_ui: {order: 6, width: 200}
       client_hidden: false
-      name: level
-      type: number
+      name: add_pays
+      type: string
+    - admin_ui: {order: 0.625, width: 200}
+      client_hidden: false
+      name: password_hash
+      type: string
     - admin_ui: {order: 7, width: 200}
       client_hidden: false
-      name: level_1_nb_tests
-      type: number
+      name: api_key
+      type: string
     - admin_ui: {order: 8, width: 200}
       client_hidden: false
-      name: date_deb
-      type: datetime
+      name: n_password_failures
+      type: number
     server: full
-    title: user
+    title: users
 dependencies:
 - config: {}
   dep_id: dep_lin1x4oec0ytd

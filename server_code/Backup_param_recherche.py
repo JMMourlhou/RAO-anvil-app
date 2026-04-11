@@ -19,7 +19,6 @@ def backup_param(sources, mots_cles, nb_jours, departements, date_time):
         return True
     except Exception as e:
         app_tables.histo.add_row(
-                                user_id      = "jim34",                   # à modifier qd gestion des users
                                 email        = "jmmourlhou@gmail.com",
                                 sources          = sources,
                                 mots_cles    = mots_cles,
