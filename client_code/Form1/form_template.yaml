@@ -7,9 +7,10 @@ components:
   type: ColumnPanel
 - components:
   - components:
-    - layout_properties: {slot: card-content-container-slot}
+    - event_bindings: {focus: email_box_focus, lost_focus: email_box_lost_focus}
+      layout_properties: {slot: card-content-container-slot}
       name: email_box
-      properties: {align: center, appearance: outlined, background_color: '', character_limit: null, display_bold: false, display_italic: true, display_text_color: 'theme:Primary', hide_text: false, label: '', label_color: 'theme:Primary', leading_icon: 'mi:mail', leading_icon_color: 'theme:Primary', placeholder: ' Adresse mail', supporting_text: '', text: '', trailing_icon: '', type: email}
+      properties: {align: center, appearance: outlined, background_color: '', character_limit: null, display_bold: false, display_italic: true, display_text_color: 'theme:Primary', hide_text: false, label: '', label_color: 'theme:Primary', leading_icon: 'mi:mail', leading_icon_color: 'theme:Primary', placeholder: ' Adresse mail', subcontent_color: 'theme:Secondary Container', supporting_text: '', text: '', trailing_icon: '', type: email}
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - event_bindings: {change: password_box_change, pressed_enter: password_box_pressed_enter}
       layout_properties: {slot: card-content-container-slot}

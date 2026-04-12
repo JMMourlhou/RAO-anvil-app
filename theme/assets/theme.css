@@ -20,3 +20,18 @@
         position: absolute;
     }
 }
+
+/* Chrome / Google autofill */
+.anvil-role-login-field input:-webkit-autofill,
+.anvil-role-login-field input:-webkit-autofill:hover,
+.anvil-role-login-field input:-webkit-autofill:focus,
+.anvil-role-login-field input:-webkit-autofill:active {
+    -webkit-text-fill-color: white !important;
+    caret-color: white !important;
+
+    -webkit-box-shadow: 0 0 0 1000px #1f1f1f inset !important;
+    box-shadow: 0 0 0 1000px #1f1f1f inset !important;
+
+    border-radius: inherit;
+    transition: background-color 999999s ease-out 0s;
+}

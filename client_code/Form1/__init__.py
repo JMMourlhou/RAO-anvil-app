@@ -14,9 +14,10 @@ class Form1(Form1Template):
     def __init__(self, **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
-
         # Any code you write here will run before the form opens.
-
+        self.email_box.role = "login-field"
+        self.password_box.role = "login-field"
+        
     def focus_name(self, **kws):
         """Focus on the password box."""
         self.email_box.focus()       
@@ -115,4 +116,14 @@ class Form1(Form1Template):
     def password_box_change(self, **event_args):
         """This method is called when the text in this component is edited."""
         self.button_validation.visible = True
+
+
+
+    def email_box_lost_focus(self, **event_args):
+        """This method is called when the component loses focus."""
+        self.email_box.background_color = "#000000"
+
+    def email_box_focus(self, **event_args):
+        """This method is called when the component gets focus."""
+        self.email_box.background_color = "#000000"
 
