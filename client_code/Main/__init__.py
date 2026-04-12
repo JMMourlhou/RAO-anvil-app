@@ -8,6 +8,12 @@ from anvil.tables import app_tables
 import m3.components as m3
 from .. import Time
 
+# modules de gestion des users: login, reset pw, new user
+from ..z_user_login import z_user_login
+#from ..z_user_pw_reset import z_user_pw_reset
+from ..z_user_new_account import z_user_new_account
+#from .. import z_user_url_from_mail
+
 class Main(MainTemplate):
     def __init__(self, origine="", sources="", mots="", nb_jours="1", departements="", **properties):
         # Set Form properties and Data Bindings.
@@ -242,3 +248,11 @@ class Main(MainTemplate):
                 alert("Erreur !")
             else:
                 open_form('Main', "check")
+
+    def button_se_connecter_click(self, **event_args):
+        """This method is called when the button is clicked"""
+        self.bt_user_mail.text = "Connection"
+        self.flow_panel_connect.visible = False
+        #from sign_in_for_AMS_Data.LoginDialog_V2 import LoginDialog_V2
+        self.content_panel.clear()
+        self.content_panel.add_component(z_user_login(), full_width_row=False)

@@ -1,4 +1,4 @@
-from ._anvil_designer import Form1Template
+from ._anvil_designer import z_user_loginTemplate
 from anvil import *
 import anvil.users
 import anvil.server
@@ -9,13 +9,14 @@ from anvil.tables import app_tables
 from .. import Mail_valideur  # pour button_export_xls_click
 
 
-
-class Form1(Form1Template):
+class z_user_login(z_user_loginTemplate):
     def __init__(self, **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
         # Any code you write here will run before the form opens.
-        self.email_box.role = "login-field"
+        
+        #pour permettre un affichage du bg couleur non gérer par google, voir theme.css 
+        self.email_box.role = "login-field"   
         self.password_box.role = "login-field"
         
     def focus_name(self, **kws):
@@ -119,11 +120,4 @@ class Form1(Form1Template):
 
 
 
-    def email_box_lost_focus(self, **event_args):
-        """This method is called when the component loses focus."""
-        self.email_box.background_color = "#000000"
-
-    def email_box_focus(self, **event_args):
-        """This method is called when the component gets focus."""
-        self.email_box.background_color = "#000000"
 
