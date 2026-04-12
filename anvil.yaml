@@ -44,7 +44,7 @@ db_schema:
     columns: []
     server: full
     title: files
-  globale_variables:
+  global_variables:
     client: none
     columns:
     - admin_ui: {order: 0, width: 200}
@@ -60,7 +60,7 @@ db_schema:
       name: commentaires
       type: string
     server: full
-    title: globale_variables
+    title: global_variables
   histo:
     client: search
     columns:
@@ -115,24 +115,25 @@ db_schema:
   users:
     client: search
     columns:
-    - admin_ui: {order: 0, width: 200}
-      name: mail
+    - admin_ui: {order: 0, width: 245}
+      client_hidden: false
+      name: email
       type: string
     - admin_ui: {order: 2, width: 200}
       client_hidden: false
-      name: add_rue1
+      name: adresse_rue1
       type: string
     - admin_ui: {order: 3, width: 200}
       client_hidden: false
-      name: add_rue2
+      name: adresse_rue2
       type: string
     - admin_ui: {order: 4, width: 200}
       client_hidden: false
-      name: add_ville
+      name: adresse_ville
       type: string
     - admin_ui: {order: 5, width: 200}
       client_hidden: false
-      name: add_cp
+      name: adresse_cp
       type: string
     - admin_ui: {order: 0.5, width: 200}
       client_hidden: false
@@ -164,23 +165,23 @@ db_schema:
       type: string
     - admin_ui: {order: 6, width: 200}
       client_hidden: false
-      name: add_pays
+      name: adresse_pays
       type: string
     - admin_ui: {order: 0.625, width: 200}
       client_hidden: false
       name: password_hash
       type: string
-    - admin_ui: {order: 7, width: 200}
+    - admin_ui: {order: 0.8125, width: 200}
       client_hidden: false
       name: api_key
       type: string
-    - admin_ui: {order: 8, width: 200}
+    - admin_ui: {order: 1.21875, width: 200}
       client_hidden: false
       name: n_password_failures
       type: number
-    - admin_ui: {order: 16, width: 200}
+    - admin_ui: {order: 1.359375, width: 99}
       client_hidden: false
-      name: email
+      name: role
       type: string
     server: full
     title: users
@@ -209,6 +210,6 @@ services:
 - client_config: {allow_signup: false, confirm_email: true, enable_automatically: true, use_email: true, use_token: true}
   server_config: {user_table: users}
   source: /runtime/services/anvil/users.yml
-startup: {module: z_user_login, type: form}
+startup: {module: Main, type: form}
 startup_form: null
 uplink_visible: true

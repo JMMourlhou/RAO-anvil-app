@@ -12,30 +12,37 @@ from .. import Mail_valideur  # pour button_export_xls_click
 
 
 class z_user_new_account(z_user_new_accountTemplate):
-    def __init__(self, h={}, num_stage=0, pour_stage=0, x=0, **properties):
-        # ERREUR SI JE NE METS PAS X=0, nb de param erronés.... car situé à la fin de la liste
-        # Set Form properties and Data Bindings.
-        # Any code you write here will run when the form opens.
-
-        #alert(f"num_stage: {num_stage}")
-        #alert(f"h: {h}")
-        #alert(f"pour_stage: {pour_stage}")
-        #alert(f"x: {x}")
-
+    def __init__(self, h={}, **properties):
         self.init_components(**properties)
+        
+        #pour permettre un affichage du bg couleur non gérer par google, voir theme.css 
+        self.email_box.role = "login-field"   
+        self.password_box.role = "login-field"
+        self.password_repeat_box.role = "login-field"
+        
         self.name_box.text = ""
         self.email_box.text = ""
         self.password_box.text = ""
         self.password_repeat_box.text = ""
-        self.num_stage = num_stage
-        self.pour_stage = pour_stage
 
     def button_validation_click(self, **event_args):
         """This method is called when the button is clicked"""
         # nom vide ?
         if self.name_box.text == "":
-            alert("Entrez votre nom svp !")
-            return
+            alert("Entrez votre nom de famille svp !")
+            self.name_box.focus() 
+
+        # entreprise vide ?
+        if self.entreprise_box.text == "":
+            alert("Entrez l'intitulé de votre entreprise svp !")
+            self.entreprise_box.focus()
+        #1ere lettre en majuscule
+        nm = self.entreprise_box.text
+        nm = nm.strip()
+        nm = nm.lower()
+        nm = nm.capitalize()
+        self.entreprise_box.text = nm
+        
         # lg du nom >= 2 ? mais pas bloquant
         if len(self.name_box.text) <= 2 :
             r=alert("Votre Nom est-il correct ?",buttons=[("non",False),("oui",True)])
@@ -43,6 +50,8 @@ class z_user_new_account(z_user_new_accountTemplate):
                 return
         #1ere lettre en majuscules
         nm = self.name_box.text
+        nm = nm.strip()
+        nm = nm.lower()
         nm = nm.capitalize()
         self.name_box.text = nm
 
@@ -50,8 +59,7 @@ class z_user_new_account(z_user_new_accountTemplate):
         if self.email_box.text == "":
             alert("Entrez votre mail svp !")
             self.email_box.focus()
-            return
-        # mail en minuscule    et strip
+        # mail en minuscule et strip
         mel = self.email_box.text
         mel = mel.lower()
         mel = mel.strip()
@@ -62,18 +70,18 @@ class z_user_new_account(z_user_new_accountTemplate):
         if result is False:
             alert("Le mail n'a pas le bon format !")
             self.email_box.focus()
-            return
 
         if self.password_box.text != self.password_repeat_box.text:
             alert("Les mots de passe sont différents !")
-            return
+            self.password_box.focus()
+        
         # ------------------------------------------------------------   VALIDATION 
-        err = anvil.server.call('do_signup', self.email_box.text, self.name_box.text, self.password_box.text, self.num_stage, self.pour_stage)
+        err = anvil.server.call('do_signup', self.email_box.text, self.name_box.text, self.entreprise_box.text, self.password_box.text)
         if err is not None:    #erreur, on revient ds mother app
+            print(f"z_user_new_account: Erreur en retour de 'do_signup': {err}")
             alert(err)
             #open_form("Main",99)
             open_form("Main")
-            
         else:           #Pas d'erreur, on envoi le mail de confirmation
             if anvil.server.call('_send_email_confirm_link', self.email_box.text):
                 alert(f"Un email de confirmation a été envoyé à l'adresse {self.email_box.text}.<br> Ouvrez-le et cliquez sur le lien.")
@@ -95,13 +103,36 @@ class z_user_new_account(z_user_new_accountTemplate):
 
     def password_repeat_box_pressed_enter(self, **event_args):
         """This method is called when the user presses Enter in this text box"""
+        self.button_validation.visible = True
         self.button_validation_click()
 
     def form_show(self, **event_args):
         """This method is called when the form is shown on the page"""
         self.name_box.focus() 
 
-    def password_box_pressed_enter(self, **event_args):
+
+    def password_box_repeat_change(self, **event_args):
+        """This method is called when the text in this component is edited."""
+        self.button_validation.visible = True
+
+    def password_repeat_box_change(self, **event_args):
+        """This method is called when the text in this component is edited."""
+        self.button_validation.visible = True
+
+    def name_box_pressed_enter(self, **event_args):
         """This method is called when the user presses enter in this component."""
-        pass
+        self.entreprise_box.focus() 
+
+
+    def entreprise_box_pressed_enter(self, **event_args):
+        """This method is called when the user presses enter in this component."""
+        self.email_box.focus() 
+        
+
+    def email_box_pressed_enter(self, **event_args):
+        """This method is called when the user presses enter in this component."""
+        self.password_box.focus() 
+
+  
+        
 

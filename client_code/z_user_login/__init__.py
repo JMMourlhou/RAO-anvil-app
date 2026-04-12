@@ -44,7 +44,7 @@ class z_user_login(z_user_loginTemplate):
         # Mail format validation
         result = Mail_valideur.is_valid_email(mel)    # dans module Mail_valideur, fonction appelée 'is_valid_email'
         if result is False:
-            alert("Mail erroné !")
+            alert("Mail au mauvais format !")
             #AlertHTML.error("Adresse Mail :", "Mail erroné !")
             self.email_box.focus()
             return

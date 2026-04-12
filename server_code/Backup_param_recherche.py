@@ -4,7 +4,7 @@ from anvil.tables import app_tables
 import anvil.server
 
 # =========================================================================
-@anvil.server.callable           # éffacements des offres sélectionnées (vu=True)
+@anvil.server.callable          
 def backup_param(sources, mots_cles, nb_jours, departements, date_time):
     # lecture de la 1ere ligne de la table
     try: # row1 existe ?
@@ -18,7 +18,7 @@ def backup_param(sources, mots_cles, nb_jours, departements, date_time):
                     date_heure   = date_time    
                     )
         return True
-    except Exception as e:
+    except Exception as e:  # si la 1ere ligne n'existe pas encore, on la crée
         app_tables.histo.add_row(
                                 email        = "jmmourlhou@gmail.com",
                                 sources          = sources,

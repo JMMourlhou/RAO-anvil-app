@@ -62,7 +62,7 @@ mail: {ams_mail} <br>
 def _send_email_confirm_link(email):
     # Récupération des variables globales utilisées ici
     dict_var_glob = Variables_globales.get_variable_names()   # var_globale du mail d'AMS, stockées ds table 
-    ams_mail = dict_var_glob["ams_mail"]   # var globale Mail AMS
+    mon_mail = dict_var_glob["mon_mail"]   # var globale mon_mail 
     code_app1 = dict_var_glob["code_app1"]      # var_globale de l'apli AMS DATA
     en_tete_address = code_app1+"/_/theme/"+ dict_var_glob["app_en_tete"]
     nom_app_pour_mail = dict_var_glob["nom_app_pour_mail"]
@@ -84,7 +84,7 @@ Afin de confirmer votre adresse mail, <b>clickez le lien ci-dessous:</b><br>
 {code_app1}/#?a=confirm&email={url_encode(user['email'])}&hpw={url_encode(user['password_hash'])}&t={t} <br>
 <br><br>
 <b><i>         L'équipe d'AMSport,</b></i><br>
-mail: {ams_mail} <br>
+mail: {mon_mail} <br>
 """)
     return True
 
@@ -102,42 +102,31 @@ def mk_api_key():
 """
 @anvil.server.callable
 @anvil.tables.in_transaction
-def do_signup(email, name, password, num_stage, pour_stage="0"):
-    print(f"Module 'z_user_modules / do_sign_up': création du user:{email}, {name}, stage {num_stage} pour le stage {pour_stage}")
+def do_signup(email, name, entreprise, password):
+    print(f"Module 'z_user_modules / do_sign_up': création du user:{email}, nom: {name}, entreprise: {entreprise}")
     pwhash = hash_password(password, bcrypt.gensalt())
     user = app_tables.users.get(email=email)
     if user is None:   # user not created yet
         api = mk_api_key()
         date_heure = Time.french_zone_time()
-        role_user ="S"  # stagiaire par défaut
-        if num_stage is not None or num_stage != "":
-            # lecture du stage sur son num(numéric)
-            try:
-                stage_row=app_tables.stages.get(numero=int(num_stage))
-                role_user = stage_row["type_stage"]
-                print(f"Module 'z_user_modules / do_sign_up': Stage {num_stage} bien lu ***")
-                print(f"Module 'z_user_modules / do_sign_up': rôle du user: {role_user}")
-            except Exception as e:
-                print(f"Module 'z_user_modules / do_sign_up': création du user: *** erreur en inscription au stage ({num_stage}) à attribuer pour ce nouvel user *** , role='S' par défaut")
-                print(e)
-                print("------------------------------------")
-                role_user = "S" # par défaut
+        role_user ="N"  # 'N'ew client par défaut
         try:        
             user = app_tables.users.add_row(email=email.lower(),
-                                            role=role_user,
-                                            enabled=True,
-                                            nom=name,
-                                            password_hash=pwhash,
-                                            api_key=api,
-                                            signed_up=date_heure,
+                                            role = role_user,
+                                            enabled = True,
+                                            nom = name,
+                                            entreprise = entreprise,
+                                            password_hash = pwhash,
+                                            api_key = api,
+                                            signed_up = date_heure,
                                            )
-            print("création user", user['email'])
+            print("création user ok:", user['email'])
             err = None # pas d'erreur
         except Exception as e:
             return e
     else:  # erreur 
         print(f"Module 'z_user_modules / do_sign_up', en création du user, son adresse mail {user['email']} déjà existante ! ") 
-        err = "Cette adresse mail est déjà connue... Essayez de vous connecter."
+        err = "Cette adresse mail est déjà enregistrée... Essayez de vous connecter."
     return err
 
 
