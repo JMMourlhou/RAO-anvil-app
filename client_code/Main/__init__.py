@@ -8,7 +8,7 @@ import anvil.tables.query as q
 from anvil.tables import app_tables
 # modules de gestion des users: login, reset pw, new user
 from ..z_user_login import z_user_login
-#from ..z_user_pw_reset import z_user_pw_reset
+from ..z_user_pw_reset import z_user_pw_reset
 from ..z_user_new_account import z_user_new_account
 #from .. import z_user_url_from_mail
 
@@ -18,25 +18,46 @@ class Main(MainTemplate):
         self.init_components(**properties)
 
         # Any code you write here will run before the form opens.
-        params = anvil.get_url_hash() or {}
-        # si confirmation du novel utilisateur:
-        if isinstance(params, dict) and params.get("a") == "confirm":
-            ok, msg = anvil.server.call(
-                "confirm_user_from_link",
-                params.get("email"),
-                params.get("hpw"),
-                params.get("t"),
-            )
-            # nettoie l'URL après traitement
-            anvil.set_url_hash("")
-            if ok:
-                alert(msg, title="Confirmation")
-                open_form("LoginForm")
-            else:
-                alert(msg, title="Erreur de confirmation")
-                open_form("Home")
-            return
 
+        # Y a t il une URL active ?
+        h = anvil.get_url_hash()
+        if isinstance(h, dict):
+            # lien de confirmation d'un nouvel user ?
+            if h.get("a") == "confirm":
+                # pas de controle de délai dépassé ici, mais ce fait ds module 'confirm_email_address' suivant
+                ok, msg = anvil.server.call(
+                    "confirm_email_address",
+                    h.get("email"),
+                    h.get("api_key"),
+                )
+                alert(msg, title="Confirmation")
+                
+            # lien de reset d'un Mot de Passe ?
+            if h.get("a") == "pwreset":
+                # pas de controle de délai dépassé ici, mais ce fait ds module 'confirm_email_address' suivant
+                
+                # controle si c'est le dernier lien, avec la bon API key
+                ok, msg = anvil.server.call(
+                    "_check_password_reset_link",
+                    h.get("email"),
+                    h.get("api_key"),
+                )
+                if ok: # c'est bien le dernier lien cliqué dans le mail
+                    self.flow_panel_connect.visible = False
+                    self.bt_user_mail.text = "Ré-initialisation du Mot de Passe"
+                    self.content_panel.clear()
+                    self.content_panel.add_component(z_user_pw_reset(
+                                                                        h.get("email"),
+                                                                        h.get("api_key")
+                                                                    ),
+                                                        full_width_row=False
+                                                     )
+                else: # pas le dernier lien cliqué
+                    anvil.set_url_hash("")
+                    alert(msg, title="Réinitialisation du mot de passe")
+                    open_form("Main")
+            anvil.set_url_hash("")      
+            
     def button_se_connecter_click(self, **event_args):
         """This method is called when the button is clicked"""
         self.bt_user_mail.text = "Connection"
@@ -81,8 +102,8 @@ class Main(MainTemplate):
             self.bt_sign_in.visible = True
 
             self.bt_se_deconnecter.visible = False
-            self.column_panel_admin.visible = False
-            self.column_panel_others.visible = False
+            #self.column_panel_admin.visible = False
+            #self.column_panel_others.visible = False
 
     """ ***********************************************************************************************"""
     """ ****************************** Gestions  AUTRES BOUTONS et leurs clicks ******************************"""

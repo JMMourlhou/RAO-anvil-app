@@ -1,17 +1,28 @@
+import anvil.server
 import anvil.users
 import anvil.tz
 from datetime import datetime
 # Calcul de l'heure en France
 
 #Get the time now, local time FOR CLIENT SIDE (date from browser)
+# Attention, En table, l'heure stockée sera UTC (universelle),
 def french_zone_time():
-    date_time = datetime.now(anvil.tz.tzlocal()) #recup browser time
-    return date_time
+    return datetime.now(anvil.tz.tzlocal()) #recup browser time
+
+#   donc pour ensuite afficher à l'heure Française:
+# Fonction de réaffichage si besoin d'afficher l'heure exacte:
+def format_fr(dt):
+    if dt is None:
+        return ""
+    return dt.astimezone(anvil.tz.tzlocal()).strftime("%d/%m/%Y %H:%M")
+    #
+    # appel de la fonction
+    #self.label_signed_up.text = format_fr(user['signed_up'])
 
 
 # Calculate the difference beetween now time  and  't' (the str url time)
 def time_over(t):
-    bool=True #time is over
+    result=True #time is over
 
     #time now
     time_now=french_zone_time()
@@ -28,9 +39,9 @@ def time_over(t):
     print(f"Time delay_url_in_min en param globaux: {timedelay_url_in_min}")
     #to get the URL delay
     if diff_in_minutes < timedelay_url_in_min: 
-        bool = False # time not over
+        result = False # time not over
     print(f"Module French_zone: Délai dépassé de l'URL: {bool}")
-    return bool
+    return result
 
 
 # Returns the difference beetween now  and  a past date 

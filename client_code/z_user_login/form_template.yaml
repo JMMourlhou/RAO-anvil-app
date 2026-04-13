@@ -66,5 +66,7 @@ components:
   name: card_1
   properties: {}
   type: form:dep_lin1x4oec0ytd:_Components.Card
-container: {type: ColumnPanel}
+container:
+  event_bindings: {show: focus_name}
+  type: ColumnPanel
 is_package: true

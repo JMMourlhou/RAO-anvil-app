@@ -147,17 +147,9 @@ db_schema:
       client_hidden: false
       name: signed_up
       type: datetime
-    - admin_ui: {order: 0.9375, width: 200}
-      client_hidden: false
-      name: last_login
-      type: bool
     - admin_ui: {order: 1.5, width: 200}
       client_hidden: false
       name: nom
-      type: string
-    - admin_ui: {order: 1.75, width: 200}
-      client_hidden: false
-      name: prenom
       type: string
     - admin_ui: {order: 1.875, width: 200}
       client_hidden: false
@@ -171,7 +163,7 @@ db_schema:
       client_hidden: false
       name: password_hash
       type: string
-    - admin_ui: {order: 0.8125, width: 200}
+    - admin_ui: {order: 0.8125, width: 275}
       client_hidden: false
       name: api_key
       type: string
@@ -183,6 +175,14 @@ db_schema:
       client_hidden: false
       name: role
       type: string
+    - admin_ui: {order: 1.046875, width: 200}
+      client_hidden: false
+      name: last_login
+      type: datetime
+    - admin_ui: {order: 0.84375, width: 200}
+      client_hidden: false
+      name: api_key_created_at
+      type: datetime
     server: full
     title: users
 dependencies:

@@ -7,7 +7,7 @@ import anvil.tables as tables
 import anvil.tables.query as q
 from anvil.tables import app_tables
 from .. import Mail_valideur  # pour button_export_xls_click
-
+from anvil.js import window   # pour fermer la fenêtre qd on a demandé à l'utilisateur d'aller ds ses mails pour valider le mail de confirmation
 
 class z_user_login(z_user_loginTemplate):
     def __init__(self, **properties):
@@ -60,7 +60,7 @@ class z_user_login(z_user_loginTemplate):
             user=anvil.users.login_with_email(self.email_box.text, self.password_box.text, remember=True)
             user=anvil.server.call("force_log",user)
             #open_form('Main',99)    #x=3 si login normal
-            open_form('Main') 
+            open_form('search') 
             #return_to_mother_app.calling_mother_app(99)    #je retourne et efface l'url
         except anvil.users.EmailNotConfirmed:
             alert("Votre mail n'est pas encore confirmé! Nous vous envoyons un nouveau lien par mail !")
@@ -104,8 +104,10 @@ class z_user_login(z_user_loginTemplate):
             #AlertHTML.info("Réinitialisation du Mot de Passe :", f"Un mail de réinitilisation vous a été envoyé à {self.email_box.text}.")
             alert(f"Un mail de réinitilisation vous a été envoyé à {self.email_box.text}.")
             #open_form('Main',99)     #je retourne et efface l'url
-            open_form('Main')     #je retourne et efface l'url
-
+            #open_form('Main')     #je retourne et efface l'url
+            anvil.users.logout()
+            window.close()
+            
     def email_box_pressed_enter(self, **event_args):
         """This method is called when the user presses Enter in this text box"""
         self.button_validation_click()

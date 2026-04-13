@@ -1,0 +1,76 @@
+components:
+- components:
+  - components:
+    - event_bindings: {}
+      layout_properties: {slot: card-content-container-slot}
+      name: password_box
+      properties:
+        align: center
+        appearance: outlined
+        background_color: ''
+        character_limit: null
+        display_bold: true
+        display_text_color: theme:Light Green
+        hide_text: true
+        label: ''
+        label_color: theme:Light Green
+        leading_icon: mi:key
+        leading_icon_color: theme:Light Green
+        margin: ['10', null, '1', null]
+        placeholder: Mot de passe
+        supporting_text: ''
+        text: ''
+        trailing_icon: ''
+        type: text
+      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+    - event_bindings: {change: password_repeat_box_change, pressed_enter: password_repeat_box_pressed_enter}
+      layout_properties: {slot: card-content-container-slot}
+      name: password_repeat_box
+      properties:
+        align: center
+        appearance: outlined
+        background_color: ''
+        character_limit: null
+        display_bold: true
+        display_text_color: theme:Light Green
+        hide_text: true
+        label: ''
+        label_color: theme:Light Green
+        leading_icon: mi:key
+        leading_icon_color: theme:Light Green
+        margin: ['2', null, '4', null]
+        placeholder: Ré-entrez le Mot de passe
+        supporting_text: ''
+        text: ''
+        trailing_icon: ''
+        type: text
+      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+    - components:
+      - event_bindings: {click: button_validation_click}
+        layout_properties: {}
+        name: button_validation
+        properties: {align: center, background: 'theme:Light Green', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '', icon: '', icon_align: left, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Valider, tooltip: '', underline: false, visible: false}
+        type: Button
+      - layout_properties: {width: 45.5137939453125}
+        name: spacer_1
+        properties: {height: 31.8165283203125}
+        type: Spacer
+      - event_bindings: {click: button_retour_click}
+        layout_properties: {}
+        name: button_retour
+        properties: {align: center, background: '#f71b02', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '#000000', icon: '', icon_align: left, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Abandon, tooltip: '', underline: false, visible: true}
+        type: Button
+      layout_properties: {slot: card-content-container-slot}
+      name: flow_panel_1
+      properties: {align: center}
+      type: FlowPanel
+    layout_properties: {slot: card-content-slot}
+    name: card_content_container_1
+    properties: {}
+    type: form:dep_lin1x4oec0ytd:_Components.Card.CardContentContainer
+  layout_properties: {grid_position: 'CABEDO,TEVZHB'}
+  name: card_1
+  properties: {}
+  type: form:dep_lin1x4oec0ytd:_Components.Card
+container: {type: ColumnPanel}
+is_package: true

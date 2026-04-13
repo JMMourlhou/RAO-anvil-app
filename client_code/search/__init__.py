@@ -34,12 +34,10 @@ class search(searchTemplate):
 
             if origine == "": # ouverture ou effact complet des offres, je lis les derniers params du user pour les afficher
                 # Affichage des param à partir de la lecture du user dans table histo
-
-
-
+                user=anvil.users.get_user()
                 # pour l'instant, lecture du row 1 table histo du user
                 try:
-                    row = app_tables.histo.get(email="jmmourlhou@gmail.com")  # ----------------------------------------   A MODIFIER
+                    row = app_tables.histo.get(email=user['email'])  
                     if row:
                         #alert(f"lecture des param de {row['user_id']} !")
                         self.text_box_mot_clef.text       = row['mots_cles']
@@ -189,7 +187,7 @@ class search(searchTemplate):
         if r :   # oui
             app_tables.appels_offres.delete_all_rows()
             #open_form('Main', self.text_box_url.text ,self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
-            open_form('Main', "")
+            open_form('search')
 
     def traitement(self):
         #with anvil.server.no_loading_indicator:
@@ -296,3 +294,7 @@ class search(searchTemplate):
             self.bt_sign_in.visible = False
             self.bt_user_mail.enabled = True
             self.label_role.text = self.user['role']   # affichage du role
+
+    def button_retour_click(self, **event_args):
+        """This method is called when the button is clicked"""
+        open_form('Main')

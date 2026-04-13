@@ -39,8 +39,6 @@ class z_user_new_account(z_user_new_accountTemplate):
         #1ere lettre en majuscule
         nm = self.entreprise_box.text
         nm = nm.strip()
-        nm = nm.lower()
-        nm = nm.capitalize()
         self.entreprise_box.text = nm
         
         # lg du nom >= 2 ? mais pas bloquant
@@ -85,7 +83,7 @@ class z_user_new_account(z_user_new_accountTemplate):
         else:           #Pas d'erreur, on envoi le mail de confirmation
             result = anvil.server.call('_send_email_confirm_link', self.email_box.text)
             if result['ok']:
-                alert(f"Un email de confirmation a été envoyé à l'adresse {self.email_box.text}.<br> Ouvrez-le et cliquez sur le lien.")
+                alert(f"Un email de confirmation a été envoyé à l'adresse {self.email_box.text}.\n Ouvrez-le et cliquez sur le lien.")
                 # Déconnecter l'utilisateur 
                 anvil.users.logout()
                 window.close()
