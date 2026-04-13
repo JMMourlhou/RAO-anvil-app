@@ -69,24 +69,103 @@ def _send_email_confirm_link(email):
 
     user = app_tables.users.get(email=email)
     t=recup_time() # t will be text form (module at the end of this server code module)
-    if user is not None and not user['confirmed_email']:  # User table, Column confirmed_email not checked/True
-        anvil.email.send(to=user['email'],
-                         subject="Confirmation de votre adresse email",
-                         from_address = "jmarc@jmm-formation-et-services.fr",
-                         from_name = "AMSport",
-                         html=f"""
-<p><img src = {en_tete_address} width="772" height="263"> </p> 
+    if user is not None and not user['confirmed_email']:
+        confirm_link = (
+            f"{code_app1}/#?a=confirm"
+            f"&email={url_encode(user['email'])}"
+            f"&hpw={url_encode(user['password_hash'])}"
+            f"&t={url_encode(str(t))}"
+        )
+
+    html_body = f"""
+        <p><img src="{en_tete_address}" width="772" height="263"></p> 
+        <b>Mme/Mr {user["nom"]},</b><br>
+        <br>
+        Merci de votre enregistrement sur {nom_app_pour_mail} !<br>
+        Afin de confirmer votre adresse mail, <b>cliquez sur le lien ci-dessous :</b><br>
+        <br>
+        <a href="{confirm_link}">{confirm_link}</a><br>
+        <br><br>
+        <b><i>L'équipe d'AMSport</i></b><br>
+        mail : {mon_mail}<br>
+        """
+
+    text_body = (
+        f"Mme/Mr {user['nom']},\n\n"
+        f"Merci de votre enregistrement sur {nom_app_pour_mail} !\n"
+        f"Afin de confirmer votre adresse mail, cliquez sur le lien ci-dessous :\n\n"
+        f"{confirm_link}\n\n"
+        f"L'équipe de S.A.O. - Surveillance d'appels d'offres\n"
+        f"mail : {mon_mail}\n"
+    )
+
+    result = anvil.server.call(
+        "send_mail_general",
+        to_address=user["email"],
+        subject="Confirmation de votre adresse email",
+        text_body=text_body,
+        html_body=html_body,
+        from_address="jmarc@jmm-formation-et-services.fr",
+        from_name="SAO-Surv. appels d'offres",
+        reply_to=mon_mail,
+    )
+
+    return result
+
+@anvil.server.callable
+def _send_email_confirm_link(email):
+    dict_var_glob = Variables_globales.get_variable_names()
+    mon_mail = dict_var_glob["mon_mail"]
+    code_app1 = dict_var_glob["code_app1"]
+    en_tete_address = code_app1 + "/_/theme/" + dict_var_glob["app_en_tete"]
+    nom_app_pour_mail = dict_var_glob["nom_app_pour_mail"]
+
+    user = app_tables.users.get(email=email)
+    t = recup_time()
+
+    if user is not None and not user['confirmed_email']:
+        confirm_link = (
+            f"{code_app1}/#?a=confirm"
+            f"&email={url_encode(user['email'])}"
+            f"&hpw={url_encode(user['password_hash'])}"
+            f"&t={url_encode(str(t))}"
+        )
+
+        html_body = f"""
+<p><img src="{en_tete_address}" width="772" height="263"></p>
 <b>Mme/Mr {user["nom"]},</b><br>
 <br>
 Merci de votre enregistrement sur {nom_app_pour_mail} !<br>
-Afin de confirmer votre adresse mail, <b>clickez le lien ci-dessous:</b><br>
+Afin de confirmer votre adresse mail, <b>cliquez sur le lien ci-dessous :</b><br>
 <br>
-{code_app1}/#?a=confirm&email={url_encode(user['email'])}&hpw={url_encode(user['password_hash'])}&t={t} <br>
+<a href="{confirm_link}">{confirm_link}</a><br>
 <br><br>
-<b><i>         L'équipe d'AMSport,</b></i><br>
-mail: {mon_mail} <br>
-""")
-    return True
+<b><i>L'équipe d'AMSport</i></b><br>
+mail : {mon_mail}<br>
+"""
+
+        text_body = (
+            f"Mme/Mr {user['nom']},\n\n"
+            f"Merci de votre enregistrement sur {nom_app_pour_mail} !\n"
+            f"Afin de confirmer votre adresse mail, cliquez sur le lien ci-dessous :\n\n"
+            f"{confirm_link}\n\n"
+            f"L'équipe d'AMSport\n"
+            f"mail : {mon_mail}\n"
+        )
+
+        result = anvil.server.call(
+            "send_mail_general",
+            to_address=user["email"],
+            subject="Confirmation de votre adresse email",
+            text_body=text_body,
+            html_body=html_body,
+            from_address="jmarc@jmm-formation-et-services.fr",
+            from_name="AMSport",
+            reply_to=mon_mail,
+        )
+
+        return result
+
 
 """ Création de la clef API si non déjà créée"""
 def mk_api_key():

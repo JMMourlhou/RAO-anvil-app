@@ -18,7 +18,24 @@ class Main(MainTemplate):
         self.init_components(**properties)
 
         # Any code you write here will run before the form opens.
-
+        params = anvil.get_url_hash() or {}
+        # si confirmation du novel utilisateur:
+        if isinstance(params, dict) and params.get("a") == "confirm":
+            ok, msg = anvil.server.call(
+                "confirm_user_from_link",
+                params.get("email"),
+                params.get("hpw"),
+                params.get("t"),
+            )
+            # nettoie l'URL après traitement
+            anvil.set_url_hash("")
+            if ok:
+                alert(msg, title="Confirmation")
+                open_form("LoginForm")
+            else:
+                alert(msg, title="Erreur de confirmation")
+                open_form("Home")
+            return
 
     def button_se_connecter_click(self, **event_args):
         """This method is called when the button is clicked"""
