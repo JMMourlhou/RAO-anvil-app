@@ -9,9 +9,12 @@ import m3.components as m3
 from .. import Time
 
 class search(searchTemplate):
-    def __init__(self, origine="", sources="", mots="", nb_jours="1", departements="", **properties):
+    def __init__(self, origine="", checkbox_on_off=False, mk="", bt_mail_visible=False, **properties):
+        #def __init__(self, origine="", sources="", mots="", nb_jours="1", departements="", **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
+        
+            
         with anvil.server.no_loading_indicator:
 
             # init de la drop down plateforme multi sélectable depuis la table 'platformes'
@@ -62,11 +65,17 @@ class search(searchTemplate):
                 self.column_panel_params.visible = False
 
                 #self.option = 0 # pour envoi en sélection(1), déselection(2), del(3)
-
+                
+                # réaffichages des parametres, check box on_off, button mail: 
+                if mk != "": # mots clefs
+                    self.text_box_mot_clef.text = mk
+                if checkbox_on_off is True:  # ckeck box check de toutes ou aucune offres affichées
+                    self.checkbox_on_off.checked = True
+                if  bt_mail_visible is True:  # Bouton envoi des mails checkés
+                    self.button_selection_mailed.visible = True
                 # Je réaffiche le contenu de la table "appels_offres"
                 list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
                 if len(list_offres)>0:
-                    self.button_selection_mailed.visible = True
                     self.data_grid_1.visible = True
                     self.repeating_panel_1.items = list_offres
                     if len(list_offres)==1:
@@ -123,19 +132,18 @@ class search(searchTemplate):
                     self.flow_panel_select.visible = False
                     alert(result)
 
-            list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
-
-            if len(list_offres)==1:
-                self.text_nb_offres.text = f"{len(list_offres)} offre"
+            self.list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
+                
+            if len(self.list_offres)==1:
+                self.text_nb_offres.text = f"{len(self.list_offres)} offre"
             else:
-                self.text_nb_offres.text = f"{len(list_offres)} offres"
+                self.text_nb_offres.text = f"{len(self.list_offres)} offres"
             self.text_nb_offres.visible = True
 
-            self.repeating_panel_1.items = list_offres
+            self.repeating_panel_1.items = self.list_offres
 
             self.data_grid_1.visible = True
             self.flow_panel_select.visible = True
-            self.button_selection_mailed.visible = True
 
             self.button_search.visible = False
             self.column_panel_params.visible = False
@@ -171,10 +179,7 @@ class search(searchTemplate):
         self.option = 2
         self.traitement()
 
-    def button_tout_selection_click(self, **event_args):
-        """This method is called when the component is clicked."""
-        self.option = 1
-        self.traitement()
+   
 
     def button_inverser_selection_click(self, **event_args):
         """This method is called when the component is clicked."""
@@ -188,16 +193,6 @@ class search(searchTemplate):
             app_tables.appels_offres.delete_all_rows()
             #open_form('Main', self.text_box_url.text ,self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
             open_form('search')
-
-    def traitement(self):
-        #with anvil.server.no_loading_indicator:
-        # self.option 1 = Tout sélectionner   /    2 = Tout déselectionner
-        list = app_tables.appels_offres.search()
-        result = anvil.server.call("treatment_on_all_checked", list, self.option)
-        if not result:
-            alert("Erreur !")
-        else:
-            open_form('Main', "check")
 
 
     def button_selection_mailed_click(self, **event_args):
@@ -221,80 +216,30 @@ class search(searchTemplate):
         #open_form('Main', self.text_box_url.text ,self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
         #open_form('Main', "")
 
-    def button_del_checked_click(self, **event_args):
-        """This method is called when the component is clicked."""
-        r=alert("Effacer toutes les offres marquées ?",dismissible=False,buttons=[("oui",True),("non",False)])
-        if r :   # oui
-            list = app_tables.appels_offres.search(vu=True)
-            self.option = 3 # On efface les offres marquées (vu=True)
-            result = anvil.server.call("treatment_on_all_checked", list, self.option)
-            if not result:
-                alert("Erreur !")
-            else:
-                open_form('Main', "check")
 
-    def button_se_connecter_click(self, **event_args):
-        """This method is called when the button is clicked"""
-        self.bt_user_mail.text = "Connection"
-        self.flow_panel_connect.visible = False
-        #from sign_in_for_AMS_Data.LoginDialog_V2 import LoginDialog_V2
-        self.content_panel.clear()
-        self.content_panel.add_component(z_user_login(), full_width_row=False)
-
-    def bt_user_mail_click(self, **event_args):
-        """This method is called when the button is clicked"""
-        pass
-
-    def bt_sign_in_click(self, h={}, **event_args):
-        """This method is called when the button is clicked"""
-        self.bt_user_mail.text = "Création de votre compte"
-        self.flow_panel_connect.visible = False
-        self.content_panel.clear()        
-        self.content_panel.add_component(z_user_new_account(h), full_width_row=True)
-
-    def bt_se_deconnecter_click(self, **event_args):
-        """This method is called when the button is clicked"""
-        self.content_panel.clear()
-        anvil.users.logout()  # logging out the user
-        self.user = None
-        self.display_bt_mail()
-        self.display_admin_or_other_buttons()
-
-    """ ***********************************************************************************************"""
-    """ ****************************** Gestions  BOUTONS CONNECTION et leurs clicks ******************************"""
-    """ ***********************************************************************************************"""
-    def display_bt_mail(self, **event_args):
-        if self.user:
-            self.bt_user_mail.text = self.user["email"]
-            self.flow_panel_connect.visible = True
-            self.bt_se_connecter.visible = False
-            self.bt_se_deconnecter.visible = True
-        else:
-            # Pas de USER
-            self.bt_user_mail.text = "Non connecté"
-            self.bt_user_mail.enabled = False
-            self.bt_se_connecter.visible = True
-            self.bt_sign_in.visible = True
     
-            self.bt_se_deconnecter.visible = False
-            self.outlined_card_niv1.visible = False
-            self.column_panel_admin.visible = False
-            self.column_panel_others.visible = False
-
-    """ ***********************************************************************************************"""
-    """ ****************************** Gestions  AUTRES BOUTONS et leurs clicks ******************************"""
-    """ ***********************************************************************************************"""
-    def display_admin_or_other_buttons(self, **event_args):
-        if self.user:
-            if self.user["enabled"] is False:
-                alert("Not 'enabled' in table users")
-                self.bt_sign_in.visible = False
-                return
-    
-            self.bt_sign_in.visible = False
-            self.bt_user_mail.enabled = True
-            self.label_role.text = self.user['role']   # affichage du role
-
     def button_retour_click(self, **event_args):
         """This method is called when the button is clicked"""
         open_form('Main')
+
+
+    def checkbox_on_off_change(self, **event_args):
+        """This method is called when the component is checked or unchecked"""
+        if self.checkbox_on_off.checked is True:
+            self.button_selection_mailed.visible = True
+            self.option = 1
+        else:
+            self.button_selection_mailed.visible = False
+            self.option = 2
+        self.traitement()
+
+        
+    def traitement(self):
+        #with anvil.server.no_loading_indicator:
+        # self.option 1 = Tout sélectionner   /    2 = Tout déselectionner
+        list = app_tables.appels_offres.search()
+        result = anvil.server.call("treatment_on_all_checked", list, self.option)
+        if not result:
+            alert("Erreur !")
+        else:
+            open_form('search', "check", self.checkbox_on_off.checked, self.text_box_mot_clef.text, self.button_selection_mailed.visible)

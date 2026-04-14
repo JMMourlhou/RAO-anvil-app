@@ -45,11 +45,13 @@ class RowTemplate1(RowTemplate1Template):
     def link_lien_click(self, **event_args):
         from anvil.js import window
         window.open(self.link_lien.text)
-
         self.checkbox_vu.checked = True
+        self.f.button_selection_mailed.visible = True
         self.checkbox_vu_change()
 
     def checkbox_vu_change(self, **event_args):
+        if self.checkbox_vu.checked is True:
+            self.f.button_selection_mailed.visible = True
         with anvil.server.no_loading_indicator:
             result = anvil.server.call("check", self.item, self.checkbox_vu.checked)
         if not result:
