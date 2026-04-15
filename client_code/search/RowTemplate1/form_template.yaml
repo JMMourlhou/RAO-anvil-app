@@ -73,7 +73,7 @@ components:
 - event_bindings: {click: button_generer_html_click}
   layout_properties: {}
   name: button_generer_html
-  properties: {align: center, icon: 'mi:search', icon_color: '', text: Vérification}
+  properties: {align: center, icon: 'mi:keyboard_double_arrow_down', icon_color: '', text: Vérification}
   type: form:dep_lin1x4oec0ytd:_Components.Button
 - components:
   - layout_properties: {grid_position: 'SAPYBP,QWTBKN'}

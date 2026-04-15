@@ -52,6 +52,9 @@ class RowTemplate1(RowTemplate1Template):
     def checkbox_vu_change(self, **event_args):
         if self.checkbox_vu.checked is True:
             self.f.button_selection_mailed.visible = True
+        else:
+            self.f.button_selection_mailed.visible = False
+            
         with anvil.server.no_loading_indicator:
             result = anvil.server.call("check", self.item, self.checkbox_vu.checked)
         if not result:
@@ -88,16 +91,21 @@ class RowTemplate1(RowTemplate1Template):
 
     def button_generer_html_click(self, **event_args):
         """Affiche le texte avec mots-clés surlignés en couleurs"""
-
-        # check du check_box 'vu'
-        self.checkbox_vu.checked = True
-        self.checkbox_vu_change()
-
-        # masquer si déjà affiché
-        if self.column_panel_detail.visible is True:
+        
+        # Changement apparence du bouton:
+        if self.column_panel_detail.visible is False:  # Le paneau n'est pas encore affiché
+            self.button_generer_html.text = "Retour"
+            self.button_generer_html.icon = "mi:keyboard_double_arrow_up"
+            # check du check_box 'vu'
+            self.checkbox_vu.checked = True
+            self.checkbox_vu_change()
+            # le column_panel_detail sera rendu visible plus bas
+        else:
+            self.button_generer_html.text = "Vérification"
+            self.button_generer_html.icon = "mi:keyboard_double_arrow_down"
             self.column_panel_detail.visible = False
             return
-
+            
         # contenu à afficher
         #texte = self.item_value("search_text", "")
         try:
