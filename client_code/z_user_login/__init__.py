@@ -6,6 +6,7 @@ import m3.components as m3
 import anvil.tables as tables
 import anvil.tables.query as q
 from anvil.tables import app_tables
+from .. search import search
 from .. import Mail_valideur  # pour button_export_xls_click
 from anvil.js import window   # pour fermer la fenêtre qd on a demandé à l'utilisateur d'aller ds ses mails pour valider le mail de confirmation
 
@@ -59,9 +60,6 @@ class z_user_login(z_user_loginTemplate):
         try:
             user=anvil.users.login_with_email(self.email_box.text, self.password_box.text, remember=True)
             user=anvil.server.call("force_log",user)
-            #open_form('Main',99)    #x=3 si login normal
-            open_form('search') 
-            #return_to_mother_app.calling_mother_app(99)    #je retourne et efface l'url
         except anvil.users.EmailNotConfirmed:
             alert("Votre mail n'est pas encore confirmé! Nous vous envoyons un nouveau lien par mail !")
             #AlertHTML.info("Erreur :","Votre mail n'est pas encore confirmé! Nous vous envoyons un nouveau lien par mail !")
@@ -73,9 +71,15 @@ class z_user_login(z_user_loginTemplate):
         except anvil.users.AuthenticationFailed as e:
             #alert(f"Erreur:\n\n{e}")
             #AlertHTML.error("Erreur :", "Email ou Mot de Passe erroné !")
-            alert("Email ou Mot de Passe erroné !")
+            alert(f"Email ou Mot de Passe erroné : {e}")
             return
+            
+        self.f = get_open_form()
+        self.f.bt_user_mail.text = user['email']
+        self.f.content_panel.clear()
+        self.f.content_panel.add_component(search(), full_width_row=False)
 
+        
     def reset_pw_link_click(self, **event_args):
         """This method is called when the link is clicked"""
         # --------------------------------Tests sur mail

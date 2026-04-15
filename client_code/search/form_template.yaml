@@ -1,5 +1,10 @@
 components:
 - components:
+  - event_bindings: {tick: timer_1_tick}
+    layout_properties: {slot: card-content-slot}
+    name: timer_1
+    properties: {interval: 300}
+    type: Timer
   - components:
     - layout_properties: {slot: card-content-container-slot}
       name: text_nb_offres
@@ -70,21 +75,10 @@ components:
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - components:
       - event_bindings: {click: button_search_click}
-        layout_properties: {width: 161.10186938476562}
+        layout_properties: {}
         name: button_search
-        properties:
-          align: center
-          appearance: filled
-          background_color: ''
-          icon: mi:manage_search
-          icon_color: theme:Erro
-          icon_size: 33
-          spacing:
-            margin: ['0', null, '0', null]
-          text: Rechercher
-          text_color: ''
-          visible: false
-        type: form:dep_lin1x4oec0ytd:_Components.Button
+        properties: {align: center, background: 'theme:Olive', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: 'theme:White', icon: '', icon_align: left, italic: false, role: elevated-button, spacing_above: small, spacing_below: small, text: Recherche !, tooltip: '', underline: false, visible: false}
+        type: Button
       - layout_properties: {width: 7.38363625}
         name: spacer_1
         properties: {height: 31.8165283203125}
@@ -92,15 +86,15 @@ components:
       - event_bindings: {click: button_retour_click}
         layout_properties: {}
         name: button_retour
-        properties: {align: center, background: 'theme:Red', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '#000000', icon: '', icon_align: left_edge, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Abandon, tooltip: '', underline: false, visible: true}
+        properties: {align: center, background: 'theme:Red', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '#000000', icon: '', icon_align: left_edge, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Fin, tooltip: '', underline: false, visible: true}
         type: Button
-      layout_properties: {grid_position: 'KCLITF,DBQEAC'}
+      layout_properties: {grid_position: 'CWEXVV,VUAWBB'}
       name: flow_panel_3
       properties: {align: center, gap: medium, vertical_align: middle}
       type: FlowPanel
     layout_properties: {slot: card-content-slot}
     name: column_panel_params
-    properties: {col_spacing: tiny, col_widths: '{"OQJALU":25,"GFGQBM":35}', wrap_on: never}
+    properties: {col_spacing: tiny, col_widths: '{"OQJALU":26,"GFGQBM":34}', wrap_on: never}
     type: ColumnPanel
   - components:
     - event_bindings: {change: checkbox_on_off_change}

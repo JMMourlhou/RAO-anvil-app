@@ -10,7 +10,7 @@ from anvil.tables import app_tables
 from ..z_user_login import z_user_login
 from ..z_user_pw_reset import z_user_pw_reset
 from ..z_user_new_account import z_user_new_account
-#from .. import z_user_url_from_mail
+from anvil.js import window
 
 class Main(MainTemplate):
     def __init__(self, **properties):
@@ -18,7 +18,7 @@ class Main(MainTemplate):
         self.init_components(**properties)
 
         # Any code you write here will run before the form opens.
-
+        self.bt_user_mail.text = "Vous n'êtes pas connecté."
         # Y a t il une URL active ?
         h = anvil.get_url_hash()
         if isinstance(h, dict):
@@ -77,13 +77,12 @@ class Main(MainTemplate):
         self.content_panel.clear()        
         self.content_panel.add_component(z_user_new_account(h), full_width_row=True)
 
-    def bt_se_deconnecter_click(self, **event_args):
+    def bt_close_click(self, **event_args):
         """This method is called when the button is clicked"""
         self.content_panel.clear()
         anvil.users.logout()  # logging out the user
         self.user = None
-        self.display_bt_mail()
-        self.display_admin_or_other_buttons()
+        window.close()
 
     """ ***********************************************************************************************"""
     """ ****************************** Gestions  BOUTONS CONNECTION et leurs clicks ******************************"""

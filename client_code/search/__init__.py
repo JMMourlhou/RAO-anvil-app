@@ -14,7 +14,6 @@ class search(searchTemplate):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
         
-            
         with anvil.server.no_loading_indicator:
 
             # init de la drop down plateforme multi sélectable depuis la table 'platformes'
@@ -179,8 +178,6 @@ class search(searchTemplate):
         self.option = 2
         self.traitement()
 
-   
-
     def button_inverser_selection_click(self, **event_args):
         """This method is called when the component is clicked."""
         self.option = 4
@@ -193,7 +190,6 @@ class search(searchTemplate):
             app_tables.appels_offres.delete_all_rows()
             #open_form('Main', self.text_box_url.text ,self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
             open_form('search')
-
 
     def button_selection_mailed_click(self, **event_args):
         """This method is called when the component is clicked."""
@@ -208,7 +204,6 @@ class search(searchTemplate):
             alert(f"Module 'param_backup': Sauvegarde des paramètres non effectuée: {result}, {e}")
             print(f"Module 'param_backup': Sauvegarde des paramètres non effectuée: {result}, {e}")
 
-
     def button_del_before_modif_param(self, **event_args):
         """This method is called when the component is clicked."""
         with anvil.server.no_loading_indicator:
@@ -216,12 +211,9 @@ class search(searchTemplate):
         #open_form('Main', self.text_box_url.text ,self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
         #open_form('Main', "")
 
-
-    
     def button_retour_click(self, **event_args):
         """This method is called when the button is clicked"""
         open_form('Main')
-
 
     def checkbox_on_off_change(self, **event_args):
         """This method is called when the component is checked or unchecked"""
@@ -233,7 +225,6 @@ class search(searchTemplate):
             self.option = 2
         self.traitement()
 
-        
     def traitement(self):
         #with anvil.server.no_loading_indicator:
         # self.option 1 = Tout sélectionner   /    2 = Tout déselectionner
@@ -243,3 +234,13 @@ class search(searchTemplate):
             alert("Erreur !")
         else:
             open_form('search', "check", self.checkbox_on_off.checked, self.text_box_mot_clef.text, self.button_selection_mailed.visible)
+
+    # ====================================================================================
+    # TIMER 1 — keeps server session alive
+    # ====================================================================================
+    def timer_1_tick(self, **event_args):
+        with anvil.server.no_loading_indicator:
+            try:
+                anvil.server.call("ping")  # Very light server call
+            except Exception as e:
+                print(e)
