@@ -6,7 +6,7 @@ import anvil.users
 import anvil.tables as tables
 import anvil.tables.query as q
 from anvil.tables import app_tables
-
+from .. import Retour_par_test_ecran
 
 class Compte(CompteTemplate):
     def __init__(self, **properties):
@@ -17,4 +17,4 @@ class Compte(CompteTemplate):
 
     def button_retour_click(self, **event_args):
         """This method is called when the button is clicked"""
-        open_form('Main_large_screen')
+        Retour_par_test_ecran.largeur_ecran()

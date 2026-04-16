@@ -7,6 +7,8 @@ import anvil.tables.query as q
 from anvil.tables import app_tables
 import m3.components as m3
 from .. import Time
+from .. import Retour_par_test_ecran
+
 
 class search(searchTemplate):
     def __init__(self, origine="", checkbox_on_off=False, mk="", bt_mail_visible=False, **properties):
@@ -213,7 +215,7 @@ class search(searchTemplate):
 
     def button_retour_click(self, **event_args):
         """This method is called when the button is clicked"""
-        open_form('Main')
+        Retour_par_test_ecran.largeur_ecran()
 
     def checkbox_on_off_change(self, **event_args):
         """This method is called when the component is checked or unchecked"""

@@ -18,7 +18,7 @@ class Main_small_screen(Main_small_screenTemplate):
         self.init_components(**properties)
 
         # Any code you write here will run before the form opens.
-        self.bt_user_mail.text = "Vous n'êtes pas connecté."
+        self.bt_user_mail.text = "Connectez-vous"
         # Y a t il une URL active ?
         h = anvil.get_url_hash()
         if isinstance(h, dict):

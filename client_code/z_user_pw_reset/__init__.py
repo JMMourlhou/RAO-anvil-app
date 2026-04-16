@@ -10,7 +10,7 @@ from anvil.tables import app_tables
 #from anvil.js.window import localStorage
 from anvil.js import window
 from .. import Mail_valideur  # pour button_export_xls_click
-
+from .. import Retour_par_test_ecran
 
 class z_user_pw_reset(z_user_pw_resetTemplate):
     def __init__(self, email, api_key, **properties):
@@ -43,7 +43,7 @@ class z_user_pw_reset(z_user_pw_resetTemplate):
             r=anvil.server.call("_perform_password_reset",self.email, self.api_key, self.password_box.text)
             if r:
                 alert("Connectez avec le nouveau Mot de Passe !")
-                open_form('Main')
+                Retour_par_test_ecran.largeur_ecran()
         else:
             alert("Les Mots de Passe sont différents !")
             return
