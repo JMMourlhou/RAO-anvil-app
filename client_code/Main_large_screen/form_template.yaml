@@ -77,8 +77,14 @@ components_by_slot:
     type: Image
   navigation:
   - layout_properties: {}
-    name: navigation_link_1
-    properties: {icon: 'mi:user_attributes', selected: false, text: Compte, visible: false}
+    name: navigation_link_user_abonnement
+    properties: {icon: 'mi:pin', icon_color: 'theme:Primary', icon_size: '30', navigate_to: Abonnement, text: Abonnement, text_color: 'theme:On Primary Container', tooltip: Type d'abonnement choisi}
+    type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
+  - layout_properties: {}
+    name: navigation_link_user_compte
+    properties: {icon: 'mi:user_attributes', icon_color: 'theme:Light Green', icon_size: '30', navigate_to: Compte, selected: false, text: Compte, text_color: 'theme:Light Green', tooltip: Accès à votre compte, visible: true}
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
 is_package: true
-layout: {type: 'form:dep_lin1x4oec0ytd:Layouts.NavigationRailLayout'}
+layout:
+  properties: {navigation_rail_collapse_to: modal_navigation_drawer, navigation_rail_color: '', navigation_rail_vertical_align: bottom, show_sidesheet: false}
+  type: form:dep_lin1x4oec0ytd:Layouts.NavigationRailLayout
