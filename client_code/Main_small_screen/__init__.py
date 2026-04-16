@@ -1,4 +1,4 @@
-from ._anvil_designer import MainTemplate
+from ._anvil_designer import Main_small_screenTemplate
 from anvil import *
 import anvil.server
 import m3.components as m3
@@ -12,7 +12,7 @@ from ..z_user_pw_reset import z_user_pw_reset
 from ..z_user_new_account import z_user_new_account
 from anvil.js import window
 
-class Main(MainTemplate):
+class Main_small_screen(Main_small_screenTemplate):
     def __init__(self, **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
