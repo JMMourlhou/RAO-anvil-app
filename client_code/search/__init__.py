@@ -142,7 +142,9 @@ class search(searchTemplate):
             self.text_nb_offres.visible = True
 
             self.repeating_panel_1.items = self.list_offres
-
+            for row in self.repeating_panel_1.get_components():
+                row.form_mere = self
+                
             self.data_grid_1.visible = True
             self.flow_panel_select.visible = True
 

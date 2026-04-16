@@ -46,14 +46,14 @@ class RowTemplate1(RowTemplate1Template):
         from anvil.js import window
         window.open(self.link_lien.text)
         self.checkbox_vu.checked = True
-        self.f.button_selection_mailed.visible = True
+        self.form_mere.button_selection_mailed.visible = True
         self.checkbox_vu_change()
 
     def checkbox_vu_change(self, **event_args):
         if self.checkbox_vu.checked is True:
-            self.f.button_selection_mailed.visible = True
+            self.form_mere.button_selection_mailed.visible = True
         else:
-            self.f.button_selection_mailed.visible = False
+            self.form_mere.button_selection_mailed.visible = False
             
         with anvil.server.no_loading_indicator:
             result = anvil.server.call("check", self.item, self.checkbox_vu.checked)
@@ -68,7 +68,7 @@ class RowTemplate1(RowTemplate1Template):
             open_form('Main', "check")
 
     def extraire_mots_cles(self):
-        brut = (self.f.text_box_mot_clef.text or "").strip().lower()
+        brut = (self.form_mere.text_box_mot_clef.text or "").strip().lower()
         if not brut:
             return []
 
