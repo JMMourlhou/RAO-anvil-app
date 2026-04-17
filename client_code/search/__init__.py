@@ -32,7 +32,7 @@ class search(searchTemplate):
             self.multi_select_drop_down_platformes.enable_select_all = True
             self.multi_select_drop_down_platformes.width = "100%"
             #self.multi_select_drop_down_platformes.foreground = "#000000"  # dark
-            self.multi_select_drop_down_platformes.background = "#00FF00"  # vert clair
+            self.multi_select_drop_down_platformes.background = "#3CD9ED"  # bleu clair
             self.multi_select_drop_down_platformes.spacing_above = "1"
 
             if origine == "": # ouverture ou effact complet des offres, je lis les derniers params du user pour les afficher
