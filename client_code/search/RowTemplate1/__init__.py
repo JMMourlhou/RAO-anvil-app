@@ -10,7 +10,6 @@ class RowTemplate1(RowTemplate1Template):
     def __init__(self, **properties):
         self.init_components(**properties)
 
-        self.f = get_open_form()
         self.comp_html = None
 
         # plus besoin de hit_ids / hit_index / container_id

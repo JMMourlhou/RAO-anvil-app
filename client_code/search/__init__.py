@@ -64,6 +64,7 @@ class search(searchTemplate):
                     self.text_box_departements.text   = None    # Tous les depts
                 # =====================================
                 self.button_search.visible = True
+                
             if origine=="check": # il y a eu un traitement de marquage sur les offres affichées par le user
                 # Réaffichage des paramètres si il y a eu un effacement de toutes les offres par le user
                 self.column_panel_params.visible = False
@@ -82,6 +83,16 @@ class search(searchTemplate):
                 if len(list_offres)>0:
                     self.data_grid_1.visible = True
                     self.repeating_panel_1.items = list_offres
+                    """
+                    =====================================================================
+                    Pour récupérer le nom de la form mère dans les rows du repeat panel
+                    """
+                    for row in self.repeating_panel_1.get_components():
+                        row.form_mere = self
+                    """
+                    =======================================================================
+                    """    
+                   
                     if len(list_offres)==1:
                         self.text_nb_offres.text = f"{len(list_offres)} offre"
                     else:
@@ -145,9 +156,16 @@ class search(searchTemplate):
             self.text_nb_offres.visible = True
 
             self.repeating_panel_1.items = self.list_offres
+            
+            """
+            =====================================================================
+            Pour récupérer le nom de la form mère dans les rows du repeat panel
+            """
             for row in self.repeating_panel_1.get_components():
                 row.form_mere = self
-                
+            """
+            =======================================================================
+            """    
             self.data_grid_1.visible = True
             self.column_panel_select.visible = True
 
