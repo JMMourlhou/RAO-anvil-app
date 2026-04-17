@@ -84,7 +84,7 @@ components:
         display_text_color: theme:Primary
         label: 'Sur 1 ou x dépts:   Ex: 75, 91 ,94'
         label_italic: true
-        leading_icon: mi:gps
+        leading_icon: mi:location_on
         margin: ['1', '2', '1', null]
         placeholder: ' '
         supporting_text: ''
