@@ -9,7 +9,6 @@ from anvil.tables import app_tables
 from .. search import search
 from .. import Mail_valideur  # pour button_export_xls_click
 from anvil.js import window   # pour fermer la fenêtre qd on a demandé à l'utilisateur d'aller ds ses mails pour valider le mail de confirmati
-from .. import Retour_par_test_ecran
 
 
 class z_user_login(z_user_loginTemplate):
@@ -29,7 +28,7 @@ class z_user_login(z_user_loginTemplate):
     def button_retour_click(self, **event_args):
         """This method is called when the button is clicked"""
         # context écran
-        Retour_par_test_ecran.largeur_ecran()   
+        open_form('Main_large_screen')
     
     def button_validation_click(self, **event_args):
         """This method is called when the button is clicked"""

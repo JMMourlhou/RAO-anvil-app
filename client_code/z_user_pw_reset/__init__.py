@@ -10,7 +10,7 @@ from anvil.tables import app_tables
 #from anvil.js.window import localStorage
 from anvil.js import window
 from .. import Mail_valideur  # pour button_export_xls_click
-from .. import Retour_par_test_ecran
+
 
 class z_user_pw_reset(z_user_pw_resetTemplate):
     def __init__(self, email, api_key, **properties):
@@ -50,7 +50,7 @@ class z_user_pw_reset(z_user_pw_resetTemplate):
 
     def button_retour_click(self, **event_args):
         """This method is called when the button is clicked"""
-        open_form('Main')
+        open_form('Main_large_screen')
 
     def password_repeat_box_pressed_enter(self, **event_args):
         """This method is called when the user presses enter in this component."""

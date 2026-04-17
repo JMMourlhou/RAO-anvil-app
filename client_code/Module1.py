@@ -21,12 +21,15 @@ def context_ecran():
         "screen_type": screen_type,
         "is_wide": w >= 768,
     }
-    print(ctx["screen_type"])
+    print(f"Ecran {ctx['screen_type']}, ({ctx['width']} x {ctx['height']})")
     
+    open_form('Main_large_screen',True)   # first_entry True
+    """
     if (ctx["screen_type"] == "phone" and ctx["landscape"]) or ctx["screen_type"] == "tablet" or ctx['screen_type'] == "large":
         open_form('Main_large_screen',True)   # first_entry True
     else:
         open_form('Main_small_screen')
-
-# appel de la fonction
+    """
+    
+# appel de la fonction (quand ce module est le start up module )
 context_ecran()

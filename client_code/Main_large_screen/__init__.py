@@ -22,6 +22,8 @@ class Main_large_screen(Main_large_screenTemplate):
         # Any code you write here will run before the form opens.
         user=anvil.users.get_user()
         if not user or first_entry is True:
+            # hide the drawer
+            self.navigation_link_fermer.visible = False
             self.bt_deconnect.visible = False
             self.bt_user_mail.text = "Vous n'êtes pas connecté."
             # Y a t il une URL active ?
