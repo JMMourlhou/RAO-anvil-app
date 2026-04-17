@@ -38,11 +38,11 @@ class search(searchTemplate):
             if origine == "": # ouverture ou effact complet des offres, je lis les derniers params du user pour les afficher
                 # Affichage des param à partir de la lecture du user dans table histo
                 try:
-                    user=anvil.users.get_user()
+                    self.user=anvil.users.get_user()
                 except Exception as e:
                     alert(f"Vous n'êtes pas enregistré !, {e}")
                 
-                row = app_tables.histo.get(email=user['email'])  
+                row = app_tables.histo.get(email=self.user['email'])  
                 if row:
                     #alert(f"lecture des param de {row['user_id']} !")
                     self.text_box_mot_clef.text       = row['mots_cles']
@@ -129,7 +129,11 @@ class search(searchTemplate):
         # Initialisation des platformes sources à partir de la dropdown
         selected_platformes = self.multi_select_drop_down_platformes.selected
         print(f"Sources: {selected_platformes}")
-
+        """
+        ================================================================================================
+        Résultats 
+        ================================================================================================
+        """
         try:
             # Appel du script "get_offres_multi_sources" en uplink sur Pi5
             #                                                           departements,  rows,  page,  nb de jours
@@ -137,15 +141,13 @@ class search(searchTemplate):
             offres = anvil.server.call("get_offres_multi_sources", mots_clefs , depts,         100,   1,     periode, sources=selected_platformes)
         except Exception as e:
             print(f"Erreur au module 'get_offres_multi_sources' sur Pi5: {e}")
-            alert(f"Erreur au module 'get_offres_multi_sources' sur Pi5: {e}")
             return
+            
         if offres:
-            for offre in offres:
-                #print(offre)
-                result = anvil.server.call("sov_offres", offre)
-                if result != "ok":
-                    self.column_panel_select.visible = False
-                    alert(result)
+            result = anvil.server.call("sov_offres", offres)
+            if result != "ok":
+                self.column_panel_select.visible = False
+                alert(result)
 
             self.list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
                 
@@ -223,11 +225,11 @@ class search(searchTemplate):
     def param_backup(self, sources, mots_clefs, nb_jours, departements):
         # Backup de la dernière recherche
         date_time = Time.french_zone_time()
-        try:
-            result = anvil.server.call("backup_param", sources, mots_clefs, nb_jours, departements, date_time)
-        except Exception as e:
-            alert(f"Module 'param_backup': Sauvegarde des paramètres non effectuée: {result}, {e}")
-            print(f"Module 'param_backup': Sauvegarde des paramètres non effectuée: {result}, {e}")
+        # True: nouvelle row,  False = modif de la row histo
+        result = anvil.server.call("backup_param", self.user, sources, mots_clefs, nb_jours, departements, date_time)
+        
+        #alert(f"Module 'param_backup': Sauvegarde des paramètres non effectuée: {result}, {e}")
+        print(f"Module 'param_backup':  {result}")
 
     def button_del_before_modif_param(self, **event_args):
         """This method is called when the component is clicked."""

@@ -21,7 +21,8 @@ db_schema:
     - admin_ui: {order: -1.375, width: 200}
       name: acheteur
       type: string
-    - admin_ui: {order: -2, width: 94}
+    - admin_ui: {order: -2, width: 147}
+      client_hidden: false
       name: avis_num
       type: string
     - admin_ui: {order: -1.75, width: 116}

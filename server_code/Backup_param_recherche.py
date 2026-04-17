@@ -6,27 +6,28 @@ import anvil.server
 
 # =========================================================================
 @anvil.server.callable          
-def backup_param(sources, mots_cles, nb_jours, departements, date_time):
-    # lecture de la 1ere ligne de la table
-    try: # row1 existe ?
-        row_1 = app_tables.histo.search()[0]   # pour l'instant 1ere ligne, plus tard recherher le user
+def backup_param(user_row, sources, mots_cles, nb_jours, departements, date_time):
+    # lecture des derniers params du user
+    
+    row = app_tables.histo.get(email=user_row['email'])
+    if row is not None:
         # modif
-        row_1.update(
+        row.update(
                     sources      = sources,
                     mots_cles    = mots_cles,
                     nb_jours     = int(nb_jours),
                     departements = departements,
                     date_heure   = date_time    
                     )
-        return True
-    except Exception as e:  # si la 1ere ligne n'existe pas encore, on la crée
+        return f"MAJ table 'histo' pour {user_row['email']}"
+    else:
         app_tables.histo.add_row(
-                                email        = "jmmourlhou@gmail.com",
-                                sources          = sources,
+                                email        = user_row['email'],
+                                sources      = sources,
                                 mots_cles    = mots_cles,
                                 nb_jours     = int(nb_jours),
                                 departements = departements,
                                 date_heure   = date_time    
                                 )
-        return e
+        return f"Création row table 'histo' pour {user_row['email']}"
     
