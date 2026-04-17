@@ -7,7 +7,7 @@ components:
       allow_indeterminate: false
       error: false
       spacing:
-        padding: ['', null, null, null]
+        padding: ['', null, null, '5']
       text: ''
     type: form:dep_lin1x4oec0ytd:_Components.Checkbox
   - event_bindings: {click: toggle_icon_button_1_click}
