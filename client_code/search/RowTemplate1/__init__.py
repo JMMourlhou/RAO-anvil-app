@@ -9,14 +9,8 @@ import m3.components as m3
 class RowTemplate1(RowTemplate1Template):
     def __init__(self, **properties):
         self.init_components(**properties)
-        self.raise_event("x-checkbox-vu-changee",             # event raised par cette row du repeating panel 
-                         checked=self.checkbox_vu.checked     # info envoyée, la row est checkée ou pas (voir par fonction checkbox_vu_change)
-                        )
+        
         self.comp_html = None
-
-        # plus besoin de hit_ids / hit_index / container_id
-        # car on ne navigue plus entre les occurrences
-        #self.button_aller_mot.visible = False
 
         try:
             self.text_date_publication.text = str(self.item['date_publication'].strftime("%d/%m/%Y"))
@@ -47,11 +41,10 @@ class RowTemplate1(RowTemplate1Template):
         from anvil.js import window
         window.open(self.link_lien.text)
         self.checkbox_vu.checked = True
-        self.form_mere.button_selection_mailed.visible = True
         self.checkbox_vu_change()
 
     def checkbox_vu_change(self, **event_args):                 # EVENEMENT levé/raised
-        self.raise_event(
+        self.parent.raise_event(
             "x-checkbox-vu-changee",                                   # nom de l'Evenement raised
             checked=self.checkbox_vu.checked,                          # info: état du check box (True / False)
             item=self.item                                             # quelle est la row qui a été changée
@@ -69,7 +62,8 @@ class RowTemplate1(RowTemplate1Template):
             open_form('Main', "check")
 
     def extraire_mots_cles(self):
-        brut = (self.form_mere.text_box_mot_clef.text or "").strip().lower()
+        # je récupère les mots clefs contenu dans la propriété du repeat_panel_1
+        brut = (getattr(self.parent.tag, "mots_cles_saisis", "") or "").strip().lower()  
         if not brut:
             return []
 

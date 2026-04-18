@@ -87,7 +87,16 @@ class search(searchTemplate):
                     self.data_grid_1.visible = True
                     self.repeating_panel_1.items = list_offres
                     self.recalculer_bouton_selection_mailed()   # méthode qui vérifie si une row est checked
-                   
+                    """  ==============================================================================
+                    Je passe au composant repeat_panel_1 la propriété contenant les mots clefs par 'tag'
+                    nécessaire quand on click sur le bouton 'verifier'
+                        la form mère connaît les mots-clés saisis,
+                        elle les stocke sur repeating_panel_1,
+                        chaque row les lit depuis self.parent.
+                    """
+                    self.repeating_panel_1.tag.mots_cles_saisis = self.text_box_mot_clef.text or ""
+                    # ===================================================================================
+                    
                     if len(list_offres)==1:
                         self.text_nb_offres.text = f"{len(list_offres)} offre"
                     else:
@@ -154,6 +163,16 @@ class search(searchTemplate):
 
             self.repeating_panel_1.items = self.list_offres
             self.recalculer_bouton_selection_mailed()   # méthode qui vérifie si une row est checked
+            
+            """  ==============================================================================
+            Je passe au composant repeat_panel_1 la propriété contenant les mots clefs par 'tag'
+            nécessaire quand on click sur le bouton 'verifier'
+                la form mère connaît les mots-clés saisis,
+                elle les stocke sur repeating_panel_1,
+                chaque row les lit depuis self.parent.
+            """
+            self.repeating_panel_1.tag.mots_cles_saisis = self.text_box_mot_clef.text or ""
+            # ===================================================================================
             
             self.data_grid_1.visible = True
             self.column_panel_select.visible = True
