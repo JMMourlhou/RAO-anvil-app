@@ -11,16 +11,6 @@ def backup_param(user_row, sources, mots_cles, nb_jours, departements, date_time
     
     row = app_tables.histo.get(email=user_row['email'])
     if row is not None:
-        # modif
-        row.update(
-                    sources      = sources,
-                    mots_cles    = mots_cles,
-                    nb_jours     = int(nb_jours),
-                    departements = departements,
-                    date_heure   = date_time    
-                    )
-        return f"MAJ table 'histo' pour {user_row['email']}"
-    else:
         app_tables.histo.add_row(
                                 email        = user_row['email'],
                                 sources      = sources,
@@ -29,5 +19,5 @@ def backup_param(user_row, sources, mots_cles, nb_jours, departements, date_time
                                 departements = departements,
                                 date_heure   = date_time    
                                 )
-        return f"Création row table 'histo' pour {user_row['email']}"
+        return f"Création row table 'histo' requete pour {user_row['email']}"
     
