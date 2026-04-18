@@ -9,7 +9,9 @@ import m3.components as m3
 class RowTemplate1(RowTemplate1Template):
     def __init__(self, **properties):
         self.init_components(**properties)
-
+        self.raise_event("x-checkbox-vu-changee",             # event raised par cette row du repeating panel 
+                         checked=self.checkbox_vu.checked     # info envoyée, la row est checkée ou pas (voir par fonction checkbox_vu_change)
+                        )
         self.comp_html = None
 
         # plus besoin de hit_ids / hit_index / container_id
@@ -48,12 +50,12 @@ class RowTemplate1(RowTemplate1Template):
         self.form_mere.button_selection_mailed.visible = True
         self.checkbox_vu_change()
 
-    def checkbox_vu_change(self, **event_args):
-        if self.checkbox_vu.checked is True:
-            self.form_mere.button_selection_mailed.visible = True
-        else:
-            self.form_mere.button_selection_mailed.visible = False
-            
+    def checkbox_vu_change(self, **event_args):                 # EVENEMENT levé/raised
+        self.raise_event(
+            "x-checkbox-vu-changee",                                   # nom de l'Evenement raised
+            checked=self.checkbox_vu.checked,                          # info: état du check box (True / False)
+            item=self.item                                             # quelle est la row qui a été changée
+        )
         with anvil.server.no_loading_indicator:
             result = anvil.server.call("check", self.item, self.checkbox_vu.checked)
         if not result:

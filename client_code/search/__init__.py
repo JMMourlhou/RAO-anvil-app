@@ -15,8 +15,11 @@ class search(searchTemplate):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
         
+        self.repeating_panel_1.set_event_handler(
+            "x-checkbox-vu-changee",                     # nom de l'évenement
+            self.recalculer_bouton_selection_mailed      # méthode exécutéequand l'évenement est raised
+        )
         with anvil.server.no_loading_indicator:
-
             # init de la drop down plateforme multi sélectable depuis la table 'platformes'
             rows_platformes = app_tables.platformes.search(tables.order_by("id", ascending=True))
             # MultiSelectDropDown :
@@ -83,15 +86,7 @@ class search(searchTemplate):
                 if len(list_offres)>0:
                     self.data_grid_1.visible = True
                     self.repeating_panel_1.items = list_offres
-                    """
-                    =====================================================================
-                    Pour récupérer le nom de la form mère dans les rows du repeat panel
-                    """
-                    for row in self.repeating_panel_1.get_components():
-                        row.form_mere = self
-                    """
-                    =======================================================================
-                    """    
+                    self.recalculer_bouton_selection_mailed()   # méthode qui vérifie si une row est checked
                    
                     if len(list_offres)==1:
                         self.text_nb_offres.text = f"{len(list_offres)} offre"
@@ -158,16 +153,8 @@ class search(searchTemplate):
             self.text_nb_offres.visible = True
 
             self.repeating_panel_1.items = self.list_offres
+            self.recalculer_bouton_selection_mailed()   # méthode qui vérifie si une row est checked
             
-            """
-            =====================================================================
-            Pour récupérer le nom de la form mère dans les rows du repeat panel
-            """
-            for row in self.repeating_panel_1.get_components():
-                row.form_mere = self
-            """
-            =======================================================================
-            """    
             self.data_grid_1.visible = True
             self.column_panel_select.visible = True
 
@@ -218,6 +205,7 @@ class search(searchTemplate):
             #open_form('Main', self.text_box_url.text ,self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
             open_form('search')
 
+    # envoi d'un mail contenant les offres checkées
     def button_selection_mailed_click(self, **event_args):
         """This method is called when the component is clicked."""
         pass
@@ -273,3 +261,12 @@ class search(searchTemplate):
                 anvil.server.call("ping")  # Very light server call
             except Exception as e:
                 print(e)
+
+    # Méthode appelée:  quand un row du repeating panel a été changée (checked ou unchecked) 
+    #                   quand le repeting panel est réaffiché
+    def recalculer_bouton_selection_mailed(self, sender=None, **event_args):
+        au_moins_un_coche = any(
+            row.checkbox_vu.checked
+            for row in self.repeating_panel_1.get_components()
+        )
+        self.button_selection_mailed.visible = au_moins_un_coche
