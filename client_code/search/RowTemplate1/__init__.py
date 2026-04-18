@@ -6,6 +6,7 @@ import re
 from ...recherche_mk_html import recherche_mk_html
 import m3.components as m3
 
+
 class RowTemplate1(RowTemplate1Template):
     def __init__(self, **properties):
         self.init_components(**properties)
@@ -27,6 +28,12 @@ class RowTemplate1(RowTemplate1Template):
             self.text_date_limite_rep.text = "-"
 
         self.checkbox_vu.checked = self.item_value('vu', False)
+        
+        # affichage du contenu du Bt 'vérification'
+        self.button_generer_html.text = "Vérification"
+
+    def form_show(self, **event_args):
+        self.maj_libelle_bouton_verification()
 
     def item_value(self, key, default=None):
         try:
@@ -62,26 +69,25 @@ class RowTemplate1(RowTemplate1Template):
             open_form('Main', "check")
 
     def extraire_mots_cles(self):
-        # je récupère les mots clefs contenu dans la propriété du repeat_panel_1
-        brut = (getattr(self.parent.tag, "mots_cles_saisis", "") or "").strip().lower()  
+        parent_tag = getattr(self.parent, "tag", None)
+        brut = (getattr(parent_tag, "mots_cles_saisis", "") or "").strip().lower()
+    
         if not brut:
             return []
-
-        # normalisation simple
+    
         texte = brut.replace(";", ",").replace("\n", ",")
         texte = texte.replace(" et ", ",")
         texte = texte.replace(" ou ", ",")
-
+    
         morceaux = [m.strip() for m in texte.split(",") if m.strip()]
-
-        # dédoublonnage en gardant l’ordre
+    
         mots_uniques = []
         deja_vus = set()
         for mot in morceaux:
             if mot not in deja_vus:
                 deja_vus.add(mot)
                 mots_uniques.append(mot)
-
+    
         return mots_uniques
 
     def button_generer_html_click(self, **event_args):
@@ -89,14 +95,14 @@ class RowTemplate1(RowTemplate1Template):
         
         # Changement apparence du bouton:
         if self.column_panel_detail.visible is False:  # Le paneau n'est pas encore affiché
-            self.button_generer_html.text = "Retour"
+            #self.button_generer_html.text = "Retour"
             self.button_generer_html.icon = "mi:keyboard_double_arrow_up"
             # check du check_box 'vu'
             self.checkbox_vu.checked = True
             self.checkbox_vu_change()
             # le column_panel_detail sera rendu visible plus bas
         else:
-            self.button_generer_html.text = "Vérification"
+            #self.button_generer_html.text = "Vérification"
             self.button_generer_html.icon = "mi:keyboard_double_arrow_down"
             self.column_panel_detail.visible = False
             return
@@ -223,3 +229,65 @@ class RowTemplate1(RowTemplate1Template):
         texte = re.sub(r"\n{3,}", "\n\n", texte)
     
         return texte.strip()
+
+    """ ==============================================================================================
+    Fonctions pour l'affichage du ou des mots clés dans le bouton 'Vérification'
+    """
+    def maj_libelle_bouton_verification(self):
+        texte = self.item_value("search_text", "") or self.item_value("description", "")
+        mots_clefs = self.extraire_mots_cles()
+    
+        trouves = self.mots_cles_presents(texte, mots_clefs)
+    
+        if trouves:
+            self.button_generer_html.text = "Vérification : " + ", ".join(trouves)
+        else:
+            self.button_generer_html.text = "Vérification"
+    
+    def _normalize_text(self, s):
+        s = (s or "").lower()
+
+        remplacements = {
+            "à": "a", "á": "a", "â": "a", "ä": "a",
+            "ç": "c",
+            "è": "e", "é": "e", "ê": "e", "ë": "e",
+            "ì": "i", "í": "i", "î": "i", "ï": "i",
+            "ñ": "n",
+            "ò": "o", "ó": "o", "ô": "o", "ö": "o",
+            "ù": "u", "ú": "u", "û": "u", "ü": "u",
+            "ý": "y", "ÿ": "y",
+            "œ": "oe",
+            "æ": "ae",
+        }
+    
+        for src, dst in remplacements.items():
+            s = s.replace(src, dst)
+    
+        return s
+    
+    def mots_cles_presents(self, texte, mots_clefs):
+        """
+        Retourne la liste des mots-clés présents dans le texte.
+        Comparaison insensible à la casse et aux accents.
+        """
+        texte_norm = self._normalize_text(texte)
+        trouves = []
+    
+        for mot in mots_clefs:
+            mot = (mot or "").strip()
+            if not mot:
+                continue
+    
+            mot_norm = self._normalize_text(mot)
+    
+            pattern = rf"(?<!\w){re.escape(mot_norm)}(?!\w)"
+    
+            if re.search(pattern, texte_norm):
+                trouves.append(mot)
+    
+        return trouves
+
+        """
+        Fin des fonctions
+        =========================================================================================================
+        """ 

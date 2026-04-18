@@ -95,6 +95,7 @@ components:
     wrap_on: never
   type: ColumnPanel
 container:
+  event_bindings: {show: form_show}
   properties:
     background: theme:Surface Variant
     border: '"2px  white"'
