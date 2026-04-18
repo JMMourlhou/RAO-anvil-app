@@ -92,54 +92,43 @@ class RowTemplate1(RowTemplate1Template):
 
     def button_generer_html_click(self, **event_args):
         """Affiche le texte avec mots-clés surlignés en couleurs"""
-        
+
         # Changement apparence du bouton:
-        if self.column_panel_detail.visible is False:  # Le paneau n'est pas encore affiché
-            #self.button_generer_html.text = "Retour"
+        if self.column_panel_detail.visible is False:  # Le panneau n'est pas encore affiché
+            # self.button_generer_html.text = "Retour"
             self.button_generer_html.icon = "mi:keyboard_double_arrow_up"
             # check du check_box 'vu'
             self.checkbox_vu.checked = True
             self.checkbox_vu_change()
             # le column_panel_detail sera rendu visible plus bas
         else:
-            #self.button_generer_html.text = "Vérification"
+            # self.button_generer_html.text = "Vérification"
             self.button_generer_html.icon = "mi:keyboard_double_arrow_down"
             self.column_panel_detail.visible = False
             return
-            
+    
         # contenu à afficher
-        #texte = self.item_value("search_text", "")
-        try:
-            texte_source = self.item_value("search_text", "")
-        except Exception:
-            texte_source = ""
-        
-        if not texte_source:
-            try:
-                texte_source = self.item["titre"]
-            except Exception:
-                texte_source = ""
-        
+        texte_source = self.get_texte_source_verification()
         texte = self.format_search_text_for_display(texte_source)
         mots_cles = self.extraire_mots_cles()
-
+    
         if not texte:
             alert("Aucun texte disponible pour cette offre !")
             return
-
+    
         if not mots_cles:
             alert("Aucun mot-clé saisi !")
             return
-
+    
         # création du composant HTML si besoin
         if self.comp_html is None:
             self.comp_html = recherche_mk_html()
             self.column_panel_affichage.clear()
             self.column_panel_affichage.add_component(self.comp_html)
-
+    
         # envoi du texte + mots-clés au composant
         self.comp_html.charger(texte, mots_cles)
-
+    
         self.column_panel_detail.visible = True
 
     def format_search_text_for_display(self, texte):
@@ -233,16 +222,6 @@ class RowTemplate1(RowTemplate1Template):
     """ ==============================================================================================
     Fonctions pour l'affichage du ou des mots clés dans le bouton 'Vérification'
     """
-    def maj_libelle_bouton_verification(self):
-        texte = self.item_value("search_text", "") or self.item_value("description", "")
-        mots_clefs = self.extraire_mots_cles()
-    
-        trouves = self.mots_cles_presents(texte, mots_clefs)
-    
-        if trouves:
-            self.button_generer_html.text = "Vérification : " + ", ".join(trouves)
-        else:
-            self.button_generer_html.text = "Vérification"
     
     def _normalize_text(self, s):
         s = (s or "").lower()
@@ -265,11 +244,29 @@ class RowTemplate1(RowTemplate1Template):
     
         return s
     
+
+    def get_texte_source_verification(self):
+        texte_source = self.item_value("search_text", "")
+        if not texte_source:
+            texte_source = self.item_value("description", "")
+        if not texte_source:
+            texte_source = self.item_value("titre", "")
+        return texte_source or ""
+    
+    
+    def maj_libelle_bouton_verification(self):
+        texte = self.get_texte_source_verification()
+        mots_clefs = self.extraire_mots_cles()
+    
+        trouves = self.mots_cles_presents(texte, mots_clefs)
+    
+        if trouves:
+            self.button_generer_html.text = "Vérification : " + ", ".join(trouves)
+        else:
+            self.button_generer_html.text = "Vérification"
+    
+    
     def mots_cles_presents(self, texte, mots_clefs):
-        """
-        Retourne la liste des mots-clés présents dans le texte.
-        Comparaison insensible à la casse et aux accents.
-        """
         texte_norm = self._normalize_text(texte)
         trouves = []
     
@@ -280,14 +277,9 @@ class RowTemplate1(RowTemplate1Template):
     
             mot_norm = self._normalize_text(mot)
     
-            pattern = rf"(?<!\w){re.escape(mot_norm)}(?!\w)"
+            pattern = rf"(?<!\w){re.escape(mot_norm)}\w*"
     
             if re.search(pattern, texte_norm):
                 trouves.append(mot)
     
         return trouves
-
-        """
-        Fin des fonctions
-        =========================================================================================================
-        """ 
