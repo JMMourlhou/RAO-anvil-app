@@ -19,13 +19,6 @@ class RowTemplate1(RowTemplate1Template):
             self.text_date_publication.text = "-"
 
         self.text_titre.text = self.item_value('titre', "")
-        
-        # si resumé court ne contient rien,  on ne l'affiche pas
-        resume = self.item_value("resume_court", "")
-        self.text_resume_court.text = resume
-        self.text_resume_court.visible= bool(resume)
-        
-        self.text_pertinence.text = self.item_value("pertinence", "")
         self.link_lien.text = self.item_value('lien', "")
         self.text_departement.text = self.item_value('departement', "")
         try:

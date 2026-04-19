@@ -31,8 +31,6 @@ def sov_offres(offres):
             departement      = offre.get("departement", "")
             search_text      = offre.get("search_text", "")
             pertinence       = offre.get("pertinence", "")
-            resume_court     = offre.get("resume_court", "")
-            score            = offre.get("score", "")
             
             # Insertion
             app_tables.appels_offres.add_row(
@@ -47,8 +45,6 @@ def sov_offres(offres):
                 departement       = departement,
                 search_text       = search_text,
                 pertinence        = pertinence,
-                resume_court      = resume_court,
-                score             = score
             )
         except Exception as e:
             # 🔒 Toujours renvoyer du texte sérialisable
