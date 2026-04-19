@@ -19,12 +19,15 @@ class RowTemplate1(RowTemplate1Template):
             self.text_date_publication.text = "-"
 
         self.text_titre.text = self.item_value('titre', "")
-        self.text_resume_court.text = self.item_value("resume_court", "")
+        
+        # si resumé court ne contient rien,  on ne l'affiche pas
+        resume = self.item_value("resume_court", "")
+        self.text_resume_court.text = resume
+        self.text_resume_court.visible= bool(resume)
+        
         self.text_pertinence.text = self.item_value("pertinence", "")
         self.link_lien.text = self.item_value('lien', "")
         self.text_departement.text = self.item_value('departement', "")
-        print("resume_court =", self.item_value("resume_court", "VIDE"))
-        print("pertinence =", self.item_value("pertinence", "VIDE"))
         try:
             self.text_date_limite_rep.text = str(self.item['date_limite_rep'].strftime("%d/%m/%Y"))
         except Exception:
@@ -69,7 +72,7 @@ class RowTemplate1(RowTemplate1Template):
         if not result:
             alert("Erreur en effacement")
         else:
-            open_form('Main', "check")
+            open_form('Main_large_screen', "check")
 
     def extraire_mots_cles(self):
         parent_tag = getattr(self.parent, "tag", None)
