@@ -19,9 +19,12 @@ class RowTemplate1(RowTemplate1Template):
             self.text_date_publication.text = "-"
 
         self.text_titre.text = self.item_value('titre', "")
+        self.text_resume_court.text = self.item_value("resume_court", "")
+        self.text_pertinence.text = self.item_value("pertinence", "")
         self.link_lien.text = self.item_value('lien', "")
         self.text_departement.text = self.item_value('departement', "")
-
+        print("resume_court =", self.item_value("resume_court", "VIDE"))
+        print("pertinence =", self.item_value("pertinence", "VIDE"))
         try:
             self.text_date_limite_rep.text = str(self.item['date_limite_rep'].strftime("%d/%m/%Y"))
         except Exception:
