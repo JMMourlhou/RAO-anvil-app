@@ -47,7 +47,8 @@ components_by_slot:
       underline: false
       visible: true
     type: Button
-  - layout_properties: {}
+  - components: []
+    layout_properties: {}
     name: content_panel
     properties: {col_widths: '{}'}
     type: ColumnPanel
@@ -92,6 +93,15 @@ components_by_slot:
   - layout_properties: {}
     name: navigation_link_user_compte
     properties: {icon: 'mi:user_attributes', icon_color: 'theme:Light Green', icon_size: '30', navigate_to: Compte, selected: false, text: Compte, text_color: 'theme:Light Green', tooltip: Accès à votre compte, visible: false}
+    type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
+  - event_bindings: {}
+    layout_properties: {}
+    name: navigation_link_user_parametres
+    properties: {icon: 'mi:tools_wrench', icon_color: 'theme:Primary', icon_size: '30', navigate_to: Parametres, text: Paramètres, text_color: 'theme:On Primary Container', tooltip: Type d'abonnement choisi, visible: false}
+    type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
+  - layout_properties: {}
+    name: navigation_link_user_contact
+    properties: {icon: 'mi:contact_mail', icon_color: 'theme:Light Green', icon_size: '30', navigate_to: Contact, selected: false, text: Contact, text_color: 'theme:Light Green', tooltip: Accès à votre compte, visible: false}
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
   - event_bindings: {click: navigation_link_fermer_click}
     layout_properties: {}

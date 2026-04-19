@@ -72,6 +72,8 @@ class Main_large_screen(Main_large_screenTemplate):
             self.navigation_link_user_appels_offres.visible = True
             self.navigation_link_user_abonnement.visible = True
             self.navigation_link_user_compte.visible = True
+            self.navigation_link_user_parametres.visible = True
+            self.navigation_link_user_contact.visible = True
             
     def button_se_connecter_click(self, **event_args):
         """This method is called when the button is clicked"""

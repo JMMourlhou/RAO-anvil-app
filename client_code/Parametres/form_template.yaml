@@ -1,0 +1,17 @@
+components:
+- components:
+  - layout_properties: {slot: card-content-slot}
+    name: card_content_container_1
+    properties: {}
+    type: form:dep_lin1x4oec0ytd:_Components.Card.CardContentContainer
+  layout_properties: {grid_position: 'HCIMSS,NGUPGK'}
+  name: card_1
+  properties: {}
+  type: form:dep_lin1x4oec0ytd:_Components.Card
+- event_bindings: {click: button_retour_click}
+  layout_properties: {grid_position: 'LVTCMC,XGBUCU'}
+  name: button_retour
+  properties: {align: center, background: 'theme:Red', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '#000000', icon: '', icon_align: left_edge, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Retour, tooltip: '', underline: false, visible: true}
+  type: Button
+container: {type: ColumnPanel}
+is_package: true
