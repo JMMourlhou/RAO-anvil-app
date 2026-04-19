@@ -6,7 +6,7 @@ import anvil.server
 
 # =========================================================================
 @anvil.server.callable          
-def backup_param(user_row, sources, mots_cles, nb_jours, departements, date_time):
+def backup_requete(user_row, sources, mots_cles, nb_jours, departements, date_time, nb_offres, offres):
     # lecture des derniers params du user
     
     row = app_tables.histo.get(email=user_row['email'])
@@ -17,7 +17,9 @@ def backup_param(user_row, sources, mots_cles, nb_jours, departements, date_time
                                 mots_cles    = mots_cles,
                                 nb_jours     = int(nb_jours),
                                 departements = departements,
-                                date_heure   = date_time    
+                                date_heure   = date_time,
+                                nb_offres    = nb_offres,
+                                offres=offres
                                 )
         return f"Création row table 'histo' requete pour {user_row['email']}"
     

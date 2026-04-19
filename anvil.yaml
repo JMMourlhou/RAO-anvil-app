@@ -90,7 +90,7 @@ db_schema:
       client_hidden: false
       name: offres
       type: simpleObject
-    - admin_ui: {order: 5.5, width: 120}
+    - admin_ui: {order: 5.5, width: 144}
       client_hidden: false
       name: nb_offres
       type: number

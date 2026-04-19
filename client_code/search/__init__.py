@@ -7,6 +7,7 @@ import anvil.tables.query as q
 from anvil.tables import app_tables
 import m3.components as m3
 from .. import Time
+from datetime import date, datetime
 
 
 class search(searchTemplate):
@@ -45,7 +46,8 @@ class search(searchTemplate):
                 except Exception as e:
                     alert(f"Vous n'êtes pas enregistré !, {e}")
                 
-                row = app_tables.histo.get(email=self.user['email'])  
+                row = app_tables.histo.search(email=self.user['email'],
+                                             )  
                 if row:
                     #alert(f"lecture des param de {row['user_id']} !")
                     self.text_box_mot_clef.text       = row['mots_cles']
@@ -143,16 +145,30 @@ class search(searchTemplate):
             #                                                           departements,  rows,  page,  nb de jours
             # offres = anvil.server.call("get_boamp_offres", mots_clefs , depts,         100,   1,     periode)
             offres = anvil.server.call("get_offres_multi_sources", mots_clefs , depts,         100,   1,     periode, sources=selected_platformes)
+            print(offres[0])
+            
         except Exception as e:
             print(f"Erreur au module 'get_offres_multi_sources' sur Pi5: {e}")
             return
             
         if offres:
+            # Ecriture de chaque offre en table appels_offres                   (à enlever)
             result = anvil.server.call("sov_offres", offres)
             if result != "ok":
                 self.column_panel_select.visible = False
                 alert(result)
-
+                
+            # Génération du dictionaire de listes des offres
+            
+            offres_preparees = self.build_offres_list(offres, dedoublonner=True)
+            nb_offres = len(offres_preparees)
+            
+            # Backup de la requête (donc des paramètres)
+            date_time = Time.french_zone_time()
+            result = anvil.server.call("backup_requete", self.user, selected_platformes, self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text, date_time, nb_offres, offres_preparees)
+            print(f"Module 'param_backup':  {result}")
+                # -------------------------------------------
+            
             self.list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
                 
             if len(self.list_offres)==1:
@@ -181,10 +197,7 @@ class search(searchTemplate):
             self.column_panel_params.visible = False
             self.text_param_summary.text = (f"Plateformes:{self.multi_select_drop_down_platformes.selected} / Mots clefs:{self.text_box_mot_clef.text} / sur les {self.text_box_nb_jours.text} derniers jours / {self.text_box_departements.text}")
             self.text_param_summary.visible = True
-            # -------------------------------------------
-            # Backup des paramètres
-            self.param_backup(selected_platformes, self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text)
-            # -------------------------------------------
+            
         else:
             self.data_grid_1.visible = False
             alert("Désolé... pas d'offres trouvées !")
@@ -228,15 +241,7 @@ class search(searchTemplate):
     def button_selection_mailed_click(self, **event_args):
         """This method is called when the component is clicked."""
         pass
-
-    def param_backup(self, sources, mots_clefs, nb_jours, departements):
-        # Backup de la dernière recherche
-        date_time = Time.french_zone_time()
-        # True: nouvelle row,  False = modif de la row histo
-        result = anvil.server.call("backup_param", self.user, sources, mots_clefs, nb_jours, departements, date_time)
         
-        #alert(f"Module 'param_backup': Sauvegarde des paramètres non effectuée: {result}, {e}")
-        print(f"Module 'param_backup':  {result}")
 
     def button_del_before_modif_param(self, **event_args):
         """This method is called when the component is clicked."""
@@ -281,6 +286,7 @@ class search(searchTemplate):
             except Exception as e:
                 print(e)
 
+    
     # Méthode appelée:  quand un row du repeating panel a été changée (checked ou unchecked) 
     #                   quand le repeting panel est réaffiché
     def recalculer_bouton_selection_mailed(self, sender=None, **event_args):
@@ -289,3 +295,98 @@ class search(searchTemplate):
             for row in self.repeating_panel_1.get_components()
         )
         self.button_selection_mailed.visible = au_moins_un_coche
+
+
+    """
+    =================================================================================================
+    Fonctions permettant la création du dict de liste des offres pour cette requete
+    =================================================================================================
+    """
+    
+    def _to_str(self, v):
+        """None -> '', sinon str nettoyée."""
+        if v is None:
+            return ""
+        return str(v).strip()
+    
+    
+    def _to_iso_date(self, v):
+        """
+        Convertit une date/datetime en 'YYYY-MM-DD'.
+        Si déjà texte, le renvoie tel quel nettoyé.
+        Si vide, renvoie ''.
+        """
+        if v in (None, "", "-"):
+            return ""
+        if isinstance(v, datetime):
+            return v.date().isoformat()
+        if isinstance(v, date):
+            return v.isoformat()
+        return str(v).strip()
+    
+    
+    def _make_offer_uid(self, item):
+        """
+        Clé technique pour éviter les doublons éventuels.
+        """
+        source = self._to_str(item.get("source"))
+        idweb = self._to_str(item.get("idweb"))
+        lien = self._to_str(item.get("lien"))
+    
+        if source and idweb:
+            return f"{source}|{idweb}"
+        if lien:
+            return lien
+        return f"{source}|{self._to_str(item.get('titre'))}|{self._to_iso_date(item.get('date_publication'))}"
+    
+    
+    def build_offres_list(self, resultats, dedoublonner=True):
+        """
+        resultats : liste brute renvoyée par tes scrapers / multi_sources
+        build_lien_app : fonction optionnelle qui reçoit item et renvoie le lien vers ton app
+        dedoublonner : True pour éviter les doublons
+        """
+        offres = []
+        vus = set()
+        
+        base_app = anvil.server.call('get_variable_value','code_app1')
+            
+        for item in resultats or []:
+            uid = self._make_offer_uid(item)
+            print(item.get("acheteur"))
+            if dedoublonner and uid in vus:
+                continue
+            vus.add(uid)
+
+            source = self._to_str(item.get("source"))
+            idweb = self._to_str(item.get("idweb"))
+            lien_app = f"{base_app}/analyse_offre?source={source}&idweb={idweb}"
+    
+            offre = {
+                "idweb": self._to_str(item.get("idweb")),
+                "source": self._to_str(item.get("source")),
+                "titre": self._to_str(item.get("titre")),
+                "date_publication": self._to_iso_date(item.get("date_publication")),
+                "date_limite_rep": self._to_iso_date(item.get("date_limite_rep")),
+                "departement": self._to_str(item.get("departement")),
+                "lieu": self._to_str(item.get("lieu")),
+                "acheteur": self._to_str(item.get("acheteur")),
+                "lien_source": self._to_str(item.get("lien_web")),
+                "lien_app": lien_app,
+                "description": self._to_str(item.get("description")),
+                "search_text": self._to_str(item.get("search_text")),
+                "reference": self._to_str(item.get("reference")),
+                "nature": self._to_str(item.get("nature")),
+                "procedure": self._to_str(item.get("procedure")),
+            }
+    
+            offres.append(offre)
+    
+        return offres
+    
+    
+    """
+    =================================================================================================
+    FIN des fonctions permettant la création du dict de liste des offres pour cette requete
+    =================================================================================================
+    """
