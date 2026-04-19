@@ -46,21 +46,24 @@ class search(searchTemplate):
                 except Exception as e:
                     alert(f"Vous n'êtes pas enregistré !, {e}")
                 
-                row = app_tables.histo.search(email=self.user['email'],
-                                             )  
-                if row:
-                    #alert(f"lecture des param de {row['user_id']} !")
-                    self.text_box_mot_clef.text       = row['mots_cles']
-                    self.text_box_nb_jours.text       = row['nb_jours']
-                    self.text_box_departements.text   = row['departements']
-                    src = row['sources']
-                    if src is not None:
-                        self.multi_select_drop_down_platformes.selected = row['sources']
-                    else:
-                        # Cocher toutes les platformes si 1ere entrée
-                        self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
-                    # =====================================
-                    #app_tables.appels_offres.delete_all_rows()   # effacer les offres précédentes en table appels_offres
+                rows = app_tables.histo.search(tables.order_by("date_heure", ascending=False),
+                                                email=self.user['email']
+                                             ) 
+                if len(rows)>0:
+                    row = rows[0]
+                    if row:
+                        #alert(f"lecture des param de {row['user_id']} !")
+                        self.text_box_mot_clef.text       = row['mots_cles']
+                        self.text_box_nb_jours.text       = row['nb_jours']
+                        self.text_box_departements.text   = row['departements']
+                        src = row['sources']
+                        if src is not None:
+                            self.multi_select_drop_down_platformes.selected = row['sources']
+                        else:
+                            # Cocher toutes les platformes si 1ere entrée
+                            self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
+                        # =====================================
+                        #app_tables.appels_offres.delete_all_rows()   # effacer les offres précédentes en table appels_offres
                 else: # Pas encore d'historique pour un nouvel utilisateur
                     # Cocher toutes les platformes si 1ere entrée
                     self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
@@ -371,7 +374,7 @@ class search(searchTemplate):
                 "departement": self._to_str(item.get("departement")),
                 "lieu": self._to_str(item.get("lieu")),
                 "acheteur": self._to_str(item.get("acheteur")),
-                "lien_source": self._to_str(item.get("lien_web")),
+                "lien_source": self._to_str(item.get("lien")),
                 "lien_app": lien_app,
                 "description": self._to_str(item.get("description")),
                 "search_text": self._to_str(item.get("search_text")),
