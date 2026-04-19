@@ -18,7 +18,7 @@ def backup_requete(user_row, sources, mots_cles, nb_jours, departements, date_ti
                             departements = departements,
                             date_heure   = date_time,
                             nb_offres    = nb_offres,
-                            offres=offres
+                            offres       = offres
                             )
     return f"Création row table 'histo' requete pour {user_row['email']}"
     

@@ -148,7 +148,7 @@ class search(searchTemplate):
             #                                                           departements,  rows,  page,  nb de jours
             # offres = anvil.server.call("get_boamp_offres", mots_clefs , depts,         100,   1,     periode)
             offres = anvil.server.call("get_offres_multi_sources", mots_clefs , depts,         100,   1,     periode, sources=selected_platformes)
-            print(offres[0])
+            print("PREMIERE OFFRE SERVEUR =", offres[0] if offres else "AUCUNE")
             
         except Exception as e:
             print(f"Erreur au module 'get_offres_multi_sources' sur Pi5: {e}")
@@ -381,6 +381,9 @@ class search(searchTemplate):
                 "reference": self._to_str(item.get("reference")),
                 "nature": self._to_str(item.get("nature")),
                 "procedure": self._to_str(item.get("procedure")),
+                "pertinence": self._to_str(item.get("pertinence")),
+                "resume_court": self._to_str(item.get("resume_court")),
+                "score": self._to_str(item.get("score")),
             }
     
             offres.append(offre)
