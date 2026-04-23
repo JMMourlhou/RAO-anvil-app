@@ -28,16 +28,18 @@ class Contact(ContactTemplate):
         mail = (self.text_box_mail.text or "").strip()
         message = (self.text_area_message.text or "").strip()
         
-        if nom and activite and tel and mail and drop:
+        if nom != "" and activite !="" and tel and mail and drop:
             pass
         else:
             alert("Remplissez ce formulaire entierrement avant de l'envoyer !")
-            if not nom: self.text_box_nom.focus()
+            if nom == "": self.text_box_nom.focus()
+            if activite == "": self.text_box_activite.focus()
             if not tel: self.text_box_activite.focus()
             if not tel: self.text_box_tel.focus()
             if not mail: self.text_box_mail.focus()
             if not message: self.message_area.focus()
             if drop is None:
+                alert("Sélectionnez l'objet !")
                 self.dropdown_sujets.icon_color =  "theme:Red" 
                 self.timer_1.interval = 0.5
                 
@@ -49,10 +51,10 @@ class Contact(ContactTemplate):
             return
 
         # Tel au bon format
-        alert(len(tel))
-        alert(tel.isdigit())
+        #alert(len(tel))
+        #alert(tel.isdigit())
         if len(tel) != 10 or not tel.isdigit():
-            alert("Le numéro doit contenir exactement 10 chiffres, sans espace ni autre caractère.")
+            alert("Le numéro de téléphone doit contenir exactement 10 chiffres, sans espace ni autre caractère.")
             self.text_box_tel.focus()
             return
 
