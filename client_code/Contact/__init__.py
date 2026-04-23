@@ -58,6 +58,13 @@ class Contact(ContactTemplate):
             self.text_box_tel.focus()
             return
 
+        # Envoi du msg à jmarc@jmm-formation-et-services.fr
+        result = anvil.server.call('_send_contact_msg',nom, mail, tel, self.dropdown_sujets.selected_value, message)
+        """
+        {'ok': True, 'message': 'Email envoyé', 'to': ['jmarc@jmm-formation-et-services.fr'], 'cc': [], 'bcc_count': 0, 'subject': 'Message contact de AOS', 'attachments_count': 0}
+        """
+        alert(f"{result['message']}")
+        
 
     def dropdown_sujets_change(self, **event_args):
         """This method is called when an item is selected"""
