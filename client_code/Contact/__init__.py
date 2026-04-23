@@ -59,7 +59,7 @@ class Contact(ContactTemplate):
             return
 
         # Envoi du msg à jmarc@jmm-formation-et-services.fr
-        result = anvil.server.call('_send_contact_msg',nom, mail, tel, self.dropdown_sujets.selected_value, message)
+        result = anvil.server.call('_send_contact_msg',nom, mail, tel, self.dropdown_sujets.selected_value, message, activite)
         """
         {'ok': True, 'message': 'Email envoyé', 'to': ['jmarc@jmm-formation-et-services.fr'], 'cc': [], 'bcc_count': 0, 'subject': 'Message contact de AOS', 'attachments_count': 0}
         """

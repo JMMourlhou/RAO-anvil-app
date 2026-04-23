@@ -3,10 +3,10 @@ import anvil.server
 from datetime import datetime
 from . import Variables_globales
 import html
-
+from anvil.tables import app_tables
 
 @anvil.server.callable
-def _send_contact_msg(name, email, tel, topic, message):
+def _send_contact_msg(name, email, tel, topic, message, activite):
     name = (name or "").strip()
     email = (email or "").strip().lower()
     tel = (tel or "").strip()
@@ -25,6 +25,7 @@ def _send_contact_msg(name, email, tel, topic, message):
 
     # Sécurisation pour le HTML
     name_html = html.escape(name)
+    activite_html = html.escape(activite)
     email_html = html.escape(email)
     tel_html = html.escape(tel)
     topic_html = html.escape(topic)
@@ -41,6 +42,8 @@ def _send_contact_msg(name, email, tel, topic, message):
 
         <p><b>Date :</b> {time}</p>
         <p><b>Nom :</b> {name_html}</p>
+        <p><b>Activitée :</b> {activite_html}</p>
+        
         <p><b>Email :</b> {email_html}</p>
         <p><b>Téléphone :</b> {tel_html}</p>
         <p><b>Sujet :</b> {topic_html}</p>
@@ -63,6 +66,7 @@ def _send_contact_msg(name, email, tel, topic, message):
     text_body = (
         f"Nouveau contact Web le {time}\n\n"
         f"Nom : {name}\n"
+        f"Activitée : {activite}\n"
         f"Téléphone : {tel}\n"
         f"Email : {email}\n"
         f"Sujet : {topic}\n"
@@ -71,16 +75,18 @@ def _send_contact_msg(name, email, tel, topic, message):
         f"L'équipe de {nom_app_pour_mail}\n"
         f"mail : {mon_mail}\n"
     )
-
-    result = anvil.server.call(
-        "send_mail_general",
-        to_address=mon_mail,
-        subject="Message contact de AOS",
-        text_body=text_body,
-        html_body=html_body,
-        from_address="jmarc@jmm-formation-et-services.fr",
-        from_name="SAO-Surv. appels d'offres",
-        reply_to=email if email else mon_mail,
-    )
-
+    try:
+        result = anvil.server.call(
+            "send_mail_general",
+            to_address=mon_mail,
+            subject="Message contact de AOS",
+            text_body=text_body,
+            html_body=html_body,
+            from_address="jmarc@jmm-formation-et-services.fr",
+            from_name="SAO-Surv. appels d'offres",
+            reply_to=email if email else mon_mail,
+        )
+    except Exception as e:
+        print(f"{e}")
+    app_tables.contact.add_row(nom=name, tel=tel, mail=email, objet=topic, message=message, activite=activite, date=time)   
     return result
