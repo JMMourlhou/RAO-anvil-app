@@ -112,7 +112,7 @@ def do_signup(email, name, entreprise, password):
     if user is None:
         api = mk_api_key()
         date_heure = Time.french_zone_time()
-        role_user = "N"   # New client par défaut
+        role_user = "C"   # New client par défaut
         
         try:
             user = app_tables.users.add_row(

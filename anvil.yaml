@@ -224,7 +224,7 @@ db_schema:
       client_hidden: false
       name: n_password_failures
       type: number
-    - admin_ui: {order: 1.359375, width: 99}
+    - admin_ui: {order: -1, width: 99}
       client_hidden: false
       name: role
       type: string

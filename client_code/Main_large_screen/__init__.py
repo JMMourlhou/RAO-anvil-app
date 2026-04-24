@@ -66,6 +66,8 @@ class Main_large_screen(Main_large_screenTemplate):
                 anvil.set_url_hash("")  
         else:
             self.bt_user_mail.text = user['email']
+            if user['role']=="A":
+                self.navigation_link_admin.visible = True
             self.bt_sign_in.visible = False
             self.bt_se_connecter.visible = False
             self.bt_deconnect.visible = True

@@ -105,6 +105,11 @@ components_by_slot:
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
   - event_bindings: {click: navigation_link_fermer_click}
     layout_properties: {}
+    name: navigation_link_admin
+    properties: {icon: '', icon_color: 'theme:Red', icon_size: '30', text: Admin, text_color: 'theme:Red', visible: false}
+    type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
+  - event_bindings: {click: navigation_link_fermer_click}
+    layout_properties: {}
     name: navigation_link_fermer
     properties: {icon: 'mi:logout', icon_color: 'theme:Red', icon_size: '30', text: Sortir, text_color: 'theme:Red'}
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
