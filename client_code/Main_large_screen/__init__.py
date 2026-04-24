@@ -12,7 +12,7 @@ from ..z_user_pw_reset import z_user_pw_reset
 from ..z_user_new_account import z_user_new_account
 from anvil.js import window
 from ..search import search
-
+from ..Contact import Contact
 
 class Main_large_screen(Main_large_screenTemplate):
     def __init__(self, first_entry=False, **properties):
@@ -64,16 +64,18 @@ class Main_large_screen(Main_large_screenTemplate):
                         alert(msg, title="Réinitialisation du mot de passe")
                         open_form("Main")
                 anvil.set_url_hash("")  
-        else:
+        else: # Il y a un user
             self.bt_user_mail.text = user['email']
+            # si le user est l'admin, j'affiche le bouton de naviguation 'Admin'
             if user['role']=="A":
                 self.navigation_link_admin.visible = True
+            else:
+                self.navigation_link_admin.visible = False
+                
             self.bt_sign_in.visible = False
             self.bt_se_connecter.visible = False
             self.bt_deconnect.visible = True
             self.navigation_link_user_appels_offres.visible = True
-            self.navigation_link_user_abonnement.visible = True
-            self.navigation_link_user_compte.visible = True
             self.navigation_link_user_parametres.visible = True
             self.navigation_link_user_contact.visible = True
             
@@ -104,9 +106,7 @@ class Main_large_screen(Main_large_screenTemplate):
         self.bt_se_connecter.visible = True
         self.bt_sign_in.visible = True
         self.bt_deconnect.visible = False
-        self.navigation_link_user_abonnement.visible = False
         self.navigation_link_user_appels_offres.visible = False
-        self.navigation_link_user_compte.visible = False
         
     """ ***********************************************************************************************"""
     """ ****************************** Gestions  BOUTONS CONNECTION et leurs clicks ******************************"""
@@ -155,9 +155,26 @@ class Main_large_screen(Main_large_screenTemplate):
 
     def navigation_link_fermer_click(self, **event_args):
         """This method is called when the component is clicked"""
+        self.navigation_link_user_appels_offres.visible = False
+        self.navigation_link_user_contact.visible = False
+        self.navigation_link_user_parametres.visible = False
+        self.bt_user_mail.text = ""
         self.content_panel.clear()
         anvil.users.logout()  # logging out the user
         self.user = None
         window.close()
 
+    
+    def navigation_link_user_contact_click(self, **event_args):
+        """This method is called when the component is clicked"""
+        self.bt_deconnect.visible = False
+        self.navigation_link_fermer.visible = False
+        self.navigation_link_user_contact.visible = False
+        self.content_panel.clear()
+        self.content_panel.add_component(Contact(), full_width_row=False)
+
+ 
+  
+
+  
     

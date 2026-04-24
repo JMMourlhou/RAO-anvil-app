@@ -103,7 +103,7 @@ components:
     - event_bindings: {click: button_envoi_mail_click}
       layout_properties: {}
       name: button_envoi_mail
-      properties: {align: center, background: 'theme:Light Green', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '#000000', icon: '', icon_align: left_edge, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Envoi du message, tooltip: '', underline: false, visible: false}
+      properties: {align: center, background: 'theme:Olive', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: 'theme:White', icon: '', icon_align: left_edge, italic: false, role: null, spacing_above: none, spacing_below: small, text: Envoi du message, tooltip: '', underline: false, visible: false}
       type: Button
     - event_bindings: {click: button_retour_click}
       layout_properties: {}
