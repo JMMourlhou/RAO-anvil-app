@@ -34,7 +34,6 @@ class Contact(ContactTemplate):
             alert("Remplissez ce formulaire entierrement avant de l'envoyer !")
             if nom == "": self.text_box_nom.focus()
             if activite == "": self.text_box_activite.focus()
-            if not tel: self.text_box_activite.focus()
             if not tel: self.text_box_tel.focus()
             if not mail: self.text_box_mail.focus()
             if not message: self.message_area.focus()

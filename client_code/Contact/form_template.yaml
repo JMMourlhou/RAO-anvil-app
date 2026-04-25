@@ -54,7 +54,7 @@ components:
           margin: ['1', null, '1', '2']
           placeholder: ''
           text: ''
-          type: tel
+          type: number
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       - event_bindings: {}
         layout_properties: {grid_position: 'GXPLZU,SMRCRZ'}

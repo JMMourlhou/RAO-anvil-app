@@ -393,3 +393,52 @@ class search(searchTemplate):
     FIN des fonctions permettant la création du dict de liste des offres pour cette requete
     =================================================================================================
     """
+
+    
+    def button_gestion_score_click(self, **event_args):
+        """This method is called when the component is clicked."""
+        if self.column_panel_mots_pour_score.visible is False:
+            self.column_panel_mots_pour_score.visible = True
+            self.column_panel_add_mot_pour_score.visible = True
+            # si il y a des mots pour scoring de créés, je les affiche
+            try:
+                if len(self.repeating_panel_mots_pour_score.items) > 0:
+                    self.repeating_panel_mots_pour_score.visible = True
+            except:
+                pass
+        else:
+            self.column_panel_mots_pour_score.visible = False
+            
+
+    
+    def text_box_mot_change(self, **event_args):
+        """This method is called when the text in this component is edited."""
+        self.icon_button_valid.visible = True
+
+    def text_box_valeur_change(self, **event_args):
+        """This method is called when the text in this component is edited."""
+        self.icon_button_valid.visible = True
+
+    def icon_button_valid_click(self, **event_args):
+        mot = (self.text_box_mot.text or "").strip()
+        valeur = (self.text_box_valeur.text or 0)
+
+        if mot == "" :
+            alert("Entrez le mot à prendre en compte dans le scoring")
+            self.text_box_mot.focus()
+            return
+            
+        if valeur == 0 :
+            alert("Entrez la valeur")
+            self.text_box_valeur.focus()
+            return
+            
+        alert("Ajout du mot ds le dico")
+        self.text_box_mot.text = ""
+        self.text_box_valeur.text = ""
+ 
+    def icon_button_del_click(self, **event_args):
+        self.text_box_mot.text = ""
+        self.text_box_valeur.text = ""
+
+   
