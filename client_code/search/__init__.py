@@ -23,6 +23,11 @@ class search(searchTemplate):
             self.del_mot_pour_score                    # méthode exécutéequand l'évenement est raised
         )
         
+        self.repeating_panel_mots_pour_score.set_event_handler(
+            "x-modif",                                   # nom de l'évenement : quand le bouton del d'une row des mots pour score est cliqué
+            self.modif_mot_pour_score                    # méthode exécutéequand l'évenement est raised
+        )
+        
         self.repeating_panel_1.set_event_handler(
             "x-checkbox-vu-changee",                     # nom de l'évenement : quand un checkbox est cliqué
             self.recalculer_bouton_selection_mailed      # méthode exécutéequand l'évenement est raised
@@ -433,6 +438,11 @@ class search(searchTemplate):
         valeur = (self.text_box_valeur.text or 0)
         if valeur != 0:
             self.icon_button_valid_mot_score.visible = True
+
+    def icon_button_del_click(self, **event_args):
+        self.text_box_mot.text = ""
+        self.text_box_valeur.text = ""
+        self.icon_button_valid_mot_score.visible = False
     
     def icon_button_valid_mot_score_click(self, **event_args):
         cle = (self.text_box_mot.text or "").strip()
@@ -452,23 +462,29 @@ class search(searchTemplate):
         self.dict_mots_score[cle] = int(valeur)
         # -------------------------------------------- Initialisation du repeating panel des mots 
         self.display_mots_pour_score()
-
         
         print(self.dict_mots_score)
         self.text_box_mot.text = ""
         self.text_box_valeur.text = ""
- 
-    def icon_button_del_click(self, **event_args):
-        self.text_box_mot.text = ""
-        self.text_box_valeur.text = ""
         self.icon_button_valid_mot_score.visible = False
-
+ 
+    
+    # Effacement du mot
     def del_mot_pour_score(self, sender, mot=None, **event_args):
-        alert(f"à annuler: {mot}")
         del self.dict_mots_score[mot]
         self.display_mots_pour_score()
+
+    # modif du mot: On efface d'abord l'ancinne entrée et on crée une nouvelle avec lesmodifs
+    def modif_mot_pour_score(self, sender, item=None, cle=None, valeur=None, **event_args):
+        # effacement de l'ancien mot/valeur
+        del self.dict_mots_score[item[0]]
+        # création de la nouvelle entrée
+        self.dict_mots_score[cle] = int(valeur)
+        n = Notification("Modification effectuée", timeout=1.5)   # par défaut 2 secondes
+        n.show()
+        self.display_mots_pour_score()
         
-        # -------------------------------------------- Initialisation du repeating panel des mots 
+    # -------------------------------------------- Initialisation du repeating panel des mots 
     def display_mots_pour_score(self, **event_args):  
         # affichage du repeating panel des prérequis à partir du dico que je transforme  en liste
         list_keys_mots = self.dict_mots_score.keys()

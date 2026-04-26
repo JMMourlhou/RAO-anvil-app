@@ -95,7 +95,7 @@ components:
         layout_properties: {grid_position: 'BQTPEU,IPAVLX'}
         name: button_gestion_score
         properties:
-          align: left
+          align: center
           appearance: outlined
           spacing:
             margin: ['13', null, null, null]
@@ -103,6 +103,10 @@ components:
           text_color: theme:White
         type: form:dep_lin1x4oec0ytd:_Components.Button
       - components:
+        - layout_properties: {grid_position: 'FSWRNB,XTPUDG'}
+          name: text_3
+          properties: {align: center, scale: large, text: 'Ajout de mots, qui s''ils sont dans l''appel d''offre, placeront celle ci en avant  ', text_color: 'theme:Primary'}
+          type: form:dep_lin1x4oec0ytd:_Components.Text
         - components:
           - components:
             - event_bindings: {change: text_box_mot_change, pressed_enter: icon_button_valid_mot_score_click}
@@ -111,7 +115,7 @@ components:
               properties:
                 appearance: outlined
                 label: AJOUT d'un mot à prendre en compte pour le score
-                margin: ['5', null, '0', null]
+                margin: ['5', null, '0', '5']
                 placeholder: 'Mot '
               type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
             - event_bindings: {change: text_box_valeur_change, pressed_enter: icon_button_valid_mot_score_click}
@@ -145,11 +149,11 @@ components:
             layout_properties: {grid_position: 'DODJSV,ZIEUHD'}
             name: column_panel_add_mot_pour_score
             properties:
-              background: theme:On Tertiary
+              background: theme:Disabled Container
               col_spacing: tiny
-              col_widths: '{"UFUTTR":40,"EMJGIX":27,"PJRFJG":4,"DMUHUS":4}'
+              col_widths: '{"UFUTTR":53,"EMJGIX":10,"PJRFJG":8,"DMUHUS":4}'
               spacing:
-                margin: ['0', null, '0', null]
+                margin: ['0', '50', '0', '50']
               visible: false
               wrap_on: never
             type: ColumnPanel
@@ -178,9 +182,9 @@ components:
             name: column_panel_3
             properties:
               col_spacing: tiny
-              col_widths: '{"RSVEVO":36,"KPEHJB":24}'
+              col_widths: '{"RSVEVO":45,"KPEHJB":15}'
               spacing:
-                margin: [null, '25', '0', '25']
+                margin: [null, '50', '0', '50']
             type: ColumnPanel
           - layout_properties: {}
             name: repeating_panel_mots_pour_score
@@ -190,19 +194,35 @@ components:
             type: RepeatingPanel
           layout_properties: {grid_position: 'EYBNYG,HYPJBA'}
           name: data_grid_mots_pour_score
-          properties: {background: 'theme:On Tertiary', rows_per_page: 5, visible: true}
+          properties:
+            auto_header: false
+            background: theme:Disabled Container
+            margin: ['0', '50', '10', '50']
+            rows_per_page: 5
+            visible: false
           type: DataGrid
         layout_properties: {grid_position: 'YPSTKC,RUQKJD'}
         name: column_panel_mots_pour_score
-        properties: {background: '', visible: false}
+        properties:
+          background: ''
+          border: '2px solid #3CD9ED'
+          spacing:
+            margin: [null, '20', null, '20']
+          visible: false
+          wrap_on: never
         type: ColumnPanel
       layout_properties: {grid_position: 'PGXVPZ,NFWMWX'}
       name: column_panel_1
-      properties: {background: '', col_widths: '{"IPAVLX":12,"VKSZSR":12,"COIIUJ":36}', wrap_on: never}
+      properties: {background: '', col_spacing: tiny, col_widths: '{"IPAVLX":12,"VKSZSR":12,"COIIUJ":36}', wrap_on: never}
       type: ColumnPanel
     layout_properties: {slot: card-content-slot}
     name: column_panel_params
-    properties: {col_spacing: tiny, col_widths: '{}', wrap_on: never}
+    properties:
+      col_spacing: tiny
+      col_widths: '{}'
+      spacing:
+        padding: [null, null, '0', null]
+      wrap_on: never
     type: ColumnPanel
   - components:
     - event_bindings: {click: button_search_click}

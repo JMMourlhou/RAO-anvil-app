@@ -21,4 +21,33 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
         self.parent.raise_event("x-del-mot",
                          mot=self.item[0]
                         )  # j'envoi le mot à la forme mère
-        
+
+    #modif: je dois effecer l'ancienne cle/valeur et créer la nouvelle entrée modifiée    
+    def icon_button_valid_click(self, **event_args):
+        cle = (self.text_box_mot.text or "").strip()
+        valeur = (self.text_box_valeur.text or 0)
+
+        if cle == "" :
+            alert("Entrez le mot à prendre en compte dans le scoring")
+            self.text_box_mot.focus()
+            return
+
+        if valeur == 0 :
+            alert("Entrez la valeur")
+            self.text_box_valeur.focus()
+            return
+            
+        self.parent.raise_event("x-modif",
+                                item=self.item,  # ancienne valeur à effacer
+                                cle = cle,       # nouvelle cle (le mot)
+                                valeur = valeur  # nouvelle valeur
+                               )  # j'envoi le mot à la forme mère
+
+    def text_box_mot_pressed_enter(self, **event_args):
+        """This method is called when the user presses enter in this component."""
+        self.icon_button_valid.visible = True
+
+
+    def text_box_valeur_pressed_enter(self, **event_args):
+        """This method is called when the user presses enter in this component."""
+        self.icon_button_valid.visible = True
