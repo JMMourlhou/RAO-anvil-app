@@ -105,7 +105,7 @@ components:
       - components:
         - components:
           - components:
-            - event_bindings: {change: text_box_mot_change}
+            - event_bindings: {change: text_box_mot_change, pressed_enter: icon_button_valid_mot_score_click}
               layout_properties: {grid_position: 'PRNYOO,UFUTTR'}
               name: text_box_mot
               properties:
@@ -114,7 +114,7 @@ components:
                 margin: ['5', null, '0', null]
                 placeholder: 'Mot '
               type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-            - event_bindings: {change: text_box_valeur_change}
+            - event_bindings: {change: text_box_valeur_change, pressed_enter: icon_button_valid_mot_score_click}
               layout_properties: {grid_position: 'PRNYOO,EMJGIX YYGHLM,JBYKGP'}
               name: text_box_valeur
               properties:
@@ -124,9 +124,9 @@ components:
                 placeholder: Valeur
                 type: number
               type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-            - event_bindings: {click: icon_button_valid_click}
+            - event_bindings: {click: icon_button_valid_mot_score_click}
               layout_properties: {grid_position: 'PRNYOO,PJRFJG'}
-              name: icon_button_valid
+              name: icon_button_valid_mot_score
               properties:
                 appearance: standard
                 icon: mi:check_small
@@ -186,11 +186,11 @@ components:
             name: repeating_panel_mots_pour_score
             properties:
               item_template: search.Row_mots_pour_score
-              margin: [null, '25', null, '25']
+              margin: [null, '40', null, '40']
             type: RepeatingPanel
           layout_properties: {grid_position: 'EYBNYG,HYPJBA'}
           name: data_grid_mots_pour_score
-          properties: {background: 'theme:On Tertiary', rows_per_page: 5, visible: false}
+          properties: {background: 'theme:On Tertiary', rows_per_page: 5, visible: true}
           type: DataGrid
         layout_properties: {grid_position: 'YPSTKC,RUQKJD'}
         name: column_panel_mots_pour_score

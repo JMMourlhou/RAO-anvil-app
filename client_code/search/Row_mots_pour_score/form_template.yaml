@@ -20,7 +20,8 @@ components:
       icon_color: theme:Light Green
       margin: ['12', null, null, null]
     type: form:dep_lin1x4oec0ytd:_Components.IconButton
-  - layout_properties: {grid_position: 'PRNYOO,DMUHUS'}
+  - event_bindings: {click: icon_button_del_click}
+    layout_properties: {grid_position: 'PRNYOO,DMUHUS'}
     name: icon_button_del
     properties:
       icon: mi:close_small
@@ -31,7 +32,7 @@ components:
   name: column_panel_1
   properties:
     col_spacing: tiny
-    col_widths: '{"UFUTTR":45,"EMJGIX":22,"PJRFJG":4,"DMUHUS":4}'
+    col_widths: '{"UFUTTR":55,"EMJGIX":10,"PJRFJG":5,"DMUHUS":5}'
     spacing:
       margin: ['0', null, '0', null]
     wrap_on: never

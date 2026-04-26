@@ -11,13 +11,20 @@ from datetime import date, datetime
 
 
 class search(searchTemplate):
-    def __init__(self, origine="", checkbox_on_off=False, mk="", bt_mail_visible=False, **properties):
+    def __init__(self, origine="", checkbox_on_off=False, mk="", bt_mail_visible=False, dict_mots_score={}, **properties):
         #def __init__(self, origine="", sources="", mots="", nb_jours="1", departements="", **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
+        # init dictionaire mots_score
+        self.dict_mots_score = {}
+        
+        self.repeating_panel_mots_pour_score.set_event_handler(
+            "x-del-mot",                               # nom de l'évenement : quand le bouton del d'une row des mots pour score est cliqué
+            self.del_mot_pour_score                    # méthode exécutéequand l'évenement est raised
+        )
         
         self.repeating_panel_1.set_event_handler(
-            "x-checkbox-vu-changee",                     # nom de l'évenement
+            "x-checkbox-vu-changee",                     # nom de l'évenement : quand un checkbox est cliqué
             self.recalculer_bouton_selection_mailed      # méthode exécutéequand l'évenement est raised
         )
         with anvil.server.no_loading_indicator:
@@ -70,6 +77,7 @@ class search(searchTemplate):
                     self.text_box_mot_clef.text       = "Football et Ballon"
                     self.text_box_nb_jours.text       = "30"
                     self.text_box_departements.text   = None    # Tous les depts
+                    
                 # =====================================
                 self.button_search.visible = True
                 
@@ -79,13 +87,15 @@ class search(searchTemplate):
 
                 #self.option = 0 # pour envoi en sélection(1), déselection(2), del(3)
                 
-                # réaffichages des parametres, check box on_off, button mail: 
+                # réaffichages des parametres, check box on_off, button mail et dict des mots pour scoring
                 if mk != "": # mots clefs
                     self.text_box_mot_clef.text = mk
                 if checkbox_on_off is True:  # ckeck box check de toutes ou aucune offres affichées
                     self.checkbox_on_off.checked = True
                 if  bt_mail_visible is True:  # Bouton envoi des mails checkés
                     self.button_selection_mailed.visible = True
+                if dict_mots_score != {}:
+                    self.dict_mots_score = dict_mots_score
                 # Je réaffiche le contenu de la table "appels_offres"
                 list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
                 if len(list_offres)>0:
@@ -274,7 +284,7 @@ class search(searchTemplate):
         if not result:
             alert("Erreur !")
         else:
-            open_form('search', "check", self.checkbox_on_off.checked, self.text_box_mot_clef.text, self.button_selection_mailed.visible)
+            open_form('search', "check", self.checkbox_on_off.checked, self.text_box_mot_clef.text, self.button_selection_mailed.visible, self.dict_mots_score)
 
     # ====================================================================================
     # TIMER 1 — keeps server session alive
@@ -394,7 +404,11 @@ class search(searchTemplate):
     =================================================================================================
     """
 
-    
+    """
+    =================================================================================================
+    Fonctions permettant la gestion du dict des mots pour scoring
+    =================================================================================================
+    """
     def button_gestion_score_click(self, **event_args):
         """This method is called when the component is clicked."""
         if self.column_panel_mots_pour_score.visible is False:
@@ -408,22 +422,23 @@ class search(searchTemplate):
                 pass
         else:
             self.column_panel_mots_pour_score.visible = False
-            
-
-    
+        
     def text_box_mot_change(self, **event_args):
         """This method is called when the text in this component is edited."""
-        self.icon_button_valid.visible = True
+        if self.text_box_valeur.text is not None:
+            self.icon_button_valid_mot_score.visible = True
 
     def text_box_valeur_change(self, **event_args):
         """This method is called when the text in this component is edited."""
-        self.icon_button_valid.visible = True
-
-    def icon_button_valid_click(self, **event_args):
-        mot = (self.text_box_mot.text or "").strip()
+        valeur = (self.text_box_valeur.text or 0)
+        if valeur != 0:
+            self.icon_button_valid_mot_score.visible = True
+    
+    def icon_button_valid_mot_score_click(self, **event_args):
+        cle = (self.text_box_mot.text or "").strip()
         valeur = (self.text_box_valeur.text or 0)
 
-        if mot == "" :
+        if cle == "" :
             alert("Entrez le mot à prendre en compte dans le scoring")
             self.text_box_mot.focus()
             return
@@ -432,13 +447,36 @@ class search(searchTemplate):
             alert("Entrez la valeur")
             self.text_box_valeur.focus()
             return
-            
-        alert("Ajout du mot ds le dico")
+        
+        # --------------------------------------------  "Ajout du mot:valeur ds le dico"
+        self.dict_mots_score[cle] = int(valeur)
+        # -------------------------------------------- Initialisation du repeating panel des mots 
+        self.display_mots_pour_score()
+
+        
+        print(self.dict_mots_score)
         self.text_box_mot.text = ""
         self.text_box_valeur.text = ""
  
     def icon_button_del_click(self, **event_args):
         self.text_box_mot.text = ""
         self.text_box_valeur.text = ""
+        self.icon_button_valid_mot_score.visible = False
 
-   
+    def del_mot_pour_score(self, sender, mot=None, **event_args):
+        alert(f"à annuler: {mot}")
+        del self.dict_mots_score[mot]
+        self.display_mots_pour_score()
+        
+        # -------------------------------------------- Initialisation du repeating panel des mots 
+    def display_mots_pour_score(self, **event_args):  
+        # affichage du repeating panel des prérequis à partir du dico que je transforme  en liste
+        list_keys_mots = self.dict_mots_score.keys()
+        list_keys = sorted(list_keys_mots)  # création de la liste triée des clefs du dictionaires prérequis
+        # j'affiche tous les pré requis 
+        list_display = []
+        for mk in list_keys:
+            list_display.append( (mk, self.dict_mots_score[mk]) )
+        print(len(list_display))
+        self.repeating_panel_mots_pour_score.items = list(list_display)   # liste des clefs (pré requis)
+        self.data_grid_mots_pour_score.visible = True
