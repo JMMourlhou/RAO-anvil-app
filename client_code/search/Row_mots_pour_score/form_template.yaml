@@ -1,45 +1,69 @@
 components:
 - components:
-  - event_bindings: {change: text_box_mot_pressed_enter, pressed_enter: text_box_mot_pressed_enter}
+  - event_bindings: {change: text_box_mot_change, pressed_enter: text_box_mot_pressed_enter}
     layout_properties: {grid_position: 'PRNYOO,UFUTTR'}
     name: text_box_mot
     properties:
       appearance: outlined
-      margin: ['0', null, '0', null]
+      label: Mot à ajouter
+      margin: ['10', null, '0', '5']
+      placeholder: 'Mot '
     type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-  - event_bindings: {change: text_box_valeur_pressed_enter, pressed_enter: text_box_valeur_pressed_enter}
-    layout_properties: {grid_position: 'PRNYOO,EMJGIX YYGHLM,JBYKGP'}
-    name: text_box_valeur
-    properties:
-      appearance: outlined
-      margin: ['0', null, '0', null]
-    type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-  - event_bindings: {click: icon_button_valid_click}
-    layout_properties: {grid_position: 'PRNYOO,PJRFJG'}
-    name: icon_button_valid
-    properties:
-      appearance: standard
-      icon: mi:check_small
-      icon_color: theme:Light Green
-      margin: ['12', null, null, null]
-      visible: false
-    type: form:dep_lin1x4oec0ytd:_Components.IconButton
-  - event_bindings: {click: icon_button_del_click}
-    layout_properties: {grid_position: 'PRNYOO,DMUHUS'}
-    name: icon_button_del
-    properties:
-      icon: mi:close_small
-      icon_color: theme:Red
-      margin: ['12', null, null, null]
-    type: form:dep_lin1x4oec0ytd:_Components.IconButton
-  layout_properties: {column: 'null'}
-  name: column_panel_1
+  - components:
+    - event_bindings: {change: text_box_valeur_change, pressed_enter: text_box_valeur_pressed_enter}
+      layout_properties: {grid_position: 'LOSUFG,CZZPAV'}
+      name: text_box_valeur
+      properties:
+        appearance: outlined
+        label: Valeur du mot
+        margin: ['5', null, '0', '5']
+        placeholder: Valeur
+        type: number
+      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+    - components:
+      - event_bindings: {click: icon_button_valid_mot_score_click}
+        layout_properties: {}
+        name: icon_button_valid_mot_score
+        properties:
+          align: center
+          appearance: standard
+          icon: mi:check_small
+          icon_color: theme:Light Green
+          margin: ['12', null, null, null]
+          visible: false
+        type: form:dep_lin1x4oec0ytd:_Components.IconButton
+      - event_bindings: {click: icon_button_del_click}
+        layout_properties: {}
+        name: icon_button_del
+        properties:
+          align: center
+          icon: mi:close_small
+          icon_color: theme:Red
+          margin: ['12', null, null, null]
+        type: form:dep_lin1x4oec0ytd:_Components.IconButton
+      layout_properties: {grid_position: 'LOSUFG,BXNMQL'}
+      name: flow_panel_1
+      properties:
+        align: center
+        background: ''
+        border: ''
+        spacing:
+          margin: ['8', null, null, null]
+      type: FlowPanel
+    layout_properties: {grid_position: 'PRNYOO,NLZFGH'}
+    name: column_panel_5
+    properties: {background: '', col_spacing: tiny, col_widths: '{"CZZPAV":23,"BXNMQL":37}', wrap_on: never}
+    type: ColumnPanel
+  layout_properties: {}
+  name: column_panel_add_mot_pour_score
   properties:
+    background: ''
     col_spacing: tiny
-    col_widths: '{"UFUTTR":55,"EMJGIX":10,"PJRFJG":5,"DMUHUS":5}'
+    col_widths: '{"UFUTTR":17,"NLZFGH":38}'
     spacing:
-      margin: ['0', null, '0', null]
-    wrap_on: never
+      margin: ['0', '5', '0', '5']
+    visible: true
+    wrap_on: mobile
   type: ColumnPanel
 container: {type: DataRowPanel}
 is_package: true

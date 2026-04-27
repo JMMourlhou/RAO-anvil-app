@@ -23,7 +23,7 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
                         )  # j'envoi le mot à la forme mère
 
     #modif: je dois effecer l'ancienne cle/valeur et créer la nouvelle entrée modifiée    
-    def icon_button_valid_click(self, **event_args):
+    def icon_button_valid_mot_score_click(self, **event_args):
         cle = (self.text_box_mot.text or "").strip()
         valeur = (self.text_box_valeur.text or 0)
 
@@ -45,9 +45,26 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
 
     def text_box_mot_pressed_enter(self, **event_args):
         """This method is called when the user presses enter in this component."""
-        self.icon_button_valid.visible = True
+        self.icon_button_valid_mot_score.visible = True
 
 
     def text_box_valeur_pressed_enter(self, **event_args):
         """This method is called when the user presses enter in this component."""
-        self.icon_button_valid.visible = True
+        self.icon_button_valid_mot_score.visible = True
+
+
+    def text_box_mot_change(self, **event_args):
+        """This method is called when the text in this component is edited."""
+        self.icon_button_valid_mot_score.visible = True
+
+
+    def text_box_valeur_change(self, **event_args):
+        """This method is called when the text in this component is edited."""
+        self.icon_button_valid_mot_score.visible = True
+
+  
+
+
+
+
+   

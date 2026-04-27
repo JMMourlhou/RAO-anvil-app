@@ -443,6 +443,16 @@ class search(searchTemplate):
         self.text_box_mot.text = ""
         self.text_box_valeur.text = ""
         self.icon_button_valid_mot_score.visible = False
+        self.column_panel_add.visible = False
+        self.button_add_mot.visible = True
+        self.data_grid_mots_pour_score.visible = True
+        
+    def button_add_mot_click(self, **event_args):
+        """This method is called when the component is clicked."""
+        self.column_panel_add.visible = True
+        self.button_add_mot.visible = False
+        self.text_box_mot.focus()
+        self.data_grid_mots_pour_score.visible = False
     
     def icon_button_valid_mot_score_click(self, **event_args):
         cle = (self.text_box_mot.text or "").strip()
@@ -467,8 +477,9 @@ class search(searchTemplate):
         self.text_box_mot.text = ""
         self.text_box_valeur.text = ""
         self.icon_button_valid_mot_score.visible = False
+        self.data_grid_mots_pour_score.visible = True
  
-    
+    # Evenement venant du row template
     # Effacement du mot
     def del_mot_pour_score(self, sender, mot=None, **event_args):
         del self.dict_mots_score[mot]
@@ -496,3 +507,7 @@ class search(searchTemplate):
         print(len(list_display))
         self.repeating_panel_mots_pour_score.items = list(list_display)   # liste des clefs (pré requis)
         self.data_grid_mots_pour_score.visible = True
+        self.column_panel_add.visible = False
+        self.button_add_mot.visible = True
+ 
+  
