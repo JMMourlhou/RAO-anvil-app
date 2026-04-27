@@ -63,6 +63,7 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
         self.icon_button_valid_mot_score.visible = True
 
   
+  
 
 
 

@@ -54,4 +54,8 @@ color_scheme:
   - {color: '#f71b02', name: Red}
   - {color: '#ffffff', name: White}
   preset_groups: []
-roles: []
+roles:
+- components: [TextBox]
+  display_in_toolbox: true
+  name: m3-tb-compact
+  title: 'Jmarc: TextBox, hauteur et marge réduites, sans trait, ni bordure'

@@ -35,3 +35,32 @@
     border-radius: inherit;
     transition: background-color 999999s ease-out 0s;
 }
+
+
+
+/* =========================================================
+CUSTOM JM - 1 rôle ajoutés pour les M3 TextBox components ci-dessous (et dans menu IDE   palette de couleur > roles)
+m3-tb-compact           TextBox M3 plus compacte, sans trait
+========================================================= */
+
+.anvil-role-m3-tb-compact {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* On ne force PAS la hauteur du conteneur M3 */
+.anvil-role-m3-tb-compact.anvil-m3-textbox,
+.anvil-role-m3-tb-compact .anvil-m3-textbox {
+    overflow: visible !important;
+}
+
+/* On compacte seulement le texte interne */
+.anvil-role-m3-tb-compact input {
+    font-size: 14px !important;
+    line-height: 18px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+

@@ -149,7 +149,7 @@ components:
                   name: icon_button_valid_mot_score
                   properties:
                     align: center
-                    appearance: filled
+                    appearance: tonal
                     icon: mi:check_small
                     icon_color: theme:Light Green
                     margin: ['12', null, null, null]
@@ -160,6 +160,7 @@ components:
                   name: icon_button_del
                   properties:
                     align: center
+                    appearance: tonal
                     icon: mi:close_small
                     icon_color: theme:Red
                     margin: ['12', null, null, null]
