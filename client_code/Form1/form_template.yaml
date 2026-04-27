@@ -1,0 +1,17 @@
+components:
+- layout_properties: {grid_position: 'WZYBGL,XRVJVZ'}
+  name: text_area_1
+  properties:
+    appearance: outlined
+    display_bold: false
+    display_font_size: 8
+    height: 2
+    label_font_size: 10
+    margin: ['0', null, '0', null]
+  type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextArea
+- layout_properties: {grid_position: 'TEWFLZ,UMNXQL'}
+  name: text_box_1
+  properties: {}
+  type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+container: {type: ColumnPanel}
+is_package: true

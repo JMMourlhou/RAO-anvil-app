@@ -270,6 +270,6 @@ services:
 - client_config: {}
   server_config: {custom_smtp: true}
   source: /runtime/services/anvil/email.yml
-startup: {module: Module1, type: module}
+startup: {module: Form1, type: form}
 startup_form: null
 uplink_visible: true
