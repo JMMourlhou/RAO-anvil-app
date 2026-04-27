@@ -29,7 +29,13 @@ class RowTemplate1(RowTemplate1Template):
         self.checkbox_vu.checked = self.item_value('vu', False)
         
         # affichage du contenu du Bt 'vérification'
-        self.button_generer_html.text = "Vérification"
+        score = self.item.get("score", 0)
+        pertinence = self.item.get("pertinence", "")
+        
+        if score:
+            self.button_generer_html.text = f"Vérification | score {score}"
+        else:
+            self.button_generer_html.text = "Vérification"
 
     def form_show(self, **event_args):
         self.maj_libelle_bouton_verification()

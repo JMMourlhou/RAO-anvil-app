@@ -9,7 +9,6 @@ import m3.components as m3
 from .. import Time
 from datetime import date, datetime
 
-
 class search(searchTemplate):
     def __init__(self, origine="", checkbox_on_off=False, mk="", bt_mail_visible=False, dict_mots_score={}, **properties):
         #def __init__(self, origine="", sources="", mots="", nb_jours="1", departements="", **properties):
@@ -102,8 +101,9 @@ class search(searchTemplate):
                 if dict_mots_score != {}:
                     self.dict_mots_score = dict_mots_score
                 # Je réaffiche le contenu de la table "appels_offres"
-                list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
-                if len(list_offres)>0:
+                self.list_offres = offres_preparees
+                self.repeating_panel_1.items = self.list_offres   # liste triée par score
+                if len(self.list_offres)>0:
                     self.data_grid_1.visible = True
                     self.repeating_panel_1.items = list_offres
                     self.recalculer_bouton_selection_mailed()   # méthode qui vérifie si une row est checked
@@ -168,54 +168,90 @@ class search(searchTemplate):
             return
             
         if offres:
-            # Ecriture de chaque offre en table appels_offres                   (à enlever)
+            # Ecriture de chaque offre en table appels_offres
+            # À enlever plus tard si tu n'en as plus besoin
             result = anvil.server.call("sov_offres", offres)
+        
             if result != "ok":
                 self.column_panel_select.visible = False
                 alert(result)
-                
-            # Génération du dictionaire de listes des offres
+                return
+        
+            # Génération de la liste des offres
             offres_preparees = self.build_offres_list(offres, dedoublonner=True)
-            nb_offres = len(offres_preparees)
-            
-            # Backup de la requête (donc des paramètres)
+        
+            print("offres_preparees avant score:", type(offres_preparees), len(offres_preparees))
+        
+            # Calcul du score / pertinence côté serveur
+            try:
+                offres_scorees = anvil.server.call(
+                    "scorer_offres",
+                    offres_preparees,
+                    self.dict_mots_score or {}
+                )
+            except Exception as e:
+                print(f"Erreur au module serveur 'scorer_offres': {e}")
+                alert(f"Erreur pendant le calcul du score : {e}")
+                offres_scorees = offres_preparees
+        
+            # Sécurité si scorer_offres renvoie None
+            if offres_scorees is None:
+                print("Attention : scorer_offres a renvoyé None")
+                offres_scorees = offres_preparees
+        
+            nb_offres = len(offres_scorees)
+        
+            # Backup de la requête avec les offres scorées
             date_time = Time.french_zone_time()
-            result = anvil.server.call("backup_requete", self.user, selected_platformes, self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text, date_time, nb_offres, offres_preparees, self.dict_mots_score)
+        
+            result = anvil.server.call(
+                "backup_requete",
+                self.user,
+                selected_platformes,
+                self.text_box_mot_clef.text,
+                self.text_box_nb_jours.text,
+                self.text_box_departements.text,
+                date_time,
+                nb_offres,
+                offres_scorees,
+                self.dict_mots_score
+            )
+        
             print(f"Module 'param_backup':  {result}")
-                # -------------------------------------------
-            
-            self.list_offres = app_tables.appels_offres.search(tables.order_by("date_publication", ascending=False))
-                
-            if len(self.list_offres)==1:
+        
+            self.list_offres = offres_scorees
+        
+            if len(self.list_offres) == 1:
                 self.text_nb_offres.text = f"{len(self.list_offres)} offre"
             else:
                 self.text_nb_offres.text = f"{len(self.list_offres)} offres"
+        
             self.text_nb_offres.visible = True
-
+        
             self.repeating_panel_1.items = self.list_offres
-            self.recalculer_bouton_selection_mailed()   # méthode qui vérifie si une row est checked
-            
-            """  ==============================================================================
-            Je passe au composant repeat_panel_1 la propriété contenant les mots clefs par 'tag'
-            nécessaire quand on click sur le bouton 'verifier'
-                la form mère connaît les mots-clés saisis,
-                elle les stocke sur repeating_panel_1,
-                chaque row les lit depuis self.parent.
-            """
+            self.recalculer_bouton_selection_mailed()
+        
             self.repeating_panel_1.tag.mots_cles_saisis = self.text_box_mot_clef.text or ""
-            # ===================================================================================
-            
+        
             self.data_grid_1.visible = True
             self.column_panel_select.visible = True
-
+        
             self.button_search.visible = False
             self.column_panel_params.visible = False
-            self.text_param_summary.text = (f"Plateformes:{self.multi_select_drop_down_platformes.selected} / Mots clefs:{self.text_box_mot_clef.text} / sur les {self.text_box_nb_jours.text} derniers jours / {self.text_box_departements.text}")
+        
+            self.text_param_summary.text = (
+                f"Plateformes:{self.multi_select_drop_down_platformes.selected} / "
+                f"Mots clefs:{self.text_box_mot_clef.text} / "
+                f"sur les {self.text_box_nb_jours.text} derniers jours / "
+                f"{self.text_box_departements.text}"
+            )
+        
             self.text_param_summary.visible = True
-            
+        
         else:
             self.data_grid_1.visible = False
             alert("Désolé... pas d'offres trouvées !")
+        
             with anvil.server.no_loading_indicator:
                 app_tables.appels_offres.delete_all_rows()
                 self.data_grid_1.visible = False
