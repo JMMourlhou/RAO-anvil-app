@@ -13,10 +13,13 @@ class RowTemplate1(RowTemplate1Template):
         
         self.comp_html = None
 
-        try:
-            self.text_date_publication.text = str(self.item['date_publication'].strftime("%d/%m/%Y"))
-        except Exception:
-            self.text_date_publication.text = "-"
+        self.text_date_publication.text = self.format_date_fr(
+            self.item_value("date_publication", "")
+        )
+
+        self.text_date_limite_rep.text = self.format_date_fr(
+            self.item_value("date_limite_rep", "")
+        )
 
         self.text_titre.text = self.item_value('titre', "")
         self.link_lien.text = self.item_value('lien', "")
@@ -29,8 +32,9 @@ class RowTemplate1(RowTemplate1Template):
         self.checkbox_vu.checked = self.item_value('vu', False)
         
         # affichage du contenu du Bt 'vérification'
-        score = self.item.get("score", 0)
-        pertinence = self.item.get("pertinence", "")
+        score = self.item_value("score", 0)
+        pertinence = self.item_value("pertinence", "")
+        mots_score_trouves = self.item_value("mots_score_trouves", [])
         
         if score:
             self.button_generer_html.text = f"Vérification | score {score}"
@@ -40,14 +44,62 @@ class RowTemplate1(RowTemplate1Template):
     def form_show(self, **event_args):
         self.maj_libelle_bouton_verification()
 
-    def item_value(self, key, default=None):
+    def format_date_fr(self, valeur):
+        """
+            Accepte :
+            - une date Python avec strftime()
+            - une string '2026-04-24'
+            - une string ISO plus longue
+            Retourne '24/04/2026'
+            """
+        
+        if not valeur:
+            return "-"
+        
+            # Cas date/datetime Python
+            try:
+                return valeur.strftime("%d/%m/%Y")
+            except Exception:
+                pass
+        
+        # Cas string
         try:
-            value = self.item[key]
-            if value is None:
-                return default
-            return value
+            valeur = str(valeur).strip()
+        
+            # Si format ISO avec heure : 2026-04-24T10:30:00
+            valeur = valeur.split("T")[0]
+        
+            morceaux = valeur.split("-")
+            if len(morceaux) == 3:
+                annee, mois, jour = morceaux
+                return f"{jour}/{mois}/{annee}"
+        
         except Exception:
-            return default
+            pass
+        
+            return "-"   
+        
+            def item_value(self, key, default=None):
+                try:
+                    value = self.item[key]
+                    if value is None:
+                        return default
+                    return value
+                except Exception:
+                    return default
+
+    def item_value(self, cle, defaut=None):
+        """
+        Récupère une valeur dans self.item,
+        que self.item soit un dictionnaire ou une row Anvil.
+        """
+        try:
+            return self.item.get(cle, defaut)
+        except Exception:
+            try:
+                return self.item[cle]
+            except Exception:
+                return defaut
 
     def link_lien_click(self, **event_args):
         from anvil.js import window
