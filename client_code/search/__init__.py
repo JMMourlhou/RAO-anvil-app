@@ -180,7 +180,7 @@ class search(searchTemplate):
             
             # Backup de la requête (donc des paramètres)
             date_time = Time.french_zone_time()
-            result = anvil.server.call("backup_requete", self.user, selected_platformes, self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text, date_time, nb_offres, offres_preparees)
+            result = anvil.server.call("backup_requete", self.user, selected_platformes, self.text_box_mot_clef.text, self.text_box_nb_jours.text, self.text_box_departements.text, date_time, nb_offres, offres_preparees, self.dict_mots_score)
             print(f"Module 'param_backup':  {result}")
                 # -------------------------------------------
             
@@ -419,14 +419,18 @@ class search(searchTemplate):
         if self.column_panel_mots_pour_score.visible is False:
             self.column_panel_mots_pour_score.visible = True
             self.column_panel_add_mot_pour_score.visible = True
+            self.button_search.visible = False
+            self.scroll_into_view(smooth=self.text_box_mot_clef)
             # si il y a des mots pour scoring de créés, je les affiche
             try:
                 if len(self.repeating_panel_mots_pour_score.items) > 0:
                     self.repeating_panel_mots_pour_score.visible = True
+                    
             except:
                 pass
         else:
             self.column_panel_mots_pour_score.visible = False
+            self.button_search.visible = True
         
     def text_box_mot_change(self, **event_args):
         """This method is called when the text in this component is edited."""
@@ -509,5 +513,11 @@ class search(searchTemplate):
         self.data_grid_mots_pour_score.visible = True
         self.column_panel_add.visible = False
         self.button_add_mot.visible = True
+
+
+    def button_fin_mots_score_click(self, **event_args):
+        """This method is called when the component is clicked."""
+        self.column_panel_mots_pour_score.visible = False
+        self.button_search.visible = True
  
   

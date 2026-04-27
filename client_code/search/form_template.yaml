@@ -79,7 +79,7 @@ components:
             text: '10'
           type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
         - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_departements_pressed_enter}
-          layout_properties: {grid_position: 'HPDZTV,GKJCGS IUOIKM,RXBKPW'}
+          layout_properties: {grid_position: 'HPDZTV,GKJCGS'}
           name: text_box_departements
           properties:
             appearance: outlined
@@ -92,21 +92,31 @@ components:
             supporting_text: ''
             text: ''
           type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+        layout_properties: {grid_position: 'CQUNNJ,RGFGCK'}
+        name: column_panel_4
+        properties: {background: '', col_spacing: tiny, col_widths: '{"HPVWLA":12,"GKJCGS":48,"RXBKPW":47}'}
+        type: ColumnPanel
+      - components:
+        - event_bindings: {click: button_search_click}
+          layout_properties: {}
+          name: button_search
+          properties: {align: center, background: 'theme:Olive', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: 'theme:White', icon: '', icon_align: left, italic: false, role: elevated-button, spacing_above: small, spacing_below: small, text: Recherche !, tooltip: '', underline: false, visible: false}
+          type: Button
         - event_bindings: {click: button_gestion_score_click}
-          layout_properties: {grid_position: 'HPDZTV,GKJCGS IUOIKM,XVGFEJ'}
+          layout_properties: {}
           name: button_gestion_score
           properties:
             align: center
-            appearance: outlined
+            appearance: elevated
             spacing:
               margin: ['13', null, null, null]
             text: Gestion score
-            text_color: theme:White
+            text_color: theme:Primary
           type: form:dep_lin1x4oec0ytd:_Components.Button
-        layout_properties: {grid_position: 'CQUNNJ,RGFGCK'}
-        name: column_panel_4
-        properties: {background: '', col_spacing: tiny, col_widths: '{"HPVWLA":12,"GKJCGS":48,"RXBKPW":47,"XVGFEJ":13}'}
-        type: ColumnPanel
+        layout_properties: {grid_position: 'CKHGSQ,TQTJJC'}
+        name: flow_panel_4
+        properties: {align: center, gap: large, vertical_align: middle}
+        type: FlowPanel
       - components:
         - layout_properties: {grid_position: 'CGDTEY,AAKLXG'}
           name: text_3
@@ -209,6 +219,11 @@ components:
             rows_per_page: 5
             visible: false
           type: DataGrid
+        - event_bindings: {click: button_fin_mots_score_click}
+          layout_properties: {grid_position: 'QMFNBE,DJQRSH'}
+          name: button_fin_mots_score
+          properties: {align: center, appearance: elevated, text: Fin, text_color: 'theme:Red'}
+          type: form:dep_lin1x4oec0ytd:_Components.Button
         layout_properties: {grid_position: 'YPSTKC,RUQKJD'}
         name: column_panel_mots_pour_score
         properties:
@@ -232,12 +247,7 @@ components:
         padding: [null, null, '0', null]
       wrap_on: mobile
     type: ColumnPanel
-  - components:
-    - event_bindings: {click: button_search_click}
-      layout_properties: {}
-      name: button_search
-      properties: {align: center, background: 'theme:Olive', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: 'theme:White', icon: '', icon_align: left, italic: false, role: elevated-button, spacing_above: small, spacing_below: small, text: Recherche !, tooltip: '', underline: false, visible: false}
-      type: Button
+  - components: []
     layout_properties: {slot: card-content-slot}
     name: flow_panel_3
     properties: {align: center, gap: medium, vertical_align: middle}

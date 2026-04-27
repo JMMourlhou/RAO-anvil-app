@@ -1,45 +1,71 @@
 components:
 - components:
-  - event_bindings: {change: text_box_valeur_change, pressed_enter: text_box_valeur_pressed_enter}
-    layout_properties: {}
-    name: text_box_valeur
-    properties: {role: m3-tb-compact}
-    type: TextBox
-  - event_bindings: {change: text_box_mot_change, pressed_enter: text_box_mot_pressed_enter}
-    layout_properties: {}
-    name: text_box_mot
-    properties: {role: m3-tb-compact}
-    type: TextBox
   - components:
-    - event_bindings: {click: icon_button_valid_mot_score_click}
-      layout_properties: {grid_position: 'VYOHIN,VAEUEL'}
-      name: icon_button_valid_mot_score
+    - event_bindings: {change: text_box_mot_change, pressed_enter: text_box_mot_pressed_enter}
+      layout_properties: {width: 125.734695703125}
+      name: text_box_mot
       properties:
-        appearance: tonal
-        icon: mi:check_small
-        icon_size: 24
-        spacing:
-          margin: ['0', null, '0', null]
-        text: Ok
-      type: form:dep_lin1x4oec0ytd:_Components.Button
-    - event_bindings: {click: icon_button_del_click}
-      layout_properties: {grid_position: 'VYOHIN,MCIMSS'}
-      name: icon_button_del
+        background: theme:Background
+        foreground: theme:Primary
+        margin: [null, '6', null, '15']
+        placeholder: Valeur
+        role: m3-tb-compact
+      type: TextBox
+    - event_bindings: {change: text_box_valeur_change, pressed_enter: text_box_valeur_pressed_enter}
+      layout_properties: {width: 43.89859321289063}
+      name: text_box_valeur
       properties:
-        appearance: tonal
-        icon: mi:close_small
-        icon_size: 24
-        spacing:
-          margin: ['0', null, '0', null]
-        text: Enlever
-      type: form:dep_lin1x4oec0ytd:_Components.Button
-    layout_properties: {}
-    name: column_panel_5
-    properties: {background: '', col_spacing: tiny, col_widths: '{"VAEUEL":29,"MCIMSS":31}', wrap_on: never}
-    type: ColumnPanel
+        background: theme:Background
+        foreground: theme:Primary
+        margin: [null, null, null, '6']
+        role: m3-tb-compact
+      type: TextBox
+    - components:
+      - event_bindings: {click: icon_button_valid_mot_score_click}
+        layout_properties: {grid_position: 'VYOHIN,VAEUEL'}
+        name: icon_button_valid_mot_score
+        properties:
+          appearance: elevated
+          icon: mi:check_small
+          icon_color: theme:Light Green
+          icon_size: 24
+          spacing:
+            margin: ['0', '0', '0', '2']
+            padding: [null, '4', null, '4']
+          text: ''
+        type: form:dep_lin1x4oec0ytd:_Components.Button
+      - event_bindings: {click: icon_button_del_click}
+        layout_properties: {grid_position: 'VYOHIN,MCIMSS'}
+        name: icon_button_del
+        properties:
+          appearance: elevated
+          icon: mi:close_small
+          icon_color: theme:Red
+          icon_size: 18
+          spacing:
+            margin: ['0', '2', '0', '0']
+            padding: [null, '4', null, '4']
+          text: ''
+        type: form:dep_lin1x4oec0ytd:_Components.Button
+      layout_properties: {}
+      name: column_panel_5
+      properties: {background: '', col_spacing: tiny, col_widths: '{"VAEUEL":29,"MCIMSS":31}', wrap_on: never}
+      type: ColumnPanel
+    layout_properties: {grid_position: 'MEJLOC,ZXYGWN'}
+    name: flow_panel_1
+    properties:
+      align: center
+      background: ''
+      gap: tiny
+      spacing:
+        margin: ['0', null, '0', null]
+      vertical_align: middle
+    type: FlowPanel
   layout_properties: {}
-  name: flow_panel_1
-  properties: {align: center, background: '', vertical_align: middle}
-  type: FlowPanel
-container: {type: DataRowPanel}
+  name: column_panel_1
+  properties: {background: '', wrap_on: never}
+  type: ColumnPanel
+container:
+  properties: {foreground: ''}
+  type: DataRowPanel
 is_package: true
