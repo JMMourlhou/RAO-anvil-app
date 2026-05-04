@@ -32,7 +32,8 @@ def treatment_on_all_checked(list, option):
                     row.update(vu=True)
         return True
     except Exception as e:
-        return e
+        print(f"Erreur au module 'treatment_on_all_checked' : {e}")
+        return False
 
 # =========================================================================
 @anvil.server.callable           # éffacements d'1 offre
@@ -41,4 +42,5 @@ def del_1(row):
             row.delete()
             return True
     except Exception as e:
-        return e
+        print(f"Erreur au module 'del_1' : {e}")
+        return False

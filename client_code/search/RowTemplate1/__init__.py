@@ -155,13 +155,12 @@ class RowTemplate1(RowTemplate1Template):
         if not result:
             alert("Erreur en modification")
 
-    def toggle_icon_button_1_click(self, **event_args):
+    def toggle_icon_button_del_click(self, **event_args):
         result = anvil.server.call("del_1", self.item)
-
-        if not result:
-            alert("Erreur en effacement")
+        if result:
+            open_form("search", "check")
         else:
-            open_form("Main_large_screen", "check")
+            alert("Erreur en effacement !")
 
     # -------------------------------------------------------------------------
     # Extraction des mots-clés classiques saisis par l'utilisateur

@@ -101,11 +101,11 @@ class search(searchTemplate):
                 if dict_mots_score != {}:
                     self.dict_mots_score = dict_mots_score
                 # Je réaffiche le contenu de la table "appels_offres"
-                self.list_offres = offres_preparees
+                self.list_offres = self.offres_preparees
                 self.repeating_panel_1.items = self.list_offres   # liste triée par score
                 if len(self.list_offres)>0:
                     self.data_grid_1.visible = True
-                    self.repeating_panel_1.items = list_offres
+                    self.repeating_panel_1.items = self.list_offres
                     self.recalculer_bouton_selection_mailed()   # méthode qui vérifie si une row est checked
                     """  ==============================================================================
                     Je passe au composant repeat_panel_1 la propriété contenant les mots clefs par 'tag'
@@ -117,10 +117,10 @@ class search(searchTemplate):
                     self.repeating_panel_1.tag.mots_cles_saisis = self.text_box_mot_clef.text or ""
                     # ===================================================================================
                     
-                    if len(list_offres)==1:
-                        self.text_nb_offres.text = f"{len(list_offres)} offre"
+                    if len(self.list_offres)==1:
+                        self.text_nb_offres.text = f"{len(self.list_offres)} offre"
                     else:
-                        self.text_nb_offres.text = f"{len(list_offres)} offres"
+                        self.text_nb_offres.text = f"{len(self.list_offres)} offres"
                     self.text_nb_offres.visible = True
                     self.column_panel_select.visible = True
                     # =====================================
@@ -178,26 +178,26 @@ class search(searchTemplate):
                 return
         
             # Génération de la liste des offres
-            offres_preparees = self.build_offres_list(offres, dedoublonner=True)
+            self.offres_preparees = self.build_offres_list(offres, dedoublonner=True)
         
-            print("offres_preparees avant score:", type(offres_preparees), len(offres_preparees))
+            print("offres_preparees avant score:", type(self.offres_preparees), len(self.offres_preparees))
         
             # Calcul du score / pertinence côté serveur
             try:
                 offres_scorees = anvil.server.call(
                     "scorer_offres",
-                    offres_preparees,
+                    self.offres_preparees,
                     self.dict_mots_score or {}
                 )
             except Exception as e:
                 print(f"Erreur au module serveur 'scorer_offres': {e}")
                 alert(f"Erreur pendant le calcul du score : {e}")
-                offres_scorees = offres_preparees
+                offres_scorees = self.offres_preparees
         
             # Sécurité si scorer_offres renvoie None
             if offres_scorees is None:
                 print("Attention : scorer_offres a renvoyé None")
-                offres_scorees = offres_preparees
+                offres_scorees = self.offres_preparees
         
             nb_offres = len(offres_scorees)
         
