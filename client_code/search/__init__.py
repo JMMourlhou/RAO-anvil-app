@@ -149,8 +149,7 @@ class search(searchTemplate):
     def button_search_click(self, **event_args):
         """This method is called when the component is clicked."""
         #offres = anvil.server.call("get_sst_offres",self.text_box_url.text, self.text_box_mot_clef.text)   # uplink sur Pi5
-        # Effacement de la table appels offres
-        app_tables.appels_offres.delete_all_rows()
+       
         # --- Lecture et nettoyage des champs texte ---
         mots_texte = self.text_box_mot_clef.text or ""
         deps_texte = self.text_box_departements.text or ""
@@ -183,13 +182,13 @@ class search(searchTemplate):
         if offres:
             # Ecriture de chaque offre en table appels_offres
             # À enlever plus tard si tu n'en as plus besoin
+            """
             result = anvil.server.call("sov_offres", offres)
-        
             if result != "ok":
                 self.column_panel_select.visible = False
                 alert(result)
                 return
-        
+            """
             # Génération de la liste des offres
             self.offres_preparees = self.build_offres_list(offres, dedoublonner=True)
         
@@ -603,7 +602,7 @@ class search(searchTemplate):
             offre for offre in ancienne_liste
             if self._make_offer_uid(offre) != uid_a_supprimer
         ]
-    
+        """
         # Mise à jour éventuelle de la table appels_offres côté serveur
         try:
             with anvil.server.no_loading_indicator:
@@ -614,7 +613,7 @@ class search(searchTemplate):
                 )
         except Exception as e:
             print(f"Suppression table appels_offres non effectuée : {e}")
-    
+        """
         # Réaffichage du repeating panel
         self.repeating_panel_1.items = list(self.list_offres)
     
