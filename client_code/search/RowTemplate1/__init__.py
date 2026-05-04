@@ -14,6 +14,9 @@ class RowTemplate1(RowTemplate1Template):
 
         self.comp_html = None
 
+        # Evite qu'une modification par code déclenche une sauvegarde inutile
+        self._ignore_checkbox_vu_change = False
+
         # Dates
         self.text_date_publication.text = self.format_date_fr(
             self.item_value("date_publication", "")
@@ -26,7 +29,7 @@ class RowTemplate1(RowTemplate1Template):
         # Champs principaux
         self.text_titre.text = self.item_value("titre", "")
 
-        # Dans tes résultats, la clé est souvent lien_source, pas lien
+        # Dans les résultats, la clé est souvent lien_source, pas lien
         lien = (
             self.item_value("lien_source", "")
             or self.item_value("lien", "")
@@ -43,7 +46,9 @@ class RowTemplate1(RowTemplate1Template):
         self.text_departement.text = self.item_value("departement", "")
 
         # Vu / non vu
-        self.checkbox_vu.checked = self.item_value("vu", False)
+        self.set_checkbox_vu_sans_event(
+            bool(self.item_value("vu", False))
+        )
 
         # Libellé du bouton Vérification :
         # score + mots_score trouvés + mots-clés classiques si besoin
@@ -61,6 +66,7 @@ class RowTemplate1(RowTemplate1Template):
         Récupère une valeur dans self.item,
         que self.item soit un dictionnaire ou une row Anvil.
         """
+
         try:
             valeur = self.item.get(cle, defaut)
             if valeur is None:
@@ -87,28 +93,25 @@ class RowTemplate1(RowTemplate1Template):
         if not valeur:
             return "-"
 
-        # Cas date/datetime Python
         try:
             return valeur.strftime("%d/%m/%Y")
         except Exception:
             pass
 
-        # Cas string
         try:
             valeur = str(valeur).strip()
 
             if not valeur:
                 return "-"
 
-            # Si format ISO avec heure
             valeur = valeur.split("T")[0]
             valeur = valeur.split(" ")[0]
 
-            # Cas déjà au format français
             if "/" in valeur:
                 return valeur
 
             morceaux = valeur.split("-")
+
             if len(morceaux) == 3:
                 annee, mois, jour = morceaux
                 return f"{jour}/{mois}/{annee}"
@@ -117,6 +120,15 @@ class RowTemplate1(RowTemplate1Template):
             pass
 
         return "-"
+
+    def set_checkbox_vu_sans_event(self, valeur):
+        """
+        Modifie checkbox_vu.checked sans déclencher le traitement parent.
+        """
+
+        self._ignore_checkbox_vu_change = True
+        self.checkbox_vu.checked = bool(valeur)
+        self._ignore_checkbox_vu_change = False
 
     # -------------------------------------------------------------------------
     # Actions principales row
@@ -135,27 +147,41 @@ class RowTemplate1(RowTemplate1Template):
         if lien:
             window.open(lien)
 
-        self.checkbox_vu.checked = True
-        self.checkbox_vu_change()
+        # On marque comme vu
+        if self.checkbox_vu.checked is not True:
+            self.set_checkbox_vu_sans_event(True)
+            self.checkbox_vu_change()
 
     def checkbox_vu_change(self, **event_args):
         """
-        Evènement levé vers la forme mère + sauvegarde côté serveur.
+        Evènement levé vers la forme mère.
+        La sauvegarde serveur est maintenant faite par le parent search,
+        car la source officielle est histo['offres'].
         """
+
+        if self._ignore_checkbox_vu_change:
+            return
+
+        checked = bool(self.checkbox_vu.checked)
+
+        # On met aussi à jour le dictionnaire courant en mémoire
+        try:
+            self.item["vu"] = checked
+        except Exception:
+            pass
 
         self.parent.raise_event(
             "x-checkbox-vu-changee",
-            checked=self.checkbox_vu.checked,
+            checked=checked,
             item=self.item
         )
 
-        with anvil.server.no_loading_indicator:
-            result = anvil.server.call("check", self.item, self.checkbox_vu.checked)
-
-        if not result:
-            alert("Erreur en modification")
-
     def toggle_icon_button_del_click(self, **event_args):
+        """
+        Demande au parent de supprimer l'offre.
+        La RowTemplate ne supprime rien directement.
+        """
+
         self.parent.raise_event(
             "x-del-offre",
             item=self.item
@@ -201,9 +227,10 @@ class RowTemplate1(RowTemplate1Template):
         if self.column_panel_detail.visible is False:
             self.button_generer_html.icon = "mi:keyboard_double_arrow_up"
 
-            # Check du check_box 'vu'
-            self.checkbox_vu.checked = True
-            self.checkbox_vu_change()
+            # On marque comme vu
+            if self.checkbox_vu.checked is not True:
+                self.set_checkbox_vu_sans_event(True)
+                self.checkbox_vu_change()
 
         else:
             self.button_generer_html.icon = "mi:keyboard_double_arrow_down"
@@ -246,14 +273,14 @@ class RowTemplate1(RowTemplate1Template):
 
         texte = str(texte or "")
 
-        # Convertit les \n littéraux en vrais retours ligne
         texte = texte.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n")
-
-        # Normalisation des fins de ligne réelles
         texte = texte.replace("\r\n", "\n").replace("\r", "\n")
 
-        # Compacte les espaces, mais garde les \n
-        lignes = [re.sub(r"[ \t]+", " ", ligne).strip() for ligne in texte.split("\n")]
+        lignes = [
+            re.sub(r"[ \t]+", " ", ligne).strip()
+            for ligne in texte.split("\n")
+        ]
+
         texte = "\n".join(lignes)
 
         labels = [
@@ -314,7 +341,11 @@ class RowTemplate1(RowTemplate1Template):
             if l_norm in a_supprimer:
                 continue
 
-            if re.fullmatch(r"Heure\s*:\s*\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?", l, flags=re.I):
+            if re.fullmatch(
+                r"Heure\s*:\s*\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?",
+                l,
+                flags=re.I
+            ):
                 continue
 
             lignes.append(l)
@@ -325,8 +356,7 @@ class RowTemplate1(RowTemplate1Template):
         return texte.strip()
 
     # -------------------------------------------------------------------------
-    # Fonctions pour le bouton Vérification :
-    # mots-clés classiques + score + mots_score
+    # Fonctions pour le bouton Vérification
     # -------------------------------------------------------------------------
 
     def _normalize_text(self, s):
@@ -404,8 +434,7 @@ class RowTemplate1(RowTemplate1Template):
             self.button_generer_html.text = libelle
             return
 
-        # Sinon, on garde ton ancien comportement :
-        # affichage des mots-clés de recherche trouvés
+        # Sinon, ancien comportement
         if mots_clefs_trouves:
             self.button_generer_html.text = "Vérification : " + ", ".join(mots_clefs_trouves)
         else:
@@ -422,7 +451,6 @@ class RowTemplate1(RowTemplate1Template):
                 continue
 
             mot_norm = self._normalize_text(mot)
-
             pattern = rf"(?<!\w){re.escape(mot_norm)}\w*"
 
             if re.search(pattern, texte_norm):

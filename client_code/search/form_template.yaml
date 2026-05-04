@@ -49,7 +49,7 @@ components:
     properties: {align: center, background: 'theme:Red', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '#000000', icon: '', icon_align: left_edge, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Retour, tooltip: '', underline: false, visible: true}
     type: Button
   - components:
-    - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_mot_clef_pressed_enter}
+    - event_bindings: {change: text_box_mot_clef_change, pressed_enter: text_box_mot_clef_pressed_enter}
       layout_properties: {grid_position: 'UTAJVP,AQYHRQ'}
       name: text_box_mot_clef
       properties:
@@ -64,7 +64,7 @@ components:
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - components:
       - components:
-        - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_nb_jours_pressed_enter}
+        - event_bindings: {change: text_box_mot_clef_change, pressed_enter: text_box_nb_jours_pressed_enter}
           layout_properties: {grid_position: 'HPDZTV,HPVWLA'}
           name: text_box_nb_jours
           properties:
@@ -78,7 +78,7 @@ components:
             placeholder: Nb de jours
             text: '10'
           type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-        - event_bindings: {change: button_del_before_modif_param, pressed_enter: text_box_departements_pressed_enter}
+        - event_bindings: {change: text_box_mot_clef_change, pressed_enter: text_box_departements_pressed_enter}
           layout_properties: {grid_position: 'HPDZTV,GKJCGS'}
           name: text_box_departements
           properties:
@@ -96,15 +96,20 @@ components:
         name: column_panel_4
         properties: {background: '', col_spacing: tiny, col_widths: '{"HPVWLA":12,"GKJCGS":48}'}
         type: ColumnPanel
-      - layout_properties: {grid_position: 'OUUGQA,SCWRZM'}
+      - event_bindings: {change: text_box_mot_clef_change, focus: text_box_mots_pour_score_focus, pressed_enter: text_box_mot_clef_change}
+        layout_properties: {grid_position: 'OUUGQA,SCWRZM'}
         name: text_box_mots_pour_score
         properties:
           appearance: outlined
           label: 'Mots souhaités pour l''évaluation :'
-          margin: ['15', null, null, null]
+          margin: ['30', null, null, null]
           placeholder: mot:valeur, mot:valeur, ...
           supporting_text: 'Ex: rénovation:10, agrandissement:5, démolition:1, ... '
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+      - layout_properties: {grid_position: 'MVJFJD,TZNUWQ'}
+        name: checkbox_mots_cles_dans_score
+        properties: {align: center, text: Cocher pour que les mots clefs soient inclus dans le score}
+        type: form:dep_lin1x4oec0ytd:_Components.Checkbox
       - components:
         - event_bindings: {click: button_search_click}
           layout_properties: {}
@@ -121,6 +126,7 @@ components:
               margin: ['13', null, null, null]
             text: Gestion score
             text_color: theme:Primary
+            visible: false
           type: form:dep_lin1x4oec0ytd:_Components.Button
         layout_properties: {grid_position: 'CKHGSQ,TQTJJC'}
         name: flow_panel_4

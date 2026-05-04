@@ -92,6 +92,10 @@ db_schema:
       client_hidden: false
       name: mots_score
       type: simpleObject
+    - admin_ui: {order: 8, width: 200}
+      client_hidden: false
+      name: mot_cles_in_score
+      type: bool
     server: full
     title: histo
   platformes:
