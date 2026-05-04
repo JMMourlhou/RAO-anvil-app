@@ -21,16 +21,29 @@ class search(searchTemplate):
             "x-del-mot",                               # nom de l'évenement : quand le bouton del d'une row des mots pour score est cliqué
             self.del_mot_pour_score                    # méthode exécutéequand l'évenement est raised
         )
-        
+
         self.repeating_panel_mots_pour_score.set_event_handler(
             "x-modif",                                   # nom de l'évenement : quand le bouton del d'une row des mots pour score est cliqué
             self.modif_mot_pour_score                    # méthode exécutéequand l'évenement est raised
         )
+
         
+        
+        """
+        Boutons d'une offre a été modifié (dans search.RowTemplate1)
+        """
+        # Le bouton vu d'une offre a été modifié
         self.repeating_panel_1.set_event_handler(
             "x-checkbox-vu-changee",                     # nom de l'évenement : quand un checkbox est cliqué
             self.recalculer_bouton_selection_mailed      # méthode exécutéequand l'évenement est raised
         )
+        # Le bouton del d'une offre a été cliqué
+        self.repeating_panel_1.set_event_handler(
+            "x-del-offre",
+            self.del_offre_affichee
+        )
+
+        
         with anvil.server.no_loading_indicator:
             # init de la drop down plateforme multi sélectable depuis la table 'platformes'
             rows_platformes = app_tables.platformes.search(tables.order_by("id", ascending=True))
@@ -378,17 +391,29 @@ class search(searchTemplate):
     
     def _make_offer_uid(self, item):
         """
-        Clé technique pour éviter les doublons éventuels.
+        Clé technique pour identifier une offre affichée et éviter les doublons éventuels.
+        Fonctionne avec les dictionnaires issus de self.list_offres.
         """
         source = self._to_str(item.get("source"))
         idweb = self._to_str(item.get("idweb"))
-        lien = self._to_str(item.get("lien"))
+    
+        lien = (
+            self._to_str(item.get("lien"))
+            or self._to_str(item.get("lien_source"))
+            or self._to_str(item.get("lien_app"))
+        )
     
         if source and idweb:
             return f"{source}|{idweb}"
+    
         if lien:
             return lien
-        return f"{source}|{self._to_str(item.get('titre'))}|{self._to_iso_date(item.get('date_publication'))}"
+    
+        return (
+            f"{source}|"
+            f"{self._to_str(item.get('titre'))}|"
+            f"{self._to_iso_date(item.get('date_publication'))}"
+        )
     
     
     def build_offres_list(self, resultats, dedoublonner=True):
@@ -550,7 +575,68 @@ class search(searchTemplate):
         self.column_panel_add.visible = False
         self.button_add_mot.visible = True
 
+    def del_offre_affichee(self, sender=None, item=None, **event_args):
+        """
+        Efface une offre affichée dans le repeating panel.
+        Comme les items sont maintenant des dictionnaires,
+        on supprime l'entrée de self.list_offres puis on réaffiche.
+        """
+    
+        if not item:
+            alert("Offre introuvable.")
+            return
+    
+        r = alert(
+            "Effacer cette offre affichée ?",
+            dismissible=False,
+            buttons=[("oui", True), ("non", False)]
+        )
+    
+        if not r:
+            return
+    
+        uid_a_supprimer = self._make_offer_uid(item)
+    
+        ancienne_liste = self.list_offres or []
+    
+        self.list_offres = [
+            offre for offre in ancienne_liste
+            if self._make_offer_uid(offre) != uid_a_supprimer
+        ]
+    
+        # Mise à jour éventuelle de la table appels_offres côté serveur
+        try:
+            with anvil.server.no_loading_indicator:
+                anvil.server.call(
+                    "del_offre_par_cle",
+                    item.get("source"),
+                    item.get("idweb")
+                )
+        except Exception as e:
+            print(f"Suppression table appels_offres non effectuée : {e}")
+    
+        # Réaffichage du repeating panel
+        self.repeating_panel_1.items = list(self.list_offres)
+    
+        # Réaffichage compteur
+        nb = len(self.list_offres)
+    
+        if nb == 0:
+            self.text_nb_offres.text = "0 offre"
+            self.text_nb_offres.visible = False
+            self.data_grid_1.visible = False
+            self.column_panel_select.visible = False
+            self.button_selection_mailed.visible = False
+        elif nb == 1:
+            self.text_nb_offres.text = "1 offre"
+            self.text_nb_offres.visible = True
+        else:
+            self.text_nb_offres.text = f"{nb} offres"
+            self.text_nb_offres.visible = True
+    
+        self.recalculer_bouton_selection_mailed()
 
+    
     def button_fin_mots_score_click(self, **event_args):
         """This method is called when the component is clicked."""
         self.column_panel_mots_pour_score.visible = False
