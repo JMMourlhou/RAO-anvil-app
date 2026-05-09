@@ -172,7 +172,7 @@ class search(searchTemplate):
         self.text_box_mot_clef.text = row["mots_cles"]
         self.text_box_nb_jours.text = row["nb_jours"]
         self.text_box_departements.text = row["departements"]
-        self.checkbox_mots_cles_dans_score.checked = row['mot_cles_in_score']
+        self.checkbox_mots_cles_dans_score.checked = row['mots_cles_in_score']
         src = row["sources"]
         if src is not None:
             self.multi_select_drop_down_platformes.selected = src

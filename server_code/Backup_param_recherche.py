@@ -1,5 +1,4 @@
 import anvil.users
-import anvil.tables as tables
 from anvil.tables import app_tables
 import anvil.server
 
@@ -15,21 +14,9 @@ def backup_requete(
     nb_offres,
     offres,
     dict_mots_score,
-    mk_in_score
+    mk_in_score=False
 ):
-    """
-    Sauvegarde la requête utilisateur dans histo.
-
-    Retourne :
-    {
-        "ok": True,
-        "histo_id": "...",
-        "nb_offres": 12
-    }
-    """
-
     try:
-        # Sécurité : on privilégie l'utilisateur connecté côté serveur
         user = anvil.users.get_user()
 
         if user:
@@ -37,21 +24,65 @@ def backup_requete(
         else:
             email = user_row["email"]
 
+        sources = list(sources or [])
         offres = list(offres or [])
         dict_mots_score = dict(dict_mots_score or {})
+        mk_in_score = bool(mk_in_score)
 
-        row = app_tables.histo.add_row(
-            email=email,
-            sources=sources,
-            mots_cles=mots_cles,
-            nb_jours=int(nb_jours),
-            departements=departements,
-            date_heure=date_time,
-            nb_offres=int(nb_offres),
-            offres=offres,
-            mots_score=dict_mots_score,
-            mot_cles_in_score=mk_in_score
-        )
+        print("===== BACKUP REQUETE DIAGNOSTIC =====")
+        print("email:", email)
+        print("sources:", sources)
+        print("mots_cles:", mots_cles)
+        print("nb_jours:", nb_jours)
+        print("departements:", departements)
+        print("len offres:", len(offres))
+        print("dict_mots_score:", dict_mots_score)
+        print("mk_in_score:", mk_in_score)
+
+        # Création minimale
+        try:
+            row = app_tables.histo.add_row(
+                email=email
+            )
+        except Exception as e:
+            return {
+                "ok": False,
+                "histo_id": None,
+                "nb_offres": 0,
+                "message": f"Erreur création ligne minimale histo : {repr(e)}"
+            }
+
+        # Mise à jour colonne par colonne
+        tests = [
+            ("sources", sources),
+            ("mots_cles", mots_cles or ""),
+            ("nb_jours", int(nb_jours)),
+            ("departements", departements or ""),
+            ("date_heure", date_time),
+            ("nb_offres", len(offres)),
+            ("mots_score", dict_mots_score),
+            ("mots_cles_in_score", mk_in_score),
+            ("offres", offres),
+        ]
+
+        for colonne, valeur in tests:
+            try:
+                print(f"Test écriture colonne : {colonne}")
+                row[colonne] = valeur
+            except Exception as e:
+                print(f"ERREUR colonne {colonne} :", repr(e))
+
+                try:
+                    row.delete()
+                except Exception:
+                    pass
+
+                return {
+                    "ok": False,
+                    "histo_id": None,
+                    "nb_offres": 0,
+                    "message": f"Erreur sur colonne histo['{colonne}'] : {repr(e)}"
+                }
 
         return {
             "ok": True,
@@ -61,9 +92,11 @@ def backup_requete(
         }
 
     except Exception as e:
+        print("ERREUR backup_requete générale :", repr(e))
+
         return {
             "ok": False,
             "histo_id": None,
             "nb_offres": 0,
-            "message": f"Erreur backup_requete : {e}"
+            "message": f"Erreur backup_requete générale : {repr(e)}"
         }
