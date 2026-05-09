@@ -126,7 +126,7 @@ class search(searchTemplate):
 
                 if dict_mots_score:
                     self.dict_mots_score = dict(dict_mots_score)
-                    self.text_box_mots_pour_score.text = self.dict_mots_score
+                    self.text_box_mots_pour_score.text = self.mots_score_to_text(self.dict_mots_score)
 
                 if derniere_ligne:
                     self.afficher_offres(self.list_offres)
@@ -172,7 +172,10 @@ class search(searchTemplate):
         self.text_box_mot_clef.text = row["mots_cles"]
         self.text_box_nb_jours.text = row["nb_jours"]
         self.text_box_departements.text = row["departements"]
-        self.checkbox_mots_cles_dans_score.checked = row['mots_cles_in_score']
+        try:
+            self.checkbox_mots_cles_dans_score.checked = bool(row["mots_cles_in_score"])
+        except Exception:
+            self.checkbox_mots_cles_dans_score.checked = False
         src = row["sources"]
         if src is not None:
             self.multi_select_drop_down_platformes.selected = src
@@ -182,8 +185,9 @@ class search(searchTemplate):
         try:
             self.dict_mots_score = dict(row["mots_score"] or {})
         except Exception:
-            pass
-        self.text_box_mots_pour_score.text = self.mots_score_to_text(self.dict_mots_score) # fonction mots_score_to_text transforme le dict sauvé en table en texte
+            self.dict_mots_score = {}
+        
+        self.text_box_mots_pour_score.text = self.mots_score_to_text(self.dict_mots_score)
         self.list_offres = self.normaliser_liste_offres_vu(row["offres"] or [])
 
         return row
@@ -292,7 +296,7 @@ class search(searchTemplate):
             nb_offres,
             offres_scorees,
             self.dict_mots_score,
-            self.checkbox_mots_cles_dans_score.checked
+            bool(self.checkbox_mots_cles_dans_score.checked)
         )
         
         if not result or not result.get("ok"):
@@ -877,24 +881,17 @@ class search(searchTemplate):
 
     def build_dict_mots_score(self):
         """
-        Construit self.dict_mots_score à partir de :
-        - self.text_box_mots_pour_score.text
-        format attendu : rénovation:10, restauration:5, bois:1
+        Construit le dictionnaire des mots pour le scoring.
     
-        - optionnellement self.text_box_mot_clef.text
-        si self.checkbox_mots_cles_dans_score.checked est True
+        Format attendu :
+        rénovation:10, restauration:5, bois:1
     
-        Résultat :
-        self.dict_mots_score = {
-            "rénovation": 10,
-            "restauration": 5,
-            "bois": 1,
-            "porte": 1,
-            "fenêtre": 1
-        }
+        Retourne :
+        - un dictionnaire si tout est correct
+        - None si erreur de saisie
         """
     
-        self.dict_mots_score = {}
+        dict_temp = {}
     
         # =====================================================
         # 1. Lecture du champ optionnel mots pour score
@@ -915,9 +912,10 @@ class search(searchTemplate):
                     alert(
                         f"Format incorrect pour : {morceau}\n\n"
                         "Format attendu : mot:valeur\n"
-                        "Exemple : rénovation:10"
+                        "Exemple : rénovation:10, restauration:5"
                     )
-                    continue
+                    self.text_box_mots_pour_score.focus()
+                    return None
     
                 mot, valeur = morceau.split(":", 1)
     
@@ -925,7 +923,21 @@ class search(searchTemplate):
                 valeur = valeur.strip()
     
                 if not mot:
-                    continue
+                    alert(
+                        "Un mot est vide dans les mots pour score.\n\n"
+                        "Format attendu : rénovation:10, restauration:5"
+                    )
+                    self.text_box_mots_pour_score.focus()
+                    return None
+    
+                if not valeur:
+                    alert(
+                        f"Valeur manquante pour : {mot}\n\n"
+                        "Format attendu : mot:valeur\n"
+                        "Exemple : rénovation:10"
+                    )
+                    self.text_box_mots_pour_score.focus()
+                    return None
     
                 try:
                     valeur = int(valeur)
@@ -934,7 +946,8 @@ class search(searchTemplate):
                         f"Valeur incorrecte pour : {mot}\n\n"
                         "La valeur doit être un nombre : 1, 5 ou 10."
                     )
-                    continue
+                    self.text_box_mots_pour_score.focus()
+                    return None
     
                 if valeur not in [1, 5, 10]:
                     alert(
@@ -944,14 +957,14 @@ class search(searchTemplate):
                     self.text_box_mots_pour_score.focus()
                     return None
     
-                self.dict_mots_score[mot] = valeur
+                dict_temp[mot] = valeur
     
         # =====================================================
         # 2. Ajouter aussi les mots-clés de recherche au score
         # =====================================================
     
         try:
-            utiliser_mots_cles = self.checkbox_mots_cles_dans_score.checked
+            utiliser_mots_cles = bool(self.checkbox_mots_cles_dans_score.checked)
         except Exception:
             utiliser_mots_cles = False
     
@@ -959,11 +972,10 @@ class search(searchTemplate):
             mots_cles = self.extraire_mots_cles_pour_score()
     
             for mot in mots_cles:
-                # On n'écrase pas une valeur déjà saisie dans le champ score
-                if mot not in self.dict_mots_score:
-                    self.dict_mots_score[mot] = 1
+                if mot not in dict_temp:
+                    dict_temp[mot] = 1
     
-        return self.dict_mots_score
+        return dict_temp
 
     def extraire_mots_cles_pour_score(self):
         """
