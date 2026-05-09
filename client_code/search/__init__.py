@@ -183,7 +183,7 @@ class search(searchTemplate):
             self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
 
         try:
-            self.dict_mots_score = dict(row["mots_score"] or {})
+            self.dict_mots_score = dict(row["mots_score_obj"] or {})
         except Exception:
             self.dict_mots_score = {}
         

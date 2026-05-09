@@ -88,14 +88,14 @@ db_schema:
       client_hidden: false
       name: nb_offres
       type: number
-    - admin_ui: {order: 7, width: 397}
-      client_hidden: false
-      name: mots_score
-      type: simpleObject
     - admin_ui: {order: 8, width: 200}
       client_hidden: false
       name: mots_cles_in_score
       type: bool
+    - admin_ui: {order: 9, width: 200}
+      client_hidden: false
+      name: mots_score_obj
+      type: simpleObject
     server: full
     title: histo
   platformes:
