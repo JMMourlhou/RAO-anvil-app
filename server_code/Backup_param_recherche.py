@@ -29,7 +29,7 @@ def backup_requete(
         dict_mots_score = dict(dict_mots_score or {})
         mk_in_score = bool(mk_in_score)
 
-        print("===== BACKUP REQUETE DIAGNOSTIC =====")
+        print("===== BACKUP REQUETE DIAGNOSTIC 2 =====")
         print("email:", email)
         print("sources:", sources)
         print("mots_cles:", mots_cles)
@@ -39,50 +39,98 @@ def backup_requete(
         print("dict_mots_score:", dict_mots_score)
         print("mk_in_score:", mk_in_score)
 
-        # Création minimale
+        # =====================================================
+        # 1. Création d'une ligne avec les colonnes de base
+        #    On exclut volontairement :
+        #    - offres
+        #    - mots_score
+        #    - mots_cles_in_score
+        # =====================================================
         try:
             row = app_tables.histo.add_row(
-                email=email
+                email=email,
+                sources=sources,
+                mots_cles=mots_cles or "",
+                nb_jours=int(nb_jours),
+                departements=departements or "",
+                date_heure=date_time,
+                nb_offres=len(offres)
             )
         except Exception as e:
+            print("ERREUR création ligne de base :", repr(e))
             return {
                 "ok": False,
                 "histo_id": None,
                 "nb_offres": 0,
-                "message": f"Erreur création ligne minimale histo : {repr(e)}"
+                "message": f"Erreur création ligne de base histo : {repr(e)}"
             }
 
-        # Mise à jour colonne par colonne
-        tests = [
-            ("sources", sources),
-            ("mots_cles", mots_cles or ""),
-            ("nb_jours", int(nb_jours)),
-            ("departements", departements or ""),
-            ("date_heure", date_time),
-            ("nb_offres", len(offres)),
-            ("mots_score", dict_mots_score),
-            ("mots_cles_in_score", mk_in_score),
-            ("offres", offres),
-        ]
+        print("Ligne de base créée :", row.get_id())
 
-        for colonne, valeur in tests:
+        # =====================================================
+        # 2. Test écriture mots_score
+        # =====================================================
+        try:
+            print("Test écriture mots_score")
+            row["mots_score"] = dict_mots_score
+        except Exception as e:
+            print("ERREUR colonne mots_score :", repr(e))
+
             try:
-                print(f"Test écriture colonne : {colonne}")
-                row[colonne] = valeur
-            except Exception as e:
-                print(f"ERREUR colonne {colonne} :", repr(e))
+                row.delete()
+            except Exception:
+                pass
 
-                try:
-                    row.delete()
-                except Exception:
-                    pass
+            return {
+                "ok": False,
+                "histo_id": None,
+                "nb_offres": 0,
+                "message": f"Erreur sur colonne histo['mots_score'] : {repr(e)}"
+            }
 
-                return {
-                    "ok": False,
-                    "histo_id": None,
-                    "nb_offres": 0,
-                    "message": f"Erreur sur colonne histo['{colonne}'] : {repr(e)}"
-                }
+        # =====================================================
+        # 3. Test écriture mots_cles_in_score
+        # =====================================================
+        try:
+            print("Test écriture mots_cles_in_score")
+            row["mots_cles_in_score"] = mk_in_score
+        except Exception as e:
+            print("ERREUR colonne mots_cles_in_score :", repr(e))
+
+            try:
+                row.delete()
+            except Exception:
+                pass
+
+            return {
+                "ok": False,
+                "histo_id": None,
+                "nb_offres": 0,
+                "message": f"Erreur sur colonne histo['mots_cles_in_score'] : {repr(e)}"
+            }
+
+        # =====================================================
+        # 4. Test écriture offres
+        # =====================================================
+        try:
+            print("Test écriture offres")
+            row["offres"] = offres
+        except Exception as e:
+            print("ERREUR colonne offres :", repr(e))
+
+            try:
+                row.delete()
+            except Exception:
+                pass
+
+            return {
+                "ok": False,
+                "histo_id": None,
+                "nb_offres": 0,
+                "message": f"Erreur sur colonne histo['offres'] : {repr(e)}"
+            }
+
+        print("Sauvegarde diagnostic OK")
 
         return {
             "ok": True,
