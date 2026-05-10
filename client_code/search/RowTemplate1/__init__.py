@@ -220,45 +220,63 @@ class RowTemplate1(RowTemplate1Template):
 
     def button_generer_html_click(self, **event_args):
         """
-        Affiche le texte avec mots-clés surlignés en couleurs.
+        Affiche le texte avec mots-clés surlignés en couleurs
+        + mots de scoring en gras / italique.
         """
-
+    
         # Changement apparence du bouton
         if self.column_panel_detail.visible is False:
             self.button_generer_html.icon = "mi:keyboard_double_arrow_up"
-
+    
             # On marque comme vu
             if self.checkbox_vu.checked is not True:
                 self.set_checkbox_vu_sans_event(True)
                 self.checkbox_vu_change()
-
+    
         else:
             self.button_generer_html.icon = "mi:keyboard_double_arrow_down"
             self.column_panel_detail.visible = False
             return
-
-        # Contenu à afficher
+    
+        # Contenu brut à afficher
         texte_source = self.get_texte_source_verification()
-        texte = self.format_search_text_for_display(texte_source)
-        mots_cles = self.extraire_mots_cles()
-
-        if not texte:
+    
+        if not texte_source:
             alert("Aucun texte disponible pour cette offre !")
             return
-
-        if not mots_cles:
-            alert("Aucun mot-clé saisi !")
+    
+        # Mots-clés de recherche
+        mots_cles = self.extraire_mots_cles()
+    
+        # Mots utilisés pour le scoring, transmis par la forme Search via repeating_panel_1.tag
+        try:
+            dict_mots_score = self.parent.tag.dict_mots_score or {}
+        except Exception:
+            dict_mots_score = {}
+    
+        mots_score = list(dict_mots_score.keys())
+    
+        # Sécurité : si aucun mot à mettre en évidence
+        if not mots_cles and not mots_score:
+            alert("Aucun mot-clé ni mot de scoring à mettre en évidence !")
             return
-
+    
+        # Mise en forme simple du texte avant envoi au composant HTML
+        texte = self.format_search_text_for_display(texte_source)
+    
         # Création du composant HTML si besoin
         if self.comp_html is None:
             self.comp_html = recherche_mk_html()
             self.column_panel_affichage.clear()
             self.column_panel_affichage.add_component(self.comp_html)
-
-        # Envoi du texte + mots-clés au composant
-        self.comp_html.charger(texte, mots_cles)
-
+    
+        # Envoi du texte + mots-clés + mots de scoring au composant HTML
+        self.comp_html.charger(
+            texte,
+            mots_cles,
+            mots_score=mots_score
+        )
+    
         self.column_panel_detail.visible = True
 
     def format_search_text_for_display(self, texte):

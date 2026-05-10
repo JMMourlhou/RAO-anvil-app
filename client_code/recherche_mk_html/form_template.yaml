@@ -1,6 +1,263 @@
 components: []
 container:
   properties:
-    html: "<div anvil-name=\"zone_desc\"\n    class=\"zone-desc\"\n    style=\"max-height: 400px; overflow: auto; line-height: 1.6; padding: 8px; font-size: 14px; white-space: pre-wrap;\">\n</div>\n\n<style>\n    .zone-desc {\n        border: 1px solid #b6c8d6;\n        border-left: 5px solid #90caf9;\n        border-radius: 10px;\n        background: #f4f9ff;\n        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);\n        color: #1f1f1f;\n    }\n\n    .zone-desc mark.kw-hl {\n        padding: 0 3px;\n        border-radius: 4px;\n        font-weight: 600;\n        color: #111;\n    }\n\n    .zone-desc mark.kw-0 { background: #fff59d; } /* jaune */\n    .zone-desc mark.kw-1 { background: #c8e6c9; } /* vert pastel */\n    .zone-desc mark.kw-2 { background: #bbdefb; } /* bleu pastel */\n    .zone-desc mark.kw-3 { background: #ffe0b2; } /* orange pastel */\n    .zone-desc mark.kw-4 { background: #e1bee7; } /* violet pastel */\n    .zone-desc mark.kw-5 { background: #b2ebf2; } /* cyan pastel */\n</style>\n\n<script>\n    function escapeRegExp(s) {\n        return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\n    }\n\n    function stripDiacritics(s) {\n        return (s || \"\").normalize(\"NFD\").replace(/[\\u0300-\\u036f]/g, \"\");\n    }\n\n    function normalizeKey(s) {\n        return stripDiacritics(s).toLowerCase().trim();\n    }\n\n    function accentInsensitiveChar(ch) {\n        const c = normalizeKey(ch);\n\n        const map = {\n            'a': '[aàáâãäå]',\n            'c': '[cç]',\n            'e': '[eéèêë]',\n            'i': '[iîïíì]',\n            'n': '[nñ]',\n            'o': '[oôöòóõ]',\n            'u': '[uùúûü]',\n            'y': '[yÿý]'\n        };\n\n        return map[c] || escapeRegExp(ch);\n    }\n\n    function accentInsensitivePattern(word) {\n        const base = stripDiacritics(word || \"\");\n        return [...base].map(accentInsensitiveChar).join('');\n    }\n    \n    function getTextNodes(root) {\n        const nodes = [];\n        const walker = document.createTreeWalker(\n            root,\n            NodeFilter.SHOW_TEXT,\n            {\n                acceptNode(node) {\n                    if (!node.nodeValue || !node.nodeValue.trim()) {\n                        return NodeFilter.FILTER_REJECT;\n                    }\n                    const p = node.parentNode;\n                    if (!p) return NodeFilter.FILTER_REJECT;\n\n                    const tag = p.nodeName;\n                    if ([\"SCRIPT\", \"STYLE\", \"MARK\", \"NOSCRIPT\", \"TEXTAREA\"].includes(tag)) {\n                        return NodeFilter.FILTER_REJECT;\n                    }\n                    return NodeFilter.FILTER_ACCEPT;\n                }\n            }\n        );\n\n        let n;\n        while ((n = walker.nextNode())) {\n            nodes.push(n);\n        }\n        return nodes;\n    }\n\n    function render_keywords(html, keywords) {\n        const root = this.find('[anvil-name=\"zone_desc\"]')[0];\n        root.innerHTML = html || \"\";\n\n        let words = (keywords || [])\n            .map(x => (x || \"\").trim())\n            .filter(Boolean);\n\n        if (!words.length) return;\n\n        const seen = new Map();\n        words.forEach(w => {\n            const k = normalizeKey(w);\n            if (!seen.has(k)) seen.set(k, w);\n        });\n        words = Array.from(seen.values());\n\n        words.sort((a, b) => b.length - a.length);\n\n        const colorMap = {};\n        words.forEach((w, i) => {\n            colorMap[normalizeKey(w)] = i % 6;\n        });\n\n        const regexParts = words.map(w => accentInsensitivePattern(w));\n        const regex = new RegExp(\"(\" + regexParts.join(\"|\") + \")\", \"gi\");\n\n        getTextNodes(root).forEach(node => {\n            const text = node.nodeValue;\n            regex.lastIndex = 0;\n\n            if (!regex.test(text)) return;\n\n            regex.lastIndex = 0;\n            const frag = document.createDocumentFragment();\n            let last = 0;\n            let match;\n\n            while ((match = regex.exec(text)) !== null) {\n                const found = match[0];\n                const start = match.index;\n                const end = start + found.length;\n\n                if (start > last) {\n                    frag.appendChild(document.createTextNode(text.slice(last, start)));\n                }\n\n                const mark = document.createElement(\"mark\");\n\n                let idx = 0;\n                for (const w of words) {\n                    const testRe = new RegExp(\"^\" + accentInsensitivePattern(w) + \"$\", \"i\");\n                    if (testRe.test(found)) {\n                        idx = colorMap[normalizeKey(w)] ?? 0;\n                        break;\n                    }\n                }\n\n                mark.className = \"kw-hl kw-\" + idx;\n                mark.textContent = found;\n                frag.appendChild(mark);\n\n                last = end;\n            }\n\n            if (last < text.length) {\n                frag.appendChild(document.createTextNode(text.slice(last)));\n            }\n\n            node.parentNode.replaceChild(frag, node);\n        });\n    }\n</script>"
+    html: |-
+      <div anvil-name="zone_desc"
+          class="zone-desc"
+          style="max-height: 400px; overflow: auto; line-height: 1.6; padding: 8px; font-size: 14px; white-space: pre-wrap;">
+      </div>
+
+      <style>
+          .zone-desc {
+              border: 1px solid #b6c8d6;
+              border-left: 5px solid #90caf9;
+              border-radius: 10px;
+              background: #f4f9ff;
+              box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+              color: #1f1f1f;
+          }
+
+          .zone-desc mark.kw-hl {
+              padding: 0 3px;
+              border-radius: 4px;
+              font-weight: 600;
+              color: #111;
+          }
+
+          .zone-desc mark.kw-0 { background: #fff59d; } /* jaune */
+          .zone-desc mark.kw-1 { background: #c8e6c9; } /* vert pastel */
+          .zone-desc mark.kw-2 { background: #bbdefb; } /* bleu pastel */
+          .zone-desc mark.kw-3 { background: #ffe0b2; } /* orange pastel */
+          .zone-desc mark.kw-4 { background: #e1bee7; } /* violet pastel */
+          .zone-desc mark.kw-5 { background: #b2ebf2; } /* cyan pastel */
+
+          /* Mots utilisés pour le scoring */
+          .zone-desc mark.score-hl {
+              font-weight: 700;
+              font-style: italic;
+          }
+
+          /* Mot de scoring seul, sans couleur de mot-clé */
+          .zone-desc mark.score-hl:not(.kw-hl) {
+              background: transparent;
+              color: inherit;
+              padding: 0 1px;
+              border-bottom: 2px dotted currentColor;
+          }
+      </style>
+
+      <script>
+          function escapeRegExp(s) {
+              return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          }
+
+          function stripDiacritics(s) {
+              return (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          }
+
+          function normalizeKey(s) {
+              return stripDiacritics(s).toLowerCase().trim();
+          }
+
+          function accentInsensitiveChar(ch) {
+              const c = normalizeKey(ch);
+
+              const map = {
+                  'a': '[aàáâãäå]',
+                  'c': '[cç]',
+                  'e': '[eéèêë]',
+                  'i': '[iîïíì]',
+                  'n': '[nñ]',
+                  'o': '[oôöòóõ]',
+                  'u': '[uùúûü]',
+                  'y': '[yÿý]'
+              };
+
+              return map[c] || escapeRegExp(ch);
+          }
+
+          function accentInsensitivePattern(word) {
+              const base = stripDiacritics(word || "");
+              return [...base].map(accentInsensitiveChar).join('');
+          }
+
+          function isWordChar(ch) {
+              return !!ch && /[A-Za-zÀ-ÖØ-öø-ÿ0-9_]/.test(ch);
+          }
+
+          function getTextNodes(root) {
+              const nodes = [];
+              const walker = document.createTreeWalker(
+                  root,
+                  NodeFilter.SHOW_TEXT,
+                  {
+                      acceptNode(node) {
+                          if (!node.nodeValue || !node.nodeValue.trim()) {
+                              return NodeFilter.FILTER_REJECT;
+                          }
+
+                          const p = node.parentNode;
+                          if (!p) return NodeFilter.FILTER_REJECT;
+
+                          const tag = p.nodeName;
+                          if (["SCRIPT", "STYLE", "MARK", "NOSCRIPT", "TEXTAREA"].includes(tag)) {
+                              return NodeFilter.FILTER_REJECT;
+                          }
+
+                          return NodeFilter.FILTER_ACCEPT;
+                      }
+                  }
+              );
+
+              let n;
+              while ((n = walker.nextNode())) {
+                  nodes.push(n);
+              }
+
+              return nodes;
+          }
+
+          function uniqueCleanList(values) {
+              const seen = new Map();
+
+              (values || [])
+                  .map(x => (x || "").trim())
+                  .filter(Boolean)
+                  .forEach(w => {
+                      const k = normalizeKey(w);
+                      if (!seen.has(k)) {
+                          seen.set(k, w);
+                      }
+                  });
+
+              return Array.from(seen.values());
+          }
+
+          function render_keywords(html, keywords, scoreWords) {
+              const root = this.find('[anvil-name="zone_desc"]')[0];
+              root.innerHTML = html || "";
+
+              let kwWords = uniqueCleanList(keywords);
+              let scoringWords = uniqueCleanList(scoreWords);
+
+              if (!kwWords.length && !scoringWords.length) return;
+
+              /*
+                  On fusionne les mots-clés et les mots de scoring.
+                  Un même mot peut donc avoir :
+                  - une classe kw-hl + kw-0/kw-1/etc.
+                  - une classe score-hl
+              */
+              const termsMap = new Map();
+
+              kwWords.forEach((w, i) => {
+                  const k = normalizeKey(w);
+                  termsMap.set(k, {
+                      word: w,
+                      isKeyword: true,
+                      isScore: false,
+                      colorIndex: i % 6
+                  });
+              });
+
+              scoringWords.forEach(w => {
+                  const k = normalizeKey(w);
+
+                  if (termsMap.has(k)) {
+                      termsMap.get(k).isScore = true;
+                  } else {
+                      termsMap.set(k, {
+                          word: w,
+                          isKeyword: false,
+                          isScore: true,
+                          colorIndex: null
+                      });
+                  }
+              });
+
+              let terms = Array.from(termsMap.values());
+
+              // Priorité aux expressions les plus longues
+              terms.sort((a, b) => b.word.length - a.word.length);
+
+              const regexParts = terms.map(t => accentInsensitivePattern(t.word));
+              const regex = new RegExp("(" + regexParts.join("|") + ")", "gi");
+
+              getTextNodes(root).forEach(node => {
+                  const text = node.nodeValue;
+                  regex.lastIndex = 0;
+
+                  if (!regex.test(text)) return;
+
+                  regex.lastIndex = 0;
+                  const frag = document.createDocumentFragment();
+                  let last = 0;
+                  let match;
+
+                  while ((match = regex.exec(text)) !== null) {
+                      const found = match[0];
+                      const start = match.index;
+                      const end = start + found.length;
+
+                      /*
+                          Évite de trouver "mac" dans "machine".
+                          On accepte le mot seulement s'il n'est pas collé
+                          à une lettre, un chiffre ou un underscore.
+                      */
+                      const before = start > 0 ? text[start - 1] : "";
+                      const after = end < text.length ? text[end] : "";
+
+                      if (isWordChar(before) || isWordChar(after)) {
+                          continue;
+                      }
+
+                      if (start > last) {
+                          frag.appendChild(document.createTextNode(text.slice(last, start)));
+                      }
+
+                      let matchedTerm = null;
+
+                      for (const term of terms) {
+                          const testRe = new RegExp("^" + accentInsensitivePattern(term.word) + "$", "i");
+
+                          if (testRe.test(found)) {
+                              matchedTerm = term;
+                              break;
+                          }
+                      }
+
+                      if (!matchedTerm) {
+                          frag.appendChild(document.createTextNode(found));
+                          last = end;
+                          continue;
+                      }
+
+                      const mark = document.createElement("mark");
+                      const classes = [];
+
+                      if (matchedTerm.isKeyword) {
+                          classes.push("kw-hl");
+                          classes.push("kw-" + matchedTerm.colorIndex);
+                      }
+
+                      if (matchedTerm.isScore) {
+                          classes.push("score-hl");
+                      }
+
+                      mark.className = classes.join(" ");
+                      mark.textContent = found;
+                      frag.appendChild(mark);
+
+                      last = end;
+                  }
+
+                  if (last < text.length) {
+                      frag.appendChild(document.createTextNode(text.slice(last)));
+                  }
+
+                  node.parentNode.replaceChild(frag, node);
+              });
+          }
+      </script>
   type: HtmlTemplate
 is_package: true

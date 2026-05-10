@@ -183,7 +183,7 @@ class search(searchTemplate):
             self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
 
         try:
-            self.dict_mots_score = dict(row["mots_score_obj"] or {})
+            self.dict_mots_score = self.mots_score_obj_to_dict(row["mots_score_obj"])
         except Exception:
             self.dict_mots_score = {}
         
@@ -568,18 +568,20 @@ class search(searchTemplate):
         """
         Réaffiche le repeating panel à partir de self.list_offres.
         """
-
+    
         if offres is not None:
             self.list_offres = self.normaliser_liste_offres_vu(offres)
-            
-
+    
         nb = len(self.list_offres)
-
+    
         # Important : remettre le tag après chaque réaffichage
         self.repeating_panel_1.tag.mots_cles_saisis = self.text_box_mot_clef.text or ""
-
+    
+        # Important aussi : transmettre les mots de scoring aux rows
+        self.repeating_panel_1.tag.dict_mots_score = self.dict_mots_score or {}
+    
         self.repeating_panel_1.items = list(self.list_offres)
-
+    
         if nb == 0:
             self.text_nb_offres.text = "0 offre"
             self.text_nb_offres.visible = False
@@ -588,16 +590,16 @@ class search(searchTemplate):
             self.button_selection_mailed.visible = False
             self.column_panel_params.visible = True
             return
-
+    
         if nb == 1:
             self.text_nb_offres.text = "1 offre"
         else:
             self.text_nb_offres.text = f"{nb} offres"
-
+    
         self.text_nb_offres.visible = True
         self.data_grid_1.visible = True
         self.column_panel_select.visible = True
-
+    
         self.recalculer_bouton_selection_mailed()
 
     def normaliser_liste_offres_vu(self, offres):
@@ -1072,3 +1074,56 @@ class search(searchTemplate):
     
         return ", ".join(morceaux)
 
+    def mots_score_obj_to_dict(self, mots_score_obj):
+        """
+        Accepte :
+        - ancien format dict : {"sst": 1, "formation": 10}
+        - nouveau format liste : [{"mot": "sst", "valeur": 1}]
+        """
+    
+        resultat = {}
+    
+        if not mots_score_obj:
+            return resultat
+    
+        # Ancien format : dict direct
+        if isinstance(mots_score_obj, dict):
+            for mot, valeur in mots_score_obj.items():
+                mot = str(mot).strip()
+    
+                mot = mot.replace("{", "")
+                mot = mot.replace("}", "")
+                mot = mot.replace('"', "")
+                mot = mot.replace("'", "")
+                mot = mot.strip().lower()
+    
+                if not mot:
+                    continue
+    
+                try:
+                    valeur = int(valeur)
+                except Exception:
+                    continue
+    
+                resultat[mot] = valeur
+    
+            return resultat
+    
+        # Nouveau format : liste de dicts
+        if isinstance(mots_score_obj, list):
+            for item in mots_score_obj:
+                try:
+                    mot = str(item.get("mot", "")).strip().lower()
+                    valeur = int(item.get("valeur", 0))
+                except Exception:
+                    continue
+    
+                if mot:
+                    resultat[mot] = valeur
+    
+        return resultat
+
+
+    def checkbox_mots_cles_dans_score_change(self, **event_args):
+        """This method is called when the component is checked or unchecked"""
+        self.button_search.visible = True

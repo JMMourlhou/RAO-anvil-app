@@ -64,3 +64,16 @@ m3-tb-compact           TextBox M3 plus compacte, sans trait
     padding-bottom: 0 !important;
 }
 
+/* Mots utilisés pour le scoring */
+.zone-desc mark.score-hl {
+    font-weight: 700;
+    font-style: italic;
+}
+
+/* Si le mot est seulement un mot de scoring, sans être déjà coloré comme mot-clé */
+.zone-desc mark.score-hl:not(.kw-hl) {
+    background: transparent;
+    color: inherit;
+    padding: 0 1px;
+    border-bottom: 2px dotted currentColor;
+}
