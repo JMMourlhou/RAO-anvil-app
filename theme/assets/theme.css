@@ -64,16 +64,26 @@ m3-tb-compact           TextBox M3 plus compacte, sans trait
     padding-bottom: 0 !important;
 }
 
-/* Mots utilisés pour le scoring */
-.zone-desc mark.score-hl {
-    font-weight: 700;
-    font-style: italic;
+/* =========================================================
+CUSTOM JM - Bouton M3 avec texte olive
+Équivalent CSS de :
+self.button_generer_html.foreground_color = "#ffffff"  (blanc)
+
+Dans le code, l'appeler par:   self.button_generer_html.role = "bt-texte-olive"
+========================================================= */
+
+.anvil-role-bt-texte-olive.anvil-m3-button,
+.anvil-role-bt-texte-olive.anvil-m3-button.anvil-m3-filled,
+.anvil-role-bt-texte-olive.anvil-m3-button.anvil-m3-outlined,
+.anvil-role-bt-texte-olive.anvil-m3-button.anvil-m3-text,
+.anvil-role-bt-texte-olive.anvil-m3-button.anvil-m3-tonal {
+    color: #ffffff !important;
 }
 
-/* Si le mot est seulement un mot de scoring, sans être déjà coloré comme mot-clé */
-.zone-desc mark.score-hl:not(.kw-hl) {
-    background: transparent;
-    color: inherit;
-    padding: 0 1px;
-    border-bottom: 2px dotted currentColor;
+/* Texte interne + icône éventuelle */
+.anvil-role-bt-texte-olive.anvil-m3-button *,
+.anvil-role-bt-texte-olive.anvil-m3-button .material-icons,
+.anvil-role-bt-texte-olive.anvil-m3-button .material-symbols-outlined {
+    color: #ffffff !important;
+    fill: #ffffff !important;
 }

@@ -31,18 +31,41 @@ container:
           .zone-desc mark.kw-4 { background: #e1bee7; } /* violet pastel */
           .zone-desc mark.kw-5 { background: #b2ebf2; } /* cyan pastel */
 
-          /* Mots utilisés pour le scoring */
-          .zone-desc mark.score-hl {
-              font-weight: 700;
-              font-style: italic;
+          /* =========================================================
+          Mots utilisés pour le scoring
+          Les mots de scoring seuls sont rouges.
+          Les mots-clés gardent leur fond pastel + texte noir.
+          ========================================================= */
+
+          /* Mot de scoring seul, qui n'est PAS aussi un mot-clé */
+          .zone-desc mark.score-hl:not(.kw-hl) {
+              background: transparent !important;
+              color: #c62828 !important;
+              font-weight: 800 !important;
+              font-style: normal !important;
+              padding: 0 1px !important;
+              border: none !important;
+              border-radius: 0 !important;
+              text-decoration: none !important;
           }
 
-          /* Mot de scoring seul, sans couleur de mot-clé */
-          .zone-desc mark.score-hl:not(.kw-hl) {
-              background: transparent;
-              color: inherit;
-              padding: 0 1px;
-              border-bottom: 2px dotted currentColor;
+          /* Mot-clé normal : fond pastel + texte noir gras */
+          .zone-desc mark.kw-hl {
+              color: #111 !important;
+              font-weight: 700 !important;
+              font-style: normal !important;
+              padding: 0 3px !important;
+              border-radius: 4px !important;
+          }
+
+          /* Mot qui est à la fois mot-clé ET mot de scoring :
+          on garde l'apparence mot-clé, pas le rouge */
+          .zone-desc mark.kw-hl.score-hl {
+              color: #111 !important;
+              font-weight: 700 !important;
+              font-style: normal !important;
+              border: none !important;
+              text-decoration: none !important;
           }
       </style>
 
@@ -77,8 +100,28 @@ container:
           }
 
           function accentInsensitivePattern(word) {
-              const base = stripDiacritics(word || "");
-              return [...base].map(accentInsensitiveChar).join('');
+              const base = stripDiacritics(word || "").trim();
+              const pattern = [...base].map(accentInsensitiveChar).join('');
+
+              const norm = normalizeKey(word);
+
+              /*
+              Gestion simple du pluriel :
+              formation -> formations
+              stage -> stages
+              sécurité -> sécurités
+
+              On évite de l'appliquer aux mots courts/acronymes :
+              sst, mac, pse1, pse2, etc.
+          */
+              if (
+                  norm.length >= 4 &&
+                  !/[sxz0-9]$/.test(norm)
+              ) {
+                  return pattern + "s?";
+              }
+
+              return pattern;
           }
 
           function isWordChar(ch) {

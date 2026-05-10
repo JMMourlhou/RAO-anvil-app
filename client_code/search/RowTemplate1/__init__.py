@@ -49,7 +49,9 @@ class RowTemplate1(RowTemplate1Template):
         self.set_checkbox_vu_sans_event(
             bool(self.item_value("vu", False))
         )
-
+        
+        
+            
         # Libellé du bouton Vérification :
         # score + mots_score trouvés + mots-clés classiques si besoin
         self.maj_libelle_bouton_verification()
@@ -444,6 +446,18 @@ class RowTemplate1(RowTemplate1Template):
 
         # Priorité : afficher le score quand il existe
         if score > 0:
+            if score >= 10:
+                self.button_generer_html.background_color = "#6b8e23"  # olive
+                self.button_generer_html.role = "bt-texte-olive"
+    
+            elif 2 <= score < 10:
+                self.button_generer_html.background_color = "#fff59d"  # jaune pastel
+                self.button_generer_html.foreground_color = "dark"
+    
+            elif score == 1:
+                self.button_generer_html.background_color = "#ffcdd2"  # rouge pastel
+                self.button_generer_html.foreground_color = "dark"
+                
             libelle = f"Vérification | score {score}"
 
             if mots_score_trouves:
