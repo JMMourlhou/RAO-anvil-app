@@ -55,22 +55,22 @@ components:
       properties:
         appearance: outlined
         display_text_color: theme:Primary
-        label: 'Tous ces mots doivent être présents:'
+        label: Mots à trouver obligatoirement dans l'offre
         label_italic: true
         leading_icon: mi:key
         margin: ['25', '2', '1', '2']
-        placeholder: 'Tous ces mots doivent être présents:'
+        placeholder: Mots à trouver obligatoirement dans l'offre
         text: ''
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - event_bindings: {change: text_box_mots_ou_change, pressed_enter: text_box_mots_ou_pressed_enter}
       layout_properties: {grid_position: 'GVIAPY,HLQRFW'}
       name: text_box_mots_ou
-      properties: {appearance: outlined, label: 'Au moins un de ces mots :', placeholder: 'Au moins un de ces mots :'}
+      properties: {appearance: outlined, label: 'Au moins un de ces mots doit être trouvé :', placeholder: 'Au moins un de ces mots doit être trouvé :'}
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - event_bindings: {change: text_box_mots_exclus_change, pressed_enter: text_box_mots_exclus_pressed_enter}
       layout_properties: {grid_position: 'BDJSNN,GVSLOG'}
       name: text_box_mots_exclus
-      properties: {appearance: outlined, label: Mots à exclure, placeholder: Mots à exclure}
+      properties: {appearance: outlined, label: Mots ne devant pas être trouvés, placeholder: Mots ne devant pas être trouvés}
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - components:
       - components:
@@ -111,9 +111,9 @@ components:
         name: text_box_mots_pour_score
         properties:
           appearance: outlined
-          label: 'Mots souhaités pour l''évaluation :'
+          label: 'Mots : valeur (pour classer les offres retenues)'
           margin: ['30', null, null, null]
-          placeholder: mot:valeur, mot:valeur, ...
+          placeholder: 'Mots : valeur (pour classer les offres retenues)'
           supporting_text: 'Ex: rénovation:10, agrandissement:5, démolition:1, ... '
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       - event_bindings: {change: checkbox_mots_cles_dans_score_change}

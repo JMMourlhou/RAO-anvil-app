@@ -166,7 +166,6 @@ def backup_requete(
         set_col("offres", offres)
 
         # Scoring
-        #set_col("mots_score", dict_mots_score)
         set_col("mots_score_obj", mots_score_obj)
         set_col("mots_cles_in_score", bool(mk_in_score))
 
