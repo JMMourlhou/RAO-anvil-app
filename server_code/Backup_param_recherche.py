@@ -101,8 +101,12 @@ def backup_requete(
     nb_offres,
     offres,
     dict_mots_score,
-    mk_in_score=False
+    mk_in_score=False,
+    mots_ou="",
+    mots_exclus=""
 ):
+    row = None
+
     try:
         user = anvil.users.get_user()
 
@@ -121,6 +125,8 @@ def backup_requete(
         print("email:", email)
         print("sources:", sources)
         print("mots_cles:", mots_cles)
+        print("mots_ou:", mots_ou)
+        print("mots_exclus:", mots_exclus)
         print("nb_jours:", nb_jours)
         print("departements:", departements)
         print("len offres:", len(offres))
@@ -128,18 +134,41 @@ def backup_requete(
         print("mots_score_obj:", mots_score_obj)
         print("mk_in_score:", mk_in_score)
 
+        # Création minimale de la ligne.
+        # On évite de tout mettre dans add_row pour identifier la colonne qui plante.
         row = app_tables.histo.add_row(
             email=email,
-            sources=sources,
-            mots_cles=mots_cles or "",
-            nb_jours=int(nb_jours),
-            departements=departements or "",
-            date_heure=date_time,
-            nb_offres=len(offres),
-            mots_score_obj=mots_score_obj,
-            mots_cles_in_score=mk_in_score,
-            offres=offres
+            date_heure=date_time
         )
+
+        def set_col(cle, valeur):
+            try:
+                print(f"Ecriture histo['{cle}'] ...")
+                row[cle] = valeur
+                print(f"OK histo['{cle}']")
+            except Exception as e:
+                raise Exception(
+                    f"Erreur sur colonne histo['{cle}'] : {repr(e)}"
+                )
+
+        # Recherche
+        set_col("sources", sources)
+        set_col("mots_cles", mots_cles or "")
+        set_col("mots_ou", mots_ou or "")
+        set_col("mots_exclus", mots_exclus or "")
+
+        # Autres critères
+        set_col("nb_jours", int(nb_jours))
+        set_col("departements", departements or "")
+
+        # Résultats
+        set_col("nb_offres", len(offres))
+        set_col("offres", offres)
+
+        # Scoring
+        #set_col("mots_score", dict_mots_score)
+        set_col("mots_score_obj", mots_score_obj)
+        set_col("mots_cles_in_score", bool(mk_in_score))
 
         return {
             "ok": True,
@@ -150,6 +179,14 @@ def backup_requete(
 
     except Exception as e:
         print("ERREUR backup_requete :", repr(e))
+
+        # Si une ligne partielle a été créée, on la supprime pour ne pas polluer histo
+        try:
+            if row:
+                row.delete()
+                print("Ligne histo partielle supprimée.")
+        except Exception as e_del:
+            print("Impossible de supprimer la ligne partielle :", repr(e_del))
 
         return {
             "ok": False,

@@ -55,12 +55,22 @@ components:
       properties:
         appearance: outlined
         display_text_color: theme:Primary
-        label: 'Expression possible et, ou  '
+        label: 'Tous ces mots doivent être présents:'
         label_italic: true
         leading_icon: mi:key
         margin: ['25', '2', '1', '2']
-        placeholder: Entrer le ou les mots clé recherchés
+        placeholder: 'Tous ces mots doivent être présents:'
         text: ''
+      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+    - event_bindings: {change: text_box_mots_ou_change, pressed_enter: text_box_mots_ou_pressed_enter}
+      layout_properties: {grid_position: 'GVIAPY,HLQRFW'}
+      name: text_box_mots_ou
+      properties: {appearance: outlined, label: 'Au moins un de ces mots :', placeholder: 'Au moins un de ces mots :'}
+      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+    - event_bindings: {change: text_box_mots_exclus_change, pressed_enter: text_box_mots_exclus_pressed_enter}
+      layout_properties: {grid_position: 'BDJSNN,GVSLOG'}
+      name: text_box_mots_exclus
+      properties: {appearance: outlined, label: Mots à exclure, placeholder: Mots à exclure}
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - components:
       - components:

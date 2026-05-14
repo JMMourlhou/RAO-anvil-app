@@ -8,6 +8,7 @@ from anvil.tables import app_tables
 import m3.components as m3
 from .. import Time
 from datetime import date, datetime
+import re
 
 
 class search(searchTemplate):
@@ -156,6 +157,8 @@ class search(searchTemplate):
             # Pas encore d'historique pour un nouvel utilisateur
             self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
             self.text_box_mot_clef.text = "Football et Ballon"
+            self.text_box_mots_ou.text = ""
+            self.text_box_mots_exclus.text = ""
             self.text_box_nb_jours.text = "30"
             self.text_box_departements.text = None
             self.histo_id = None
@@ -170,6 +173,15 @@ class search(searchTemplate):
         self.histo_id = row.get_id()
 
         self.text_box_mot_clef.text = row["mots_cles"]
+        try:
+            self.text_box_mots_ou.text = row["mots_ou"] or ""
+        except Exception:
+            self.text_box_mots_ou.text = ""
+
+        try:
+            self.text_box_mots_exclus.text = row["mots_exclus"] or ""
+        except Exception:
+            self.text_box_mots_exclus.text = ""
         self.text_box_nb_jours.text = row["nb_jours"]
         self.text_box_departements.text = row["departements"]
         try:
@@ -197,39 +209,77 @@ class search(searchTemplate):
     # =========================================================================
 
     def button_search_click(self, **event_args):
-        """Recherche les offres, les score, puis les sauvegarde dans histo['offres']."""
-
-        # --- Lecture et nettoyage des champs texte ---
-        mots_texte = self.text_box_mot_clef.text or ""
+        """Recherche les offres, applique les critères positifs/exclusions, score, puis sauvegarde dans histo['offres']."""
+    
+        # --- Lecture des champs ---
+        mots_obligatoires_texte = self.text_box_mot_clef.text or ""
+        mots_ou_texte = self.text_box_mots_ou.text or ""
+        mots_exclus_texte = self.text_box_mots_exclus.text or ""
         deps_texte = self.text_box_departements.text or ""
-
-        # --- Conversion en listes ---
-        mots_clefs = [m.strip() for m in mots_texte.split(",") if m.strip()]
+        
+        print("===== DEBUG CHAMPS BRUTS =====")
+        print("text_box_mot_clef =", repr(self.text_box_mot_clef.text))
+        print("text_box_mots_ou =", repr(self.text_box_mots_ou.text))
+        print("text_box_mots_exclus =", repr(self.text_box_mots_exclus.text))
+        print("text_box_mots_pour_score =", repr(self.text_box_mots_pour_score.text))
+        print("==============================")
+        
+        # --- Conversion en listes propres ---
+        mots_obligatoires = self.extraire_liste_mots_saisie(mots_obligatoires_texte)
+        mots_ou = self.extraire_liste_mots_saisie(mots_ou_texte)
+        mots_exclus = self.extraire_liste_mots_saisie(mots_exclus_texte)
+    
         depts = [d.strip() for d in deps_texte.split(",") if d.strip()]
-
+    
+        if not mots_obligatoires and not mots_ou:
+            alert(
+                "Vous devez saisir au moins un mot-clé.\n\n"
+                "Exemple :\n"
+                "- mots obligatoires : formation\n"
+                "- au moins un de ces mots : sst, pse1"
+            )
+            self.text_box_mot_clef.focus()
+            return
+    
         try:
             periode = int(self.text_box_nb_jours.text)
         except Exception:
             alert("Le nombre de jours doit être un nombre entier.")
             self.text_box_nb_jours.focus()
             return
-
-        print(f"Recherche sur les {periode} derniers jours")
-        print("🔍 Mots-clés saisis :", mots_clefs)
-        print("🗺️ Départements saisis :", depts)
-
+    
         selected_platformes = self.multi_select_drop_down_platformes.selected
+    
+        if not selected_platformes:
+            alert("Sélectionnez au moins une plateforme.")
+            return
+    
+        # --- Construction des requêtes envoyées aux sources ---
+        # Important : cette fonction doit maintenant renvoyer large.
+        # Exemple : formation + sst/mac/pse1/pse2 => ['formation']
+        mots_clefs = self.construire_requetes_sources(
+            mots_obligatoires=mots_obligatoires,
+            mots_ou=mots_ou
+        )
+    
+        print(f"Recherche sur les {periode} derniers jours")
+        print("🔍 Mots obligatoires :", mots_obligatoires)
+        print("🔍 Mots OU :", mots_ou)
+        print("🚫 Mots exclus :", mots_exclus)
+        print("🔎 Requêtes envoyées aux sources :", mots_clefs)
+        print("🗺️ Départements saisis :", depts)
         print(f"Sources: {selected_platformes}")
-        
-        # Construction du dictionnaire des mots pour le scoring
+    
+        # --- Construction du dictionnaire des mots pour le scoring ---
         dict_score = self.build_dict_mots_score()
-
+    
         if dict_score is None:
             return
-        
+    
         self.dict_mots_score = dict_score
         print("dict_mots_score utilisé pour scoring :", self.dict_mots_score)
-        
+    
+        # --- Récupération brute des offres ---
         try:
             offres = anvil.server.call(
                 "get_offres_multi_sources",
@@ -244,24 +294,75 @@ class search(searchTemplate):
             print(f"Erreur au module 'get_offres_multi_sources' sur Pi5: {e}")
             alert(f"Erreur pendant la recherche : {e}")
             return
-
+    
         if not offres:
             self.data_grid_1.visible = False
             self.column_panel_select.visible = False
             self.text_nb_offres.visible = False
             alert("Désolé... pas d'offres trouvées !")
             return
-
-        # Génération de la liste des offres
+    
+        nb_offres_brutes = len(offres)
+        print(f"Offres brutes récupérées : {nb_offres_brutes}")
+    
+        # =====================================================
+        # 1. Filtrage positif local
+        # =====================================================
+        # Règle :
+        # - tous les mots obligatoires doivent être présents
+        # - si des mots OU existent, au moins un doit être présent
+    
+        offres = self.filtrer_offres_criteres_positifs(
+            offres,
+            mots_obligatoires,
+            mots_ou
+        )
+    
+        nb_apres_filtre_positif = len(offres)
+        print(f"Offres après filtre positif : {nb_apres_filtre_positif}")
+    
+        if not offres:
+            self.data_grid_1.visible = False
+            self.column_panel_select.visible = False
+            self.text_nb_offres.visible = False
+            alert(
+                "Des offres ont été récupérées, mais aucune ne respecte les critères :\n\n"
+                f"Obligatoires : {', '.join(mots_obligatoires) or '-'}\n"
+                f"Au moins un : {', '.join(mots_ou) or '-'}"
+            )
+            return
+    
+        # =====================================================
+        # 2. Filtrage local des mots exclus
+        # =====================================================
+    
+        offres = self.filtrer_offres_exclues(offres, mots_exclus)
+    
+        nb_apres_exclusion = len(offres)
+        nb_exclues = nb_apres_filtre_positif - nb_apres_exclusion
+    
+        print(f"Offres exclues : {nb_exclues}")
+        print(f"Offres conservées : {nb_apres_exclusion}")
+    
+        if not offres:
+            self.data_grid_1.visible = False
+            self.column_panel_select.visible = False
+            self.text_nb_offres.visible = False
+            alert(
+                "Des offres correspondaient aux critères, mais elles contenaient toutes au moins un mot exclu."
+            )
+            return
+    
+        # --- Génération de la liste des offres ---
         self.offres_preparees = self.build_offres_list(offres, dedoublonner=True)
-
+    
         print(
             "offres_preparees avant score:",
             type(self.offres_preparees),
             len(self.offres_preparees)
         )
-
-        # Calcul du score / pertinence côté serveur
+    
+        # --- Calcul du score / pertinence côté serveur ---
         try:
             offres_scorees = anvil.server.call(
                 "scorer_offres",
@@ -272,19 +373,19 @@ class search(searchTemplate):
             print(f"Erreur au module serveur 'scorer_offres': {e}")
             alert(f"Erreur pendant le calcul du score : {e}")
             offres_scorees = self.offres_preparees
-
+    
         if offres_scorees is None:
             print("Attention : scorer_offres a renvoyé None")
             offres_scorees = self.offres_preparees
-
-        # Ajout sécurité de la clé vu=False dans chaque offre
+    
+        # --- Ajout sécurité de la clé vu=False dans chaque offre ---
         offres_scorees = self.normaliser_liste_offres_vu(offres_scorees)
-
+    
         nb_offres = len(offres_scorees)
-
-        # Backup de la requête avec les offres scorées
+    
+        # --- Backup de la requête avec les offres scorées ---
         date_time = Time.french_zone_time()
-
+    
         result = anvil.server.call(
             "backup_requete",
             self.user,
@@ -296,37 +397,43 @@ class search(searchTemplate):
             nb_offres,
             offres_scorees,
             self.dict_mots_score,
-            bool(self.checkbox_mots_cles_dans_score.checked)
+            bool(self.checkbox_mots_cles_dans_score.checked),
+            self.text_box_mots_ou.text,
+            self.text_box_mots_exclus.text
         )
-        
+    
         if not result or not result.get("ok"):
             message = result.get("message") if result else "Erreur inconnue"
-            alert(f"La recherche a fonctionné, mais la sauvegarde dans histo a échoué.\n\n{message}")
+            alert(
+                f"La recherche a fonctionné, mais la sauvegarde dans histo a échoué.\n\n{message}"
+            )
             return
-        
+    
         self.histo_id = result.get("histo_id")
-        
+    
         if not self.histo_id:
             alert("Sauvegarde histo effectuée, mais histo_id manquant.")
             return
-        
+    
         print(f"Ligne histo sauvegardée : {self.histo_id}")
         print(f"Nombre d'offres sauvegardées dans histo : {result.get('nb_offres')}")
-
+    
         self.list_offres = offres_scorees
-
+    
         self.afficher_offres(self.list_offres)
-
+    
         self.button_search.visible = False
         self.column_panel_params.visible = False
-
+    
         self.text_param_summary.text = (
-            f"Plateformes:{self.multi_select_drop_down_platformes.selected} / "
-            f"Mots clefs:{self.text_box_mot_clef.text} / "
+            f"Plateformes : {self.multi_select_drop_down_platformes.selected} / "
+            f"Obligatoires : {self.text_box_mot_clef.text or '-'} / "
+            f"Au moins un : {self.text_box_mots_ou.text or '-'} / "
+            f"Exclus : {self.text_box_mots_exclus.text or '-'} / "
             f"sur les {self.text_box_nb_jours.text} derniers jours / "
-            f"{self.text_box_departements.text}"
+            f"Départements : {self.text_box_departements.text or '-'}"
         )
-
+    
         self.text_param_summary.visible = True
 
     # =========================================================================
@@ -575,7 +682,7 @@ class search(searchTemplate):
         nb = len(self.list_offres)
     
         # Important : remettre le tag après chaque réaffichage
-        self.repeating_panel_1.tag.mots_cles_saisis = self.text_box_mot_clef.text or ""
+        self.repeating_panel_1.tag.mots_cles_saisis = self.get_texte_mots_positifs_pour_highlight()
     
         # Important aussi : transmettre les mots de scoring aux rows
         self.repeating_panel_1.tag.dict_mots_score = self.dict_mots_score or {}
@@ -687,6 +794,295 @@ class search(searchTemplate):
             return v.isoformat()
         return str(v).strip()
 
+    def extraire_liste_mots_saisie(self, texte):
+        """
+        Transforme une saisie utilisateur en liste propre.
+    
+        Accepte :
+        - virgules
+        - points-virgules
+        - retours ligne
+        - et / ou / and / or
+    
+        Exemple :
+        'sst, pse1 ou pse2' devient ['sst', 'pse1', 'pse2']
+        """
+    
+        texte = (texte or "").strip().lower()
+    
+        if not texte:
+            return []
+    
+        texte = texte.replace("\n", ",")
+        texte = texte.replace(";", ",")
+        texte = texte.replace("|", ",")
+    
+        # Compatibilité avec anciennes saisies du type "formation et sst"
+        texte = re.sub(r"\s+(et|ou|and|or)\s+", ",", texte, flags=re.IGNORECASE)
+    
+        morceaux = []
+    
+        for morceau in texte.split(","):
+            mot = morceau.strip()
+            mot = mot.strip("()[]{}")
+            mot = mot.strip('"')
+            mot = mot.strip("'")
+            mot = mot.strip()
+    
+            if mot:
+                morceaux.append(mot)
+    
+        # Suppression des doublons en gardant l'ordre
+        resultat = []
+        deja_vus = set()
+    
+        for mot in morceaux:
+            if mot not in deja_vus:
+                deja_vus.add(mot)
+                resultat.append(mot)
+    
+        return resultat
+    
+    
+    def construire_requetes_sources(self, mots_obligatoires, mots_ou):
+        """
+        Construit une requête large pour les sources.
+    
+        Important :
+        On évite d'envoyer plusieurs requêtes du type :
+        ['formation et sst', 'formation et mac']
+    
+        On récupère large, puis on filtre localement.
+        """
+    
+        mots_obligatoires = mots_obligatoires or []
+        mots_ou = mots_ou or []
+    
+        # Cas normal : on envoie les mots obligatoires seulement
+        if mots_obligatoires:
+            return [" et ".join(mots_obligatoires)]
+    
+        # Si aucun mot obligatoire, on envoie une requête OU large
+        if mots_ou:
+            return [" ou ".join(mots_ou)]
+    
+        return []
+    
+    
+    def get_texte_mots_positifs_pour_highlight(self):
+        """
+        Renvoie les mots à surligner dans les résultats.
+    
+        On surligne :
+        - les mots obligatoires
+        - les mots OU
+    
+        On ne surligne pas les mots exclus.
+        """
+    
+        mots = []
+    
+        mots.extend(
+            self.extraire_liste_mots_saisie(self.text_box_mot_clef.text or "")
+        )
+    
+        mots.extend(
+            self.extraire_liste_mots_saisie(self.text_box_mots_ou.text or "")
+        )
+    
+        resultat = []
+        deja_vus = set()
+    
+        for mot in mots:
+            if mot not in deja_vus:
+                deja_vus.add(mot)
+                resultat.append(mot)
+    
+        return ", ".join(resultat)
+
+    def normaliser_texte_filtre(self, texte):
+        """
+        Normalise un texte côté client Anvil :
+        - minuscules
+        - suppression simple des accents
+        - espaces multiples
+        """
+    
+        texte = str(texte or "").lower()
+    
+        remplacements = {
+            "à": "a", "â": "a", "ä": "a", "á": "a", "ã": "a", "å": "a",
+            "ç": "c",
+            "é": "e", "è": "e", "ê": "e", "ë": "e",
+            "î": "i", "ï": "i", "í": "i", "ì": "i",
+            "ô": "o", "ö": "o", "ó": "o", "ò": "o", "õ": "o",
+            "ù": "u", "û": "u", "ü": "u", "ú": "u",
+            "ÿ": "y",
+            "ñ": "n",
+            "œ": "oe",
+            "æ": "ae",
+        }
+    
+        for accent, simple in remplacements.items():
+            texte = texte.replace(accent, simple)
+    
+        texte = re.sub(r"\s+", " ", texte)
+    
+        return texte.strip()
+
+    def texte_offre_normalise(self, offre):
+        """
+        Construit un texte complet normalisé pour filtrer localement une offre.
+        """
+    
+        texte_offre = " ".join([
+            str(offre.get("titre", "") or ""),
+            str(offre.get("description", "") or ""),
+            str(offre.get("search_text", "") or ""),
+            str(offre.get("acheteur", "") or ""),
+            str(offre.get("lieu", "") or ""),
+            str(offre.get("nature", "") or ""),
+            str(offre.get("procedure", "") or "")
+        ])
+    
+        return self.normaliser_texte_filtre(texte_offre)
+    
+    
+    def texte_contient_mot_filtre(self, texte_norm, mot):
+        """
+        Vérifie si un texte normalisé contient un mot.
+        Pour les mots longs, recherche partielle :
+        renovation trouve rénovations.
+        """
+    
+        mot_norm = self.normaliser_texte_filtre(mot)
+    
+        if not mot_norm:
+            return False
+    
+        if len(mot_norm) <= 3:
+            pattern = r"(?<![a-z0-9])" + re.escape(mot_norm) + r"(?![a-z0-9])"
+            return re.search(pattern, texte_norm) is not None
+    
+        return mot_norm in texte_norm
+    
+    
+    def offre_respecte_criteres_positifs(self, offre, mots_obligatoires, mots_ou):
+        """
+        Vérifie :
+        - tous les mots obligatoires doivent être présents
+        - si mots_ou existe, au moins un doit être présent
+        """
+    
+        texte_norm = self.texte_offre_normalise(offre)
+    
+        # Tous les mots obligatoires doivent être présents
+        for mot in mots_obligatoires or []:
+            if not self.texte_contient_mot_filtre(texte_norm, mot):
+                return False
+    
+        # Au moins un mot OU doit être présent
+        if mots_ou:
+            trouve_un_mot_ou = False
+    
+            for mot in mots_ou:
+                if self.texte_contient_mot_filtre(texte_norm, mot):
+                    trouve_un_mot_ou = True
+                    break
+    
+            if not trouve_un_mot_ou:
+                return False
+    
+        return True
+    
+    
+    def filtrer_offres_criteres_positifs(self, offres, mots_obligatoires, mots_ou):
+        """
+        Garde seulement les offres qui respectent :
+        mots obligatoires ET au moins un mot OU.
+        """
+    
+        if not offres:
+            return []
+    
+        offres_filtrees = []
+    
+        for offre in offres:
+            if self.offre_respecte_criteres_positifs(offre, mots_obligatoires, mots_ou):
+                offres_filtrees.append(offre)
+    
+        return offres_filtrees
+    
+    def offre_contient_mot_exclu(self, offre, mot_exclu):
+        """
+        Vérifie si une offre contient un mot exclu.
+    
+        Pour les mots courts, on évite les faux positifs avec des limites de mot.
+        Pour les mots longs, on accepte une recherche partielle :
+        - construction trouve constructions
+        - renovation trouve renovations
+        """
+    
+        if not offre or not mot_exclu:
+            return False
+    
+        texte_offre = " ".join([
+            str(offre.get("titre", "") or ""),
+            str(offre.get("description", "") or ""),
+            str(offre.get("search_text", "") or ""),
+            str(offre.get("acheteur", "") or ""),
+            str(offre.get("lieu", "") or ""),
+            str(offre.get("nature", "") or ""),
+            str(offre.get("procedure", "") or "")
+        ])
+    
+        texte_norm = self.normaliser_texte_filtre(texte_offre)
+        mot_norm = self.normaliser_texte_filtre(mot_exclu)
+    
+        if not mot_norm:
+            return False
+    
+        # Mot court : recherche stricte
+        if len(mot_norm) <= 3:
+            pattern = r"(?<![a-z0-9])" + re.escape(mot_norm) + r"(?![a-z0-9])"
+            return re.search(pattern, texte_norm) is not None
+    
+        # Mot long : recherche partielle volontaire
+        return mot_norm in texte_norm
+    
+    
+    def filtrer_offres_exclues(self, offres, mots_exclus):
+        """
+        Supprime les offres contenant au moins un mot exclu.
+        """
+    
+        if not offres:
+            return []
+    
+        if not mots_exclus:
+            return list(offres)
+    
+        offres_filtrees = []
+    
+        for offre in offres:
+            exclure = False
+    
+            for mot_exclu in mots_exclus:
+                if self.offre_contient_mot_exclu(offre, mot_exclu):
+                    exclure = True
+                    print(
+                        "Offre exclue :",
+                        offre.get("titre", ""),
+                        "| mot exclu :",
+                        mot_exclu
+                    )
+                    break
+    
+            if not exclure:
+                offres_filtrees.append(offre)
+    
+        return offres_filtrees
+        
     def _make_offer_uid(self, item):
         """
         Clé technique pour identifier une offre affichée et éviter les doublons.
@@ -981,32 +1377,32 @@ class search(searchTemplate):
 
     def extraire_mots_cles_pour_score(self):
         """
-        Extrait les mots-clés depuis self.text_box_mot_clef.text.
+        Extrait les mots-clés positifs pour le scoring.
     
-        Exemple :
-        'porte ou fenêtre' devient ['porte', 'fenêtre']
-        'porte, fenêtre, menuiserie' devient ['porte', 'fenêtre', 'menuiserie']
+        On prend :
+        - les mots obligatoires
+        - les mots OU
+    
+        On ne prend pas les mots exclus.
         """
     
-        brut = (self.text_box_mot_clef.text or "").strip().lower()
+        mots = []
     
-        if not brut:
-            return []
+        mots.extend(
+            self.extraire_liste_mots_saisie(self.text_box_mot_clef.text or "")
+        )
     
-        texte = brut.replace(";", ",")
-        texte = texte.replace("\n", ",")
-        texte = texte.replace(" et ", ",")
-        texte = texte.replace(" ou ", ",")
-        texte = texte.replace(" and ", ",")
-        texte = texte.replace(" or ", ",")
-    
-        morceaux = [m.strip() for m in texte.split(",") if m.strip()]
+        mots.extend(
+            self.extraire_liste_mots_saisie(self.text_box_mots_ou.text or "")
+        )
     
         mots_uniques = []
         deja_vus = set()
     
-        for mot in morceaux:
-            if mot not in deja_vus:
+        for mot in mots:
+            mot = mot.strip().lower()
+    
+            if mot and mot not in deja_vus:
                 deja_vus.add(mot)
                 mots_uniques.append(mot)
     
@@ -1126,4 +1522,18 @@ class search(searchTemplate):
 
     def checkbox_mots_cles_dans_score_change(self, **event_args):
         """This method is called when the component is checked or unchecked"""
+        self.button_search.visible = True
+
+
+    def text_box_mots_ou_pressed_enter(self, **event_args):
+        self.button_search_click()
+
+
+    def text_box_mots_exclus_pressed_enter(self, **event_args):
+        self.button_search_click()
+
+    def text_box_mots_ou_change(self, **event_args):
+        self.button_search.visible = True
+
+    def text_box_mots_exclus_change(self, **event_args):
         self.button_search.visible = True
