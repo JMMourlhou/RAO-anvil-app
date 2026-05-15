@@ -15,7 +15,7 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
         # Any code you write here will run before the form opens.
         print(f"item: {self.item}")
         self.text_box_mot.text = self.item[0]     # mot, 1er élément ds la liste
-        self.text_box_valeur.text = self.item[1]
+        self.dropdown_menu_valeur.selected_value = str(self.item[1])
 
     def icon_button_del_click(self, **event_args):
         self.parent.raise_event("x-del-mot",
@@ -25,7 +25,7 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
     #modif: je dois effecer l'ancienne cle/valeur et créer la nouvelle entrée modifiée    
     def icon_button_valid_mot_score_click(self, **event_args):
         cle = (self.text_box_mot.text or "").strip()
-        valeur = (self.text_box_valeur.text or 0)
+        valeur = (self.dropdown_menu_valeur.selected_value or 0)
 
         if cle == "" :
             alert("Entrez le mot à prendre en compte dans le scoring")
@@ -33,7 +33,7 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
             return
 
         if valeur == 0 :
-            alert("Entrez la valeur")
+            alert("Sélectionnez la valeur")
             self.text_box_valeur.focus()
             return
             

@@ -33,7 +33,7 @@ class search(searchTemplate):
         self.list_offres = []
         self.offres_preparees = []
         self.dict_mots_score = dict(dict_mots_score or {})
-
+        
         # Evite les traitements indésirables quand on modifie la checkbox par code
         self._ignore_checkbox_on_off_change = False
 
@@ -101,7 +101,7 @@ class search(searchTemplate):
             # Lecture de la dernière ligne histo du user
             # =================================================================
             derniere_ligne = self.charger_derniere_ligne_histo(rows_platformes)
-
+            self.display_mots_pour_score()
             # =================================================================
             # Ouverture normale : on affiche seulement les derniers paramètres
             # =================================================================
@@ -1172,7 +1172,7 @@ class search(searchTemplate):
     # =========================================================================
     # Gestion du dictionnaire des mots pour scoring
     # =========================================================================
-
+    """
     def button_gestion_score_click(self, **event_args):
         if self.column_panel_mots_pour_score.visible is False:
             self.column_panel_mots_pour_score.visible = True
@@ -1188,13 +1188,14 @@ class search(searchTemplate):
         else:
             self.column_panel_mots_pour_score.visible = False
             self.button_search.visible = True
-
+    """
     def text_box_mot_change(self, **event_args):
-        if self.text_box_valeur.text is not None:
+        if self.dropdown_menu_valeur.selected_value is not None:
             self.icon_button_valid_mot_score.visible = True
 
-    def text_box_valeur_change(self, **event_args):
-        valeur = self.text_box_valeur.text or 0
+
+    def dropdown_menu_valeur_change(self, **event_args):
+        valeur = self.dropdown_menu_valeur.selected_value or 0
         if valeur != 0:
             self.icon_button_valid_mot_score.visible = True
 
@@ -1214,8 +1215,7 @@ class search(searchTemplate):
 
     def icon_button_valid_mot_score_click(self, **event_args):
         cle = (self.text_box_mot.text or "").strip()
-        valeur = self.text_box_valeur.text or 0
-
+        valeur = self.dropdown_menu_valeur.selected_value or 0
         if cle == "":
             alert("Entrez le mot à prendre en compte dans le scoring")
             self.text_box_mot.focus()
@@ -1238,7 +1238,7 @@ class search(searchTemplate):
         print(self.dict_mots_score)
 
         self.text_box_mot.text = ""
-        self.text_box_valeur.text = ""
+        self.dropdown_menu_valeur.selected_value = None
         self.icon_button_valid_mot_score.visible = False
         self.data_grid_mots_pour_score.visible = True
 
@@ -1407,10 +1407,6 @@ class search(searchTemplate):
                 mots_uniques.append(mot)
     
         return mots_uniques
-    
-    def button_fin_mots_score_click(self, **event_args):
-        self.column_panel_mots_pour_score.visible = False
-        self.button_search.visible = True
 
 
     def text_box_mot_clef_change(self, **event_args):
@@ -1537,3 +1533,4 @@ class search(searchTemplate):
 
     def text_box_mots_exclus_change(self, **event_args):
         self.button_search.visible = True
+

@@ -43,11 +43,21 @@ components:
         margin: ['0', null, null, null]
       vertical_align: middle
     type: FlowPanel
-  - event_bindings: {click: button_retour_click}
+  - components:
+    - event_bindings: {click: button_search_click}
+      layout_properties: {}
+      name: button_search
+      properties: {align: center, background: 'theme:Olive', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: 'theme:White', icon: '', icon_align: left, italic: false, role: elevated-button, spacing_above: small, spacing_below: small, text: Recherche !, tooltip: '', underline: false, visible: false}
+      type: Button
+    - event_bindings: {click: button_retour_click}
+      layout_properties: {}
+      name: button_retour
+      properties: {align: center, background: 'theme:Red', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '#000000', icon: '', icon_align: left_edge, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Retour, tooltip: '', underline: false, visible: true}
+      type: Button
     layout_properties: {slot: card-content-slot}
-    name: button_retour
-    properties: {align: center, background: 'theme:Red', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '#000000', icon: '', icon_align: left_edge, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Retour, tooltip: '', underline: false, visible: true}
-    type: Button
+    name: flow_panel_4
+    properties: {align: center, gap: large, vertical_align: middle}
+    type: FlowPanel
   - components:
     - event_bindings: {change: text_box_mot_clef_change, pressed_enter: text_box_mot_clef_pressed_enter}
       layout_properties: {grid_position: 'UTAJVP,AQYHRQ'}
@@ -122,31 +132,9 @@ components:
         properties: {align: center, text: Cocher pour que les mots clefs soient inclus dans le score}
         type: form:dep_lin1x4oec0ytd:_Components.Checkbox
       - components:
-        - event_bindings: {click: button_search_click}
-          layout_properties: {}
-          name: button_search
-          properties: {align: center, background: 'theme:Olive', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: 'theme:White', icon: '', icon_align: left, italic: false, role: elevated-button, spacing_above: small, spacing_below: small, text: Recherche !, tooltip: '', underline: false, visible: false}
-          type: Button
-        - event_bindings: {click: button_gestion_score_click}
-          layout_properties: {}
-          name: button_gestion_score
-          properties:
-            align: center
-            appearance: elevated
-            spacing:
-              margin: ['13', null, null, null]
-            text: Gestion score
-            text_color: theme:Primary
-            visible: false
-          type: form:dep_lin1x4oec0ytd:_Components.Button
-        layout_properties: {grid_position: 'CKHGSQ,TQTJJC'}
-        name: flow_panel_4
-        properties: {align: center, gap: large, vertical_align: middle}
-        type: FlowPanel
-      - components:
         - layout_properties: {grid_position: 'CGDTEY,AAKLXG'}
           name: text_3
-          properties: {align: center, scale: large, text: 'Ajout de mots, qui s''ils sont dans l''appel d''offre, placeront celle ci en avant  ', text_color: 'theme:Primary'}
+          properties: {align: center, scale: large, text: 'Au moins un de ces mots doit être trouvé: ', text_color: 'theme:Primary'}
           type: form:dep_lin1x4oec0ytd:_Components.Text
         - event_bindings: {click: button_add_mot_click}
           layout_properties: {grid_position: 'NJCOOS,ATHJWT'}
@@ -167,18 +155,16 @@ components:
                 placeholder: 'Mot '
               type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
             - components:
-              - event_bindings: {change: text_box_valeur_change, pressed_enter: icon_button_valid_mot_score_click}
-                layout_properties: {grid_position: 'LOSUFG,CZZPAV'}
-                name: text_box_valeur
+              - event_bindings: {change: dropdown_menu_valeur_change}
+                layout_properties: {grid_position: 'LOSUFG,UATQVE'}
+                name: dropdown_menu_valeur
                 properties:
                   appearance: outlined
-                  display_text_color: theme:White
-                  label: Valeur du mot
-                  label_color: theme:White
-                  margin: ['5', null, '0', '5']
-                  placeholder: Valeur
-                  type: number
-                type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+                  items: ['1', '5', '10']
+                  label: Valeur
+                  label_color: theme:Primary
+                  visible: true
+                type: form:dep_lin1x4oec0ytd:_Components.DropdownMenu
               - components:
                 - event_bindings: {click: icon_button_valid_mot_score_click}
                   layout_properties: {}
@@ -245,19 +231,15 @@ components:
             rows_per_page: 5
             visible: false
           type: DataGrid
-        - event_bindings: {click: button_fin_mots_score_click}
-          layout_properties: {grid_position: 'QMFNBE,DJQRSH'}
-          name: button_fin_mots_score
-          properties: {align: center, appearance: elevated, text: Fin, text_color: 'theme:Red'}
-          type: form:dep_lin1x4oec0ytd:_Components.Button
         layout_properties: {grid_position: 'YPSTKC,RUQKJD'}
         name: column_panel_mots_pour_score
         properties:
           background: ''
           border: '2px solid #3CD9ED'
+          col_spacing: small
           spacing:
             margin: [null, '10', null, '10']
-          visible: false
+          visible: true
           wrap_on: never
         type: ColumnPanel
       layout_properties: {grid_position: 'PGXVPZ,NFWMWX'}

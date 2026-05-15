@@ -1,25 +1,19 @@
 components:
 - components:
   - components:
-    - event_bindings: {change: text_box_mot_change, pressed_enter: text_box_mot_pressed_enter}
-      layout_properties: {width: 125.734695703125}
+    - layout_properties: {}
       name: text_box_mot
+      properties: {appearance: outlined}
+      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+    - layout_properties: {width: 148.26343994140626}
+      name: dropdown_menu_valeur
       properties:
-        background: theme:Background
-        foreground: theme:Primary
-        margin: [null, '6', null, '15']
-        placeholder: Valeur
-        role: m3-tb-compact
-      type: TextBox
-    - event_bindings: {change: text_box_valeur_change, pressed_enter: text_box_valeur_pressed_enter}
-      layout_properties: {width: 43.89859321289063}
-      name: text_box_valeur
-      properties:
-        background: theme:Background
-        foreground: theme:Primary
-        margin: [null, null, null, '6']
-        role: m3-tb-compact
-      type: TextBox
+        appearance: outlined
+        items: ['1', '5', '10']
+        label: Valeur
+        label_color: theme:Primary
+        visible: true
+      type: form:dep_lin1x4oec0ytd:_Components.DropdownMenu
     - components:
       - event_bindings: {click: icon_button_valid_mot_score_click}
         layout_properties: {grid_position: 'VYOHIN,VAEUEL'}
