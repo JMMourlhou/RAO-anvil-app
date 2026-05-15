@@ -38,132 +38,6 @@
 
 
 
-/* =========================================================
-CUSTOM JM - 1 rôle ajoutés pour les M3 TextBox components ci-dessous (et dans menu IDE   palette de couleur > roles)
-m3-tb-compact           TextBox M3 plus compacte, sans trait
-========================================================= */
-
-.anvil-role-m3-tb-compact {
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-}
-
-/* On ne force PAS la hauteur du conteneur M3 */
-.anvil-role-m3-tb-compact.anvil-m3-textbox,
-.anvil-role-m3-tb-compact .anvil-m3-textbox {
-    overflow: visible !important;
-}
-
-/* On compacte seulement le texte interne */
-.anvil-role-m3-tb-compact input {
-    font-size: 14px !important;
-    line-height: 20px !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-}
-
-/* =========================================================
-CUSTOM JM - Rôle pour M3 DropdownMenu compact
-m3-dd-compact
-
-Objectif :
-- hauteur proche du TextBox compact
-- suppression label / bordure / marge
-- texte et icône alignés
-========================================================= */
-
-.anvil-role-m3-dd-compact {
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    min-height: 20px !important;
-    height: 24px !important;
-    overflow: visible !important;
-}
-
-/* Wrappers Anvil / M3 */
-.anvil-role-m3-dd-compact.anvil-m3-dropdown-menu,
-.anvil-role-m3-dd-compact .anvil-m3-dropdown-menu,
-.anvil-role-m3-dd-compact.anvil-m3-dropdown,
-.anvil-role-m3-dd-compact .anvil-m3-dropdown {
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    min-height: 20px !important;
-    height: 24px !important;
-    overflow: visible !important;
-}
-
-/* Anciennes classes MDC Select */
-.anvil-role-m3-dd-compact .mdc-select,
-.anvil-role-m3-dd-compact.mdc-select {
-    margin: 0 !important;
-    padding: 0 !important;
-    min-height: 20px !important;
-    height: 24px !important;
-}
-
-/* Zone cliquable */
-.anvil-role-m3-dd-compact .mdc-select__anchor {
-    margin: 0 !important;
-    padding: 0 4px !important;
-    min-height: 20px !important;
-    height: 24px !important;
-    line-height: 20px !important;
-}
-
-/* Texte sélectionné */
-.anvil-role-m3-dd-compact .mdc-select__selected-text-container,
-.anvil-role-m3-dd-compact .mdc-select__selected-text {
-    height: 20px !important;
-    line-height: 20px !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    font-size: 14px !important;
-}
-
-/* Supprime le label flottant qui prend de la hauteur */
-.anvil-role-m3-dd-compact .mdc-floating-label {
-    display: none !important;
-}
-
-/* Supprime le notch / contour */
-.anvil-role-m3-dd-compact .mdc-notched-outline,
-.anvil-role-m3-dd-compact .mdc-notched-outline__leading,
-.anvil-role-m3-dd-compact .mdc-notched-outline__notch,
-.anvil-role-m3-dd-compact .mdc-notched-outline__trailing {
-    border: none !important;
-    display: none !important;
-}
-
-/* Supprime trait bas éventuel */
-.anvil-role-m3-dd-compact .mdc-line-ripple {
-    display: none !important;
-}
-
-/* Icône flèche */
-.anvil-role-m3-dd-compact .mdc-select__dropdown-icon {
-    top: 0 !important;
-    right: 0 !important;
-}
-
-/* Icône SVG */
-.anvil-role-m3-dd-compact .mdc-select__dropdown-icon svg {
-    width: 18px !important;
-    height: 18px !important;
-}
-
-/* Fond neutre */
-.anvil-role-m3-dd-compact .mdc-select,
-.anvil-role-m3-dd-compact .mdc-select__anchor {
-    background-color: transparent !important;
-    box-shadow: none !important;
-}
-
 
 
 /* =========================================================
@@ -236,4 +110,863 @@ PRIORITÉ FAIBLE - Rouge pastel
 .anvil-role-bt-verif-faible.anvil-m3-button .material-symbols-outlined {
     color: #111111 !important;
     fill: #111111 !important;
+}
+
+
+
+
+/* =========================================================
+CUSTOM JM - Row compacte mots OU + importance
+Composants concernés :
+- TextBox M3        : m3-tb-score-compact
+- DropdownMenu M3   : m3-dd-score-compact
+- FlowPanel M3      : m3-flow-score-compact
+========================================================= */
+
+
+/* =========================================================
+FLOW PANEL COMPACT + CENTRÉ
+========================================================= */
+
+.anvil-role-m3-flow-score-compact {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+
+    min-height: 24px !important;
+    height: 24px !important;
+
+    background-color: transparent !important;
+
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;          /* centrage vertical */
+    justify-content: center !important;      /* centrage horizontal */
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+}
+
+/* Enfants directs du FlowPanel */
+.anvil-role-m3-flow-score-compact > * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+
+    align-self: center !important;
+    background-color: transparent !important;
+}
+
+/* Wrappers internes Anvil */
+.anvil-role-m3-flow-score-compact .anvil-container,
+.anvil-role-m3-flow-score-compact .anvil-component,
+.anvil-role-m3-flow-score-compact .anvil-m3-component {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+
+    align-self: center !important;
+    background-color: transparent !important;
+}
+
+/* Boutons icônes dans la ligne */
+.anvil-role-m3-flow-score-compact .anvil-m3-icon-button,
+.anvil-role-m3-flow-score-compact .anvil-m3-button {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+
+    min-height: 24px !important;
+    height: 24px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    background-color: transparent !important;
+}
+
+
+/* =========================================================
+TEXTBOX COMPACT SANS BORDURE
+========================================================= */
+
+.anvil-role-m3-tb-score-compact {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    min-height: 24px !important;
+    height: 24px !important;
+
+    background-color: transparent !important;
+    overflow: visible !important;
+}
+
+/* Conteneur TextBox M3 */
+.anvil-role-m3-tb-score-compact.anvil-m3-textbox,
+.anvil-role-m3-tb-score-compact .anvil-m3-textbox {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    min-height: 24px !important;
+    height: 24px !important;
+
+    background-color: transparent !important;
+    overflow: visible !important;
+}
+
+/* Champ Material */
+.anvil-role-m3-tb-score-compact .mdc-text-field,
+.anvil-role-m3-tb-score-compact .mdc-text-field--filled,
+.anvil-role-m3-tb-score-compact .mdc-text-field--outlined {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    min-height: 24px !important;
+    height: 24px !important;
+
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Input */
+.anvil-role-m3-tb-score-compact input,
+.anvil-role-m3-tb-score-compact .mdc-text-field__input {
+    height: 24px !important;
+    min-height: 24px !important;
+
+    font-size: 14px !important;
+    line-height: 20px !important;
+
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+
+    background-color: transparent !important;
+    color: inherit !important;
+
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Suppression soulignement */
+.anvil-role-m3-tb-score-compact .mdc-line-ripple,
+.anvil-role-m3-tb-score-compact .mdc-line-ripple::before,
+.anvil-role-m3-tb-score-compact .mdc-line-ripple::after {
+    display: none !important;
+    border: none !important;
+}
+
+/* Suppression bordure outline */
+.anvil-role-m3-tb-score-compact .mdc-notched-outline,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline__leading,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline__notch,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline__trailing {
+    border: none !important;
+    display: none !important;
+}
+
+/* Suppression label flottant */
+.anvil-role-m3-tb-score-compact .mdc-floating-label {
+    display: none !important;
+}
+
+
+/* =========================================================
+DROPDOWNMENU COMPACT TRANSPARENT
+========================================================= */
+
+.anvil-role-m3-dd-score-compact {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    min-height: 24px !important;
+    height: 24px !important;
+
+    background-color: transparent !important;
+    overflow: visible !important;
+}
+
+/* Wrappers Anvil / M3 */
+.anvil-role-m3-dd-score-compact.anvil-m3-dropdown-menu,
+.anvil-role-m3-dd-score-compact .anvil-m3-dropdown-menu,
+.anvil-role-m3-dd-score-compact.anvil-m3-dropdown,
+.anvil-role-m3-dd-score-compact .anvil-m3-dropdown {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    min-height: 24px !important;
+    height: 24px !important;
+
+    background-color: transparent !important;
+    overflow: visible !important;
+}
+
+/* Select Material */
+.anvil-role-m3-dd-score-compact .mdc-select,
+.anvil-role-m3-dd-score-compact.mdc-select,
+.anvil-role-m3-dd-score-compact .mdc-select--filled,
+.anvil-role-m3-dd-score-compact .mdc-select--outlined {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    min-height: 24px !important;
+    height: 24px !important;
+
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Zone cliquable */
+.anvil-role-m3-dd-score-compact .mdc-select__anchor {
+    margin: 0 !important;
+    padding: 0 4px !important;
+
+    min-height: 24px !important;
+    height: 24px !important;
+    line-height: 20px !important;
+
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Fond interne parfois ajouté par M3 */
+.anvil-role-m3-dd-score-compact .mdc-select__anchor::before,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor::after {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* Texte sélectionné */
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text-container,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text {
+    height: 24px !important;
+    min-height: 24px !important;
+
+    line-height: 20px !important;
+    font-size: 14px !important;
+
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+
+    background-color: transparent !important;
+    color: inherit !important;
+}
+
+/* Suppression label flottant */
+.anvil-role-m3-dd-score-compact .mdc-floating-label {
+    display: none !important;
+}
+
+/* Suppression contour / bordure */
+.anvil-role-m3-dd-score-compact .mdc-notched-outline,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline__leading,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline__notch,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline__trailing {
+    border: none !important;
+    display: none !important;
+}
+
+/* Suppression trait bas */
+.anvil-role-m3-dd-score-compact .mdc-line-ripple,
+.anvil-role-m3-dd-score-compact .mdc-line-ripple::before,
+.anvil-role-m3-dd-score-compact .mdc-line-ripple::after {
+    display: none !important;
+    border: none !important;
+}
+
+/* Icône flèche */
+.anvil-role-m3-dd-score-compact .mdc-select__dropdown-icon {
+    top: 0 !important;
+    right: 0 !important;
+}
+
+/* Icône SVG */
+.anvil-role-m3-dd-score-compact .mdc-select__dropdown-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+
+/* =========================================================
+OPTION 12px
+Décommenter ces lignes pour un affichage encore plus compact.
+========================================================= */
+
+/*
+.anvil-role-m3-tb-score-compact input,
+.anvil-role-m3-tb-score-compact .mdc-text-field__input,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text-container,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text {
+font-size: 12px !important;
+}
+*/
+
+
+/* =========================================================
+CORRECTIF FINAL JM - Row mots OU / importance
+- TextBox sans bordure
+- Dropdown transparent sur fond noir
+========================================================= */
+
+
+/* =========================================================
+1. TEXTBOX : suppression complète bordure / fond / underline
+========================================================= */
+
+.anvil-role-m3-tb-score-compact,
+.anvil-role-m3-tb-score-compact *,
+.anvil-role-m3-tb-score-compact input,
+.anvil-role-m3-tb-score-compact .mdc-text-field,
+.anvil-role-m3-tb-score-compact .mdc-text-field--filled,
+.anvil-role-m3-tb-score-compact .mdc-text-field--outlined,
+.anvil-role-m3-tb-score-compact .mdc-text-field__input {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Bordure outline M3 */
+.anvil-role-m3-tb-score-compact .mdc-notched-outline,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline *,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline__leading,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline__notch,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline__trailing {
+    border: none !important;
+    outline: none !important;
+    display: none !important;
+}
+
+/* Soulignement M3 filled/text */
+.anvil-role-m3-tb-score-compact .mdc-line-ripple,
+.anvil-role-m3-tb-score-compact .mdc-line-ripple::before,
+.anvil-role-m3-tb-score-compact .mdc-line-ripple::after {
+    border: none !important;
+    background: transparent !important;
+    display: none !important;
+}
+
+/* Input texte */
+.anvil-role-m3-tb-score-compact input {
+    height: 24px !important;
+    min-height: 24px !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+    padding: 0 4px !important;
+    color: #ffffff !important;
+    caret-color: #ffffff !important;
+}
+
+
+/* =========================================================
+2. DROPDOWN : fond transparent sur fond noir
+========================================================= */
+
+.anvil-role-m3-dd-score-compact,
+.anvil-role-m3-dd-score-compact .mdc-select,
+.anvil-role-m3-dd-score-compact .mdc-select--filled,
+.anvil-role-m3-dd-score-compact .mdc-select--outlined,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text-container,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Fond interne généré par M3 */
+.anvil-role-m3-dd-score-compact .mdc-select__anchor::before,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor::after,
+.anvil-role-m3-dd-score-compact .mdc-select::before,
+.anvil-role-m3-dd-score-compact .mdc-select::after {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Bordure outline du dropdown */
+.anvil-role-m3-dd-score-compact .mdc-notched-outline,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline *,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline__leading,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline__notch,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline__trailing {
+    border: none !important;
+    outline: none !important;
+    display: none !important;
+}
+
+/* Soulignement éventuel */
+.anvil-role-m3-dd-score-compact .mdc-line-ripple,
+.anvil-role-m3-dd-score-compact .mdc-line-ripple::before,
+.anvil-role-m3-dd-score-compact .mdc-line-ripple::after {
+    border: none !important;
+    background: transparent !important;
+    display: none !important;
+}
+
+/* Texte dropdown */
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text-container {
+    height: 24px !important;
+    min-height: 24px !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+    padding: 0 4px !important;
+    color: #ffffff !important;
+}
+
+/* Icône flèche blanche */
+.anvil-role-m3-dd-score-compact .mdc-select__dropdown-icon,
+.anvil-role-m3-dd-score-compact .mdc-select__dropdown-icon *,
+.anvil-role-m3-dd-score-compact .mdc-select__dropdown-icon svg {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+}
+
+/* =========================================================
+CORRECTIF FINAL JM - Row mots OU / importance
+
+Objectifs :
+- TextBox : texte blanc, sans bordure
+- Dropdown : fond transparent, texte blanc, centré verticalement
+- FlowPanel : marge basse 5px
+========================================================= */
+
+
+/* =========================================================
+1. FLOW PANEL : marge basse + centrage confirmé
+========================================================= */
+
+.anvil-role-m3-flow-score-compact {
+    margin-top: 0 !important;
+    margin-bottom: 5px !important;
+
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+
+    min-height: 24px !important;
+    height: 24px !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+}
+
+
+/* =========================================================
+2. TEXTBOX : texte blanc + suppression complète bordures
+========================================================= */
+
+.anvil-role-m3-tb-score-compact,
+.anvil-role-m3-tb-score-compact input,
+.anvil-role-m3-tb-score-compact .mdc-text-field,
+.anvil-role-m3-tb-score-compact .mdc-text-field--filled,
+.anvil-role-m3-tb-score-compact .mdc-text-field--outlined,
+.anvil-role-m3-tb-score-compact .mdc-text-field__input {
+    background: transparent !important;
+    background-color: transparent !important;
+
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Fond interne M3 parfois ajouté */
+.anvil-role-m3-tb-score-compact .mdc-text-field::before,
+.anvil-role-m3-tb-score-compact .mdc-text-field::after,
+.anvil-role-m3-tb-score-compact .mdc-text-field--filled::before,
+.anvil-role-m3-tb-score-compact .mdc-text-field--filled::after,
+.anvil-role-m3-tb-score-compact .mdc-text-field--outlined::before,
+.anvil-role-m3-tb-score-compact .mdc-text-field--outlined::after {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Input texte */
+.anvil-role-m3-tb-score-compact input,
+.anvil-role-m3-tb-score-compact .mdc-text-field__input {
+    height: 24px !important;
+    min-height: 24px !important;
+
+    font-size: 14px !important;
+    line-height: 24px !important;
+
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+
+    color: #ffffff !important;
+    caret-color: #ffffff !important;
+}
+
+/* Placeholder éventuel */
+.anvil-role-m3-tb-score-compact input::placeholder {
+    color: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* Suppression outline M3 */
+.anvil-role-m3-tb-score-compact .mdc-notched-outline,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline *,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline__leading,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline__notch,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline__trailing {
+    display: none !important;
+    border: none !important;
+    outline: none !important;
+}
+
+/* Suppression underline M3 */
+.anvil-role-m3-tb-score-compact .mdc-line-ripple,
+.anvil-role-m3-tb-score-compact .mdc-line-ripple::before,
+.anvil-role-m3-tb-score-compact .mdc-line-ripple::after {
+    display: none !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+
+/* =========================================================
+3. DROPDOWN : transparent + texte blanc + centrage vertical
+========================================================= */
+
+.anvil-role-m3-dd-score-compact,
+.anvil-role-m3-dd-score-compact .mdc-select,
+.anvil-role-m3-dd-score-compact .mdc-select--filled,
+.anvil-role-m3-dd-score-compact .mdc-select--outlined,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text-container,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text {
+    background: transparent !important;
+    background-color: transparent !important;
+
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+
+    color: #ffffff !important;
+}
+
+/* Fond interne M3 */
+.anvil-role-m3-dd-score-compact .mdc-select::before,
+.anvil-role-m3-dd-score-compact .mdc-select::after,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor::before,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor::after {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Conteneur cliquable centré verticalement */
+.anvil-role-m3-dd-score-compact .mdc-select,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor {
+    height: 24px !important;
+    min-height: 24px !important;
+
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Texte sélectionné centré */
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text-container,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text {
+    height: 24px !important;
+    min-height: 24px !important;
+
+    font-size: 14px !important;
+    line-height: 24px !important;
+
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    color: #ffffff !important;
+}
+
+/* Icône flèche blanche */
+.anvil-role-m3-dd-score-compact .mdc-select__dropdown-icon,
+.anvil-role-m3-dd-score-compact .mdc-select__dropdown-icon *,
+.anvil-role-m3-dd-score-compact .mdc-select__dropdown-icon svg {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+}
+
+/* Suppression label flottant */
+.anvil-role-m3-dd-score-compact .mdc-floating-label {
+    display: none !important;
+}
+
+/* Suppression bordure outline */
+.anvil-role-m3-dd-score-compact .mdc-notched-outline,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline *,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline__leading,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline__notch,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline__trailing {
+    display: none !important;
+    border: none !important;
+    outline: none !important;
+}
+
+/* Suppression underline */
+.anvil-role-m3-dd-score-compact .mdc-line-ripple,
+.anvil-role-m3-dd-score-compact .mdc-line-ripple::before,
+.anvil-role-m3-dd-score-compact .mdc-line-ripple::after {
+    display: none !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+/* =========================================================
+CORRECTIF TERMINAL JM - TextBox blanc / Dropdown transparent
+À placer tout à la fin de theme.css
+========================================================= */
+
+
+/* =========================================================
+1. TEXTBOX SCORE : texte blanc + caret blanc
+========================================================= */
+
+.anvil-role-m3-tb-score-compact,
+.anvil-role-m3-tb-score-compact *,
+.anvil-role-m3-tb-score-compact input,
+.anvil-role-m3-tb-score-compact textarea,
+.anvil-role-m3-tb-score-compact .mdc-text-field__input {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    caret-color: #ffffff !important;
+}
+
+/* Placeholder blanc atténué */
+.anvil-role-m3-tb-score-compact input::placeholder,
+.anvil-role-m3-tb-score-compact textarea::placeholder {
+    color: rgba(255, 255, 255, 0.65) !important;
+    -webkit-text-fill-color: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* Fond et bordures TextBox supprimés */
+.anvil-role-m3-tb-score-compact,
+.anvil-role-m3-tb-score-compact *,
+.anvil-role-m3-tb-score-compact .mdc-text-field,
+.anvil-role-m3-tb-score-compact .mdc-text-field--filled,
+.anvil-role-m3-tb-score-compact .mdc-text-field--outlined,
+.anvil-role-m3-tb-score-compact input {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.anvil-role-m3-tb-score-compact .mdc-notched-outline,
+.anvil-role-m3-tb-score-compact .mdc-notched-outline *,
+.anvil-role-m3-tb-score-compact .mdc-line-ripple,
+.anvil-role-m3-tb-score-compact .mdc-line-ripple::before,
+.anvil-role-m3-tb-score-compact .mdc-line-ripple::after {
+    display: none !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+
+/* =========================================================
+2. DROPDOWN SCORE : transparent + texte blanc + centré vertical
+========================================================= */
+
+/* Variables Material 3 / Material Web */
+.anvil-role-m3-dd-score-compact {
+    --md-sys-color-surface: transparent !important;
+    --md-sys-color-surface-container: transparent !important;
+    --md-sys-color-surface-container-highest: transparent !important;
+
+    --md-filled-select-text-field-container-color: transparent !important;
+    --md-filled-select-text-field-input-text-color: #ffffff !important;
+    --md-outlined-select-text-field-input-text-color: #ffffff !important;
+
+    --md-filled-text-field-container-color: transparent !important;
+    --md-filled-text-field-input-text-color: #ffffff !important;
+    --md-outlined-text-field-input-text-color: #ffffff !important;
+}
+
+/* Fond transparent large */
+.anvil-role-m3-dd-score-compact,
+.anvil-role-m3-dd-score-compact *,
+.anvil-role-m3-dd-score-compact .mdc-select,
+.anvil-role-m3-dd-score-compact .mdc-select--filled,
+.anvil-role-m3-dd-score-compact .mdc-select--outlined,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text-container,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text,
+.anvil-role-m3-dd-score-compact button,
+.anvil-role-m3-dd-score-compact input,
+.anvil-role-m3-dd-score-compact select {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Pseudo-fonds M3 */
+.anvil-role-m3-dd-score-compact::before,
+.anvil-role-m3-dd-score-compact::after,
+.anvil-role-m3-dd-score-compact *::before,
+.anvil-role-m3-dd-score-compact *::after,
+.anvil-role-m3-dd-score-compact .mdc-select::before,
+.anvil-role-m3-dd-score-compact .mdc-select::after,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor::before,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor::after {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Texte blanc du dropdown */
+.anvil-role-m3-dd-score-compact,
+.anvil-role-m3-dd-score-compact *,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text-container,
+.anvil-role-m3-dd-score-compact button,
+.anvil-role-m3-dd-score-compact input,
+.anvil-role-m3-dd-score-compact select {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Centrage vertical */
+.anvil-role-m3-dd-score-compact,
+.anvil-role-m3-dd-score-compact .mdc-select,
+.anvil-role-m3-dd-score-compact .mdc-select__anchor,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text-container,
+.anvil-role-m3-dd-score-compact .mdc-select__selected-text,
+.anvil-role-m3-dd-score-compact button {
+    height: 24px !important;
+    min-height: 24px !important;
+    line-height: 24px !important;
+
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Suppression label, contour, trait bas */
+.anvil-role-m3-dd-score-compact .mdc-floating-label,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline,
+.anvil-role-m3-dd-score-compact .mdc-notched-outline *,
+.anvil-role-m3-dd-score-compact .mdc-line-ripple,
+.anvil-role-m3-dd-score-compact .mdc-line-ripple::before,
+.anvil-role-m3-dd-score-compact .mdc-line-ripple::after {
+    display: none !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+/* Flèche blanche */
+.anvil-role-m3-dd-score-compact .mdc-select__dropdown-icon,
+.anvil-role-m3-dd-score-compact .mdc-select__dropdown-icon *,
+.anvil-role-m3-dd-score-compact svg,
+.anvil-role-m3-dd-score-compact .material-icons,
+.anvil-role-m3-dd-score-compact .material-symbols-outlined {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+}
+
+/* =========================================================
+CUSTOM JM - Menu ouvert des Dropdown M3
+Fond gris foncé + texte blanc lisible
+À placer tout à la fin de theme.css
+========================================================= */
+
+
+/* Surface du menu déroulé ouvert */
+.mdc-menu-surface,
+.mdc-select__menu,
+.mdc-menu-surface--open {
+    background-color: #2f2f2f !important;
+    color: #ffffff !important;
+    border: 1px solid #555555 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45) !important;
+}
+
+
+/* Liste interne */
+.mdc-menu-surface .mdc-list,
+.mdc-select__menu .mdc-list {
+    background-color: #2f2f2f !important;
+    color: #ffffff !important;
+}
+
+
+/* Chaque ligne du menu */
+.mdc-menu-surface .mdc-list-item,
+.mdc-select__menu .mdc-list-item {
+    background-color: #2f2f2f !important;
+    color: #ffffff !important;
+}
+
+
+/* Texte des options */
+.mdc-menu-surface .mdc-list-item__primary-text,
+.mdc-select__menu .mdc-list-item__primary-text,
+.mdc-menu-surface .mdc-list-item span,
+.mdc-select__menu .mdc-list-item span {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+
+/* Ligne survolée */
+.mdc-menu-surface .mdc-list-item:hover,
+.mdc-select__menu .mdc-list-item:hover {
+    background-color: #444444 !important;
+    color: #ffffff !important;
+}
+
+
+/* Ligne sélectionnée / active */
+.mdc-menu-surface .mdc-list-item--selected,
+.mdc-menu-surface .mdc-list-item--activated,
+.mdc-select__menu .mdc-list-item--selected,
+.mdc-select__menu .mdc-list-item--activated {
+    background-color: #555555 !important;
+    color: #ffffff !important;
+}
+
+
+/* Icônes éventuelles dans le menu */
+.mdc-menu-surface .material-icons,
+.mdc-menu-surface .material-symbols-outlined,
+.mdc-select__menu .material-icons,
+.mdc-select__menu .material-symbols-outlined {
+    color: #ffffff !important;
+    fill: #ffffff !important;
 }

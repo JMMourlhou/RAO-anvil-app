@@ -57,9 +57,13 @@ color_scheme:
 roles:
 - components: [TextBox]
   display_in_toolbox: true
-  name: m3-tb-compact
+  name: m3-tb-score-compact
   title: 'Jmarc: TextBox, hauteur et marge réduites, sans trait, ni bordure'
 - components: [DropDown]
   display_in_toolbox: true
-  name: role-m3-dd-compact
+  name: m3-dd-score-compact
   title: 'Jmarc: DropDown, hauteur et marge réduites, sans trait, ni bordure'
+- components: [FlowPanel]
+  display_in_toolbox: true
+  name: m3-flow-score-compact
+  title: 'Jmarc: FlowPanel, hauteur et marge réduites, '
