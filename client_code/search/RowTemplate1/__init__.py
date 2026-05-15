@@ -425,7 +425,7 @@ class RowTemplate1(RowTemplate1Template):
         - sinon :
           Vérification
         """
-
+        self.button_generer_html.role = ""   # Reset qui évite qu’un ancien rôle reste accroché si la row est réutilisée.
         score = self.item_value("score", 0)
         mots_score_trouves = self.item_value("mots_score_trouves", [])
 
@@ -446,25 +446,32 @@ class RowTemplate1(RowTemplate1Template):
 
         # Priorité : afficher le score quand il existe
         if score > 0:
-            if score >= 10:
-                self.button_generer_html.background_color = "#6b8e23"  # olive
-                self.button_generer_html.role = "bt-texte-olive"
-    
-            elif 2 <= score < 10:
-                self.button_generer_html.background_color = "#fff59d"  # jaune pastel
-                self.button_generer_html.foreground_color = "dark"
-    
-            elif score == 1:
-                self.button_generer_html.background_color = "#ffcdd2"  # rouge pastel
-                self.button_generer_html.foreground_color = "dark"
-                
-            libelle = f"Vérification | score {score}"
+            priorite = ""
 
-            if mots_score_trouves:
-                libelle += " | " + ", ".join(mots_score_trouves)
-
-            self.button_generer_html.text = libelle
-            return
+        if score >= 10:
+            self.button_generer_html.role = "bt-verif-forte"   # le role est définit ds le theme.css
+            priorite = "forte priorité"
+    
+        elif score >= 2:
+            self.button_generer_html.role = "bt-verif-moyenne"
+            priorite = "priorité moyenne"
+    
+        elif score == 1:
+            self.button_generer_html.role = "bt-verif-faible"
+            priorite = "priorité faible"
+    
+        if priorite:
+            libelle = f"Vérification · {priorite}"
+        else:
+            libelle = "Vérification"
+    
+        if mots_score_trouves:
+            libelle += " : " + ", ".join(mots_score_trouves)
+        elif mots_clefs_trouves:
+            libelle += " : " + ", ".join(mots_clefs_trouves)
+    
+        self.button_generer_html.text = libelle
+        return
 
         # Sinon, ancien comportement
         if mots_clefs_trouves:

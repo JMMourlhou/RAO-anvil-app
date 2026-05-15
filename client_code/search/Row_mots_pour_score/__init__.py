@@ -32,9 +32,8 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
             self.text_box_mot.focus()
             return
 
-        if valeur == 0 :
-            alert("Sélectionnez la valeur")
-            self.text_box_valeur.focus()
+        if valeur == 0:
+            alert("Sélectionnez l'importance du mot.")
             return
             
         self.parent.raise_event("x-modif",
@@ -48,18 +47,15 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
         self.icon_button_valid_mot_score.visible = True
 
 
-    def text_box_valeur_pressed_enter(self, **event_args):
-        """This method is called when the user presses enter in this component."""
-        self.icon_button_valid_mot_score.visible = True
-
 
     def text_box_mot_change(self, **event_args):
         """This method is called when the text in this component is edited."""
         self.icon_button_valid_mot_score.visible = True
 
 
-    def text_box_valeur_change(self, **event_args):
-        """This method is called when the text in this component is edited."""
+
+    def dropdown_menu_valeur_change(self, **event_args):
+        """This method is called when an item is selected"""
         self.icon_button_valid_mot_score.visible = True
 
   

@@ -65,25 +65,175 @@ m3-tb-compact           TextBox M3 plus compacte, sans trait
 }
 
 /* =========================================================
-CUSTOM JM - Bouton M3 avec texte olive
-Équivalent CSS de :
-self.button_generer_html.foreground_color = "#ffffff"  (blanc)
+CUSTOM JM - Rôle pour M3 DropdownMenu compact
+m3-dd-compact
 
-Dans le code, l'appeler par:   self.button_generer_html.role = "bt-texte-olive"
+Objectif :
+- hauteur proche du TextBox compact
+- suppression label / bordure / marge
+- texte et icône alignés
 ========================================================= */
 
-.anvil-role-bt-texte-olive.anvil-m3-button,
-.anvil-role-bt-texte-olive.anvil-m3-button.anvil-m3-filled,
-.anvil-role-bt-texte-olive.anvil-m3-button.anvil-m3-outlined,
-.anvil-role-bt-texte-olive.anvil-m3-button.anvil-m3-text,
-.anvil-role-bt-texte-olive.anvil-m3-button.anvil-m3-tonal {
+.anvil-role-m3-dd-compact {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 20px !important;
+    height: 24px !important;
+    overflow: visible !important;
+}
+
+/* Wrappers Anvil / M3 */
+.anvil-role-m3-dd-compact.anvil-m3-dropdown-menu,
+.anvil-role-m3-dd-compact .anvil-m3-dropdown-menu,
+.anvil-role-m3-dd-compact.anvil-m3-dropdown,
+.anvil-role-m3-dd-compact .anvil-m3-dropdown {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 20px !important;
+    height: 24px !important;
+    overflow: visible !important;
+}
+
+/* Anciennes classes MDC Select */
+.anvil-role-m3-dd-compact .mdc-select,
+.anvil-role-m3-dd-compact.mdc-select {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 20px !important;
+    height: 24px !important;
+}
+
+/* Zone cliquable */
+.anvil-role-m3-dd-compact .mdc-select__anchor {
+    margin: 0 !important;
+    padding: 0 4px !important;
+    min-height: 20px !important;
+    height: 24px !important;
+    line-height: 20px !important;
+}
+
+/* Texte sélectionné */
+.anvil-role-m3-dd-compact .mdc-select__selected-text-container,
+.anvil-role-m3-dd-compact .mdc-select__selected-text {
+    height: 20px !important;
+    line-height: 20px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    font-size: 14px !important;
+}
+
+/* Supprime le label flottant qui prend de la hauteur */
+.anvil-role-m3-dd-compact .mdc-floating-label {
+    display: none !important;
+}
+
+/* Supprime le notch / contour */
+.anvil-role-m3-dd-compact .mdc-notched-outline,
+.anvil-role-m3-dd-compact .mdc-notched-outline__leading,
+.anvil-role-m3-dd-compact .mdc-notched-outline__notch,
+.anvil-role-m3-dd-compact .mdc-notched-outline__trailing {
+    border: none !important;
+    display: none !important;
+}
+
+/* Supprime trait bas éventuel */
+.anvil-role-m3-dd-compact .mdc-line-ripple {
+    display: none !important;
+}
+
+/* Icône flèche */
+.anvil-role-m3-dd-compact .mdc-select__dropdown-icon {
+    top: 0 !important;
+    right: 0 !important;
+}
+
+/* Icône SVG */
+.anvil-role-m3-dd-compact .mdc-select__dropdown-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+/* Fond neutre */
+.anvil-role-m3-dd-compact .mdc-select,
+.anvil-role-m3-dd-compact .mdc-select__anchor {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+
+
+/* =========================================================
+CUSTOM JM - Boutons Vérification selon priorité
+========================================================= */
+
+/* =========================
+FORTE PRIORITÉ - Olive
+========================= */
+
+.anvil-role-bt-verif-forte.anvil-m3-button,
+.anvil-role-bt-verif-forte.anvil-m3-button.anvil-m3-filled,
+.anvil-role-bt-verif-forte.anvil-m3-button.anvil-m3-outlined,
+.anvil-role-bt-verif-forte.anvil-m3-button.anvil-m3-text,
+.anvil-role-bt-verif-forte.anvil-m3-button.anvil-m3-tonal {
+    background-color: #6b8e23 !important;
     color: #ffffff !important;
+    border-color: #6b8e23 !important;
 }
 
 /* Texte interne + icône éventuelle */
-.anvil-role-bt-texte-olive.anvil-m3-button *,
-.anvil-role-bt-texte-olive.anvil-m3-button .material-icons,
-.anvil-role-bt-texte-olive.anvil-m3-button .material-symbols-outlined {
+.anvil-role-bt-verif-forte.anvil-m3-button *,
+.anvil-role-bt-verif-forte.anvil-m3-button .material-icons,
+.anvil-role-bt-verif-forte.anvil-m3-button .material-symbols-outlined {
     color: #ffffff !important;
     fill: #ffffff !important;
+}
+
+
+/* =========================
+PRIORITÉ MOYENNE - Jaune
+========================= */
+
+.anvil-role-bt-verif-moyenne.anvil-m3-button,
+.anvil-role-bt-verif-moyenne.anvil-m3-button.anvil-m3-filled,
+.anvil-role-bt-verif-moyenne.anvil-m3-button.anvil-m3-outlined,
+.anvil-role-bt-verif-moyenne.anvil-m3-button.anvil-m3-text,
+.anvil-role-bt-verif-moyenne.anvil-m3-button.anvil-m3-tonal {
+    background-color: #fff59d !important;
+    color: #111111 !important;
+    border-color: #fff59d !important;
+}
+
+/* Texte interne + icône éventuelle */
+.anvil-role-bt-verif-moyenne.anvil-m3-button *,
+.anvil-role-bt-verif-moyenne.anvil-m3-button .material-icons,
+.anvil-role-bt-verif-moyenne.anvil-m3-button .material-symbols-outlined {
+    color: #111111 !important;
+    fill: #111111 !important;
+}
+
+
+/* =========================
+PRIORITÉ FAIBLE - Rouge pastel
+========================= */
+
+.anvil-role-bt-verif-faible.anvil-m3-button,
+.anvil-role-bt-verif-faible.anvil-m3-button.anvil-m3-filled,
+.anvil-role-bt-verif-faible.anvil-m3-button.anvil-m3-outlined,
+.anvil-role-bt-verif-faible.anvil-m3-button.anvil-m3-text,
+.anvil-role-bt-verif-faible.anvil-m3-button.anvil-m3-tonal {
+    background-color: #ffcdd2 !important;
+    color: #111111 !important;
+    border-color: #ffcdd2 !important;
+}
+
+/* Texte interne + icône éventuelle */
+.anvil-role-bt-verif-faible.anvil-m3-button *,
+.anvil-role-bt-verif-faible.anvil-m3-button .material-icons,
+.anvil-role-bt-verif-faible.anvil-m3-button .material-symbols-outlined {
+    color: #111111 !important;
+    fill: #111111 !important;
 }

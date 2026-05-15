@@ -173,21 +173,15 @@ class search(searchTemplate):
         self.histo_id = row.get_id()
 
         self.text_box_mot_clef.text = row["mots_cles"]
-        try:
-            self.text_box_mots_ou.text = row["mots_ou"] or ""
-        except Exception:
-            self.text_box_mots_ou.text = ""
-
+        
         try:
             self.text_box_mots_exclus.text = row["mots_exclus"] or ""
         except Exception:
             self.text_box_mots_exclus.text = ""
+            
         self.text_box_nb_jours.text = row["nb_jours"]
         self.text_box_departements.text = row["departements"]
-        try:
-            self.checkbox_mots_cles_dans_score.checked = bool(row["mots_cles_in_score"])
-        except Exception:
-            self.checkbox_mots_cles_dans_score.checked = False
+            
         src = row["sources"]
         if src is not None:
             self.multi_select_drop_down_platformes.selected = src
@@ -199,7 +193,6 @@ class search(searchTemplate):
         except Exception:
             self.dict_mots_score = {}
         
-        self.text_box_mots_pour_score.text = self.mots_score_to_text(self.dict_mots_score)
         self.list_offres = self.normaliser_liste_offres_vu(row["offres"] or [])
 
         return row
@@ -213,21 +206,23 @@ class search(searchTemplate):
     
         # --- Lecture des champs ---
         mots_obligatoires_texte = self.text_box_mot_clef.text or ""
-        mots_ou_texte = self.text_box_mots_ou.text or ""
         mots_exclus_texte = self.text_box_mots_exclus.text or ""
         deps_texte = self.text_box_departements.text or ""
         
-        print("===== DEBUG CHAMPS BRUTS =====")
-        print("text_box_mot_clef =", repr(self.text_box_mot_clef.text))
-        print("text_box_mots_ou =", repr(self.text_box_mots_ou.text))
-        print("text_box_mots_exclus =", repr(self.text_box_mots_exclus.text))
-        print("text_box_mots_pour_score =", repr(self.text_box_mots_pour_score.text))
-        print("==============================")
-        
         # --- Conversion en listes propres ---
         mots_obligatoires = self.extraire_liste_mots_saisie(mots_obligatoires_texte)
-        mots_ou = self.extraire_liste_mots_saisie(mots_ou_texte)
+        
+        # Les mots OU viennent maintenant de la liste avec importance
+        mots_ou = self.get_mots_ou_depuis_score()
+        
         mots_exclus = self.extraire_liste_mots_saisie(mots_exclus_texte)
+        
+        print("===== DEBUG CHAMPS BRUTS =====")
+        print("text_box_mot_clef =", repr(self.text_box_mot_clef.text))
+        print("mots_ou depuis dict_mots_score =", mots_ou)
+        print("text_box_mots_exclus =", repr(self.text_box_mots_exclus.text))
+        print("dict_mots_score utilisateur =", self.dict_mots_score)
+        print("==============================")
     
         depts = [d.strip() for d in deps_texte.split(",") if d.strip()]
     
@@ -269,15 +264,20 @@ class search(searchTemplate):
         print("🔎 Requêtes envoyées aux sources :", mots_clefs)
         print("🗺️ Départements saisis :", depts)
         print(f"Sources: {selected_platformes}")
-    
-        # --- Construction du dictionnaire des mots pour le scoring ---
+
+        # --- Construction du dictionnaire final utilisé pour le scoring ---
         dict_score = self.build_dict_mots_score()
+        
+        if dict_score is None:
+            return
+        
+        self.dict_score_recherche = dict_score
+        
+        print("dict_mots_score utilisateur :", self.dict_mots_score)
+        print("dict_score_recherche utilisé pour scoring :", self.dict_score_recherche)
     
         if dict_score is None:
             return
-    
-        self.dict_mots_score = dict_score
-        print("dict_mots_score utilisé pour scoring :", self.dict_mots_score)
     
         # --- Récupération brute des offres ---
         try:
@@ -367,7 +367,7 @@ class search(searchTemplate):
             offres_scorees = anvil.server.call(
                 "scorer_offres",
                 self.offres_preparees,
-                self.dict_mots_score or {}
+                self.dict_score_recherche or {}
             )
         except Exception as e:
             print(f"Erreur au module serveur 'scorer_offres': {e}")
@@ -380,7 +380,14 @@ class search(searchTemplate):
     
         # --- Ajout sécurité de la clé vu=False dans chaque offre ---
         offres_scorees = self.normaliser_liste_offres_vu(offres_scorees)
-    
+        print("===== DEBUG SCORES =====")
+        for o in offres_scorees:
+            print(
+                "titre:", o.get("titre"),
+                "| score:", o.get("score"),
+                "| type:", type(o.get("score"))
+            )
+        print("========================")
         nb_offres = len(offres_scorees)
     
         # --- Backup de la requête avec les offres scorées ---
@@ -390,16 +397,16 @@ class search(searchTemplate):
             "backup_requete",
             self.user,
             selected_platformes,
-            self.text_box_mot_clef.text,
+            self.get_mots_obligatoires_texte(),
             self.text_box_nb_jours.text,
             self.text_box_departements.text,
             date_time,
             nb_offres,
             offres_scorees,
-            self.dict_mots_score,
-            bool(self.checkbox_mots_cles_dans_score.checked),
-            self.text_box_mots_ou.text,
-            self.text_box_mots_exclus.text
+            self.dict_mots_score,     # On sauvegarde les mots OU + importance choisis par l'utilisateur
+            True,                     # La checkbox disparaît : les mots obligatoires sont inclus automatiquement dans le scoring final         
+            self.get_mots_ou_texte(),  # mots_ou généré depuis repeating_panel_mots_pour_score
+            self.get_mots_exclus_texte()
         )
     
         if not result or not result.get("ok"):
@@ -427,9 +434,9 @@ class search(searchTemplate):
     
         self.text_param_summary.text = (
             f"Plateformes : {self.multi_select_drop_down_platformes.selected} / "
-            f"Obligatoires : {self.text_box_mot_clef.text or '-'} / "
+            f"Obligatoires : {self.get_mots_obligatoires_texte() or '-'} / "
             f"Au moins un : {self.text_box_mots_ou.text or '-'} / "
-            f"Exclus : {self.text_box_mots_exclus.text or '-'} / "
+            f"Exclus : {self.get_mots_exclus_texte() or '-'} / "
             f"sur les {self.text_box_nb_jours.text} derniers jours / "
             f"Départements : {self.text_box_departements.text or '-'}"
         )
@@ -875,7 +882,7 @@ class search(searchTemplate):
     
         On surligne :
         - les mots obligatoires
-        - les mots OU
+        - les mots OU issus de dict_mots_score
     
         On ne surligne pas les mots exclus.
         """
@@ -887,14 +894,16 @@ class search(searchTemplate):
         )
     
         mots.extend(
-            self.extraire_liste_mots_saisie(self.text_box_mots_ou.text or "")
+            self.get_mots_ou_depuis_score()
         )
     
         resultat = []
         deja_vus = set()
     
         for mot in mots:
-            if mot not in deja_vus:
+            mot = str(mot or "").strip().lower()
+    
+            if mot and mot not in deja_vus:
                 deja_vus.add(mot)
                 resultat.append(mot)
     
@@ -1214,68 +1223,112 @@ class search(searchTemplate):
         self.data_grid_mots_pour_score.visible = False
 
     def icon_button_valid_mot_score_click(self, **event_args):
-        cle = (self.text_box_mot.text or "").strip()
+        cle = (self.text_box_mot.text or "").strip().lower()
         valeur = self.dropdown_menu_valeur.selected_value or 0
+    
         if cle == "":
-            alert("Entrez le mot à prendre en compte dans le scoring")
+            alert("Entrez le mot à rechercher.")
             self.text_box_mot.focus()
             return
-
+    
         if valeur == 0:
-            alert("Entrez la valeur")
-            self.text_box_valeur.focus()
+            alert("Sélectionnez l'importance du mot.")
             return
-
+    
         try:
-            self.dict_mots_score[cle] = int(valeur)
+            valeur = int(valeur)
         except Exception:
-            alert("La valeur doit être un nombre entier.")
-            self.text_box_valeur.focus()
+            alert("La valeur doit être 1, 5 ou 10.")
             return
-
+    
+        if valeur not in [1, 5, 10]:
+            alert("Valeurs autorisées : 1, 5 ou 10.")
+            return
+    
+        # Ajout ou remplacement du mot
+        self.dict_mots_score[cle] = valeur
+    
         self.display_mots_pour_score()
-
-        print(self.dict_mots_score)
-
+    
+        print("dict_mots_score utilisateur :", self.dict_mots_score)
+    
         self.text_box_mot.text = ""
         self.dropdown_menu_valeur.selected_value = None
         self.icon_button_valid_mot_score.visible = False
         self.data_grid_mots_pour_score.visible = True
 
     def del_mot_pour_score(self, sender, mot=None, **event_args):
+        mot = str(mot or "").strip().lower()
         if mot in self.dict_mots_score:
             del self.dict_mots_score[mot]
+  
         self.display_mots_pour_score()
 
     def modif_mot_pour_score(self, sender, item=None, cle=None, valeur=None, **event_args):
-        if item and item[0] in self.dict_mots_score:
-            del self.dict_mots_score[item[0]]
-
+        # Ancienne clé à supprimer
+        if item and item[0]:
+            ancienne_cle = str(item[0]).strip().lower()
+    
+            if ancienne_cle in self.dict_mots_score:
+                del self.dict_mots_score[ancienne_cle]
+    
+        cle = str(cle or "").strip().lower()
+    
+        if not cle:
+            alert("Le mot ne peut pas être vide.")
+            return
+    
         try:
-            self.dict_mots_score[cle] = int(valeur)
+            valeur = int(valeur)
         except Exception:
             alert("La valeur doit être un nombre entier.")
             return
-
+    
+        if valeur not in [1, 5, 10]:
+            alert("Valeurs autorisées : 1, 5 ou 10.")
+            return
+    
+        self.dict_mots_score[cle] = valeur
+    
         n = Notification("Modification effectuée", timeout=1.5)
         n.show()
-
+    
         self.display_mots_pour_score()
 
     def display_mots_pour_score(self, **event_args):
+        """
+        Affiche les mots OU + importance dans le repeating panel.
+        """
+    
         list_keys = sorted(self.dict_mots_score.keys())
-
+    
         list_display = []
-
+    
         for mk in list_keys:
             list_display.append((mk, self.dict_mots_score[mk]))
-
-        print(len(list_display))
-
+    
+        print("Nb mots OU avec importance :", len(list_display))
+    
         self.repeating_panel_mots_pour_score.items = list(list_display)
+    
         self.data_grid_mots_pour_score.visible = True
         self.column_panel_add.visible = False
         self.button_add_mot.visible = True
+    
+        # Compatibilité temporaire si text_box_mots_ou existe encore dans l'IDE.
+        # Quand le composant sera supprimé, ce try évitera de casser.
+        try:
+            self.text_box_mots_ou.text = self.get_mots_ou_texte()
+        except Exception:
+            pass
+    
+        # Compatibilité temporaire si text_box_mots_pour_score existe encore.
+        try:
+            self.text_box_mots_pour_score.text = self.mots_score_to_text(self.dict_mots_score)
+        except Exception:
+            pass
+    
+        self.button_search.visible = True
 
     def get_mots_ou_depuis_score(self):
         """
@@ -1319,102 +1372,82 @@ class search(searchTemplate):
     
         return ", ".join(self.get_mots_ou_depuis_score())
 
+    def get_mots_obligatoires_texte(self):
+        """
+        Retourne les mots obligatoires nettoyés pour sauvegarde/affichage.
+        """
+        return ", ".join(
+            self.extraire_liste_mots_saisie(self.text_box_mot_clef.text or "")
+        )
+
+
+    def get_mots_exclus_texte(self):
+        """
+        Retourne les mots exclus nettoyés pour sauvegarde/affichage.
+        """
+        return ", ".join(
+            self.extraire_liste_mots_saisie(self.text_box_mots_exclus.text or "")
+        )
         
     def build_dict_mots_score(self):
         """
-        Construit le dictionnaire des mots pour le scoring.
+        Construit le dictionnaire final utilisé pour le scoring.
     
-        Format attendu :
-        rénovation:10, restauration:5, bois:1
+        Source principale :
+        - self.dict_mots_score : mots OU + importance choisis par l'utilisateur
     
-        Retourne :
-        - un dictionnaire si tout est correct
-        - None si erreur de saisie
+        Ajout automatique :
+        - les mots obligatoires sont ajoutés avec une valeur 1
+        sans apparaître dans la liste des mots OU.
         """
     
         dict_temp = {}
     
         # =====================================================
-        # 1. Lecture du champ optionnel mots pour score
-        # =====================================================
-    
-        texte_score = (self.text_box_mots_pour_score.text or "").strip()
-    
-        if texte_score:
-            morceaux = texte_score.split(",")
-    
-            for morceau in morceaux:
-                morceau = morceau.strip()
-    
-                if not morceau:
-                    continue
-    
-                if ":" not in morceau:
-                    alert(
-                        f"Format incorrect pour : {morceau}\n\n"
-                        "Format attendu : mot:valeur\n"
-                        "Exemple : rénovation:10, restauration:5"
-                    )
-                    self.text_box_mots_pour_score.focus()
-                    return None
-    
-                mot, valeur = morceau.split(":", 1)
-    
-                mot = mot.strip().lower()
-                valeur = valeur.strip()
-    
-                if not mot:
-                    alert(
-                        "Un mot est vide dans les mots pour score.\n\n"
-                        "Format attendu : rénovation:10, restauration:5"
-                    )
-                    self.text_box_mots_pour_score.focus()
-                    return None
-    
-                if not valeur:
-                    alert(
-                        f"Valeur manquante pour : {mot}\n\n"
-                        "Format attendu : mot:valeur\n"
-                        "Exemple : rénovation:10"
-                    )
-                    self.text_box_mots_pour_score.focus()
-                    return None
-    
-                try:
-                    valeur = int(valeur)
-                except Exception:
-                    alert(
-                        f"Valeur incorrecte pour : {mot}\n\n"
-                        "La valeur doit être un nombre : 1, 5 ou 10."
-                    )
-                    self.text_box_mots_pour_score.focus()
-                    return None
-    
-                if valeur not in [1, 5, 10]:
-                    alert(
-                        f"Valeur non autorisée pour : {mot}\n\n"
-                        "Valeurs autorisées : 1, 5 ou 10."
-                    )
-                    self.text_box_mots_pour_score.focus()
-                    return None
-    
-                dict_temp[mot] = valeur
-    
-        # =====================================================
-        # 2. Ajouter aussi les mots-clés de recherche au score
+        # 1. Mots OU + importance
         # =====================================================
     
         try:
-            utiliser_mots_cles = bool(self.checkbox_mots_cles_dans_score.checked)
+            items = self.dict_mots_score.items()
         except Exception:
-            utiliser_mots_cles = False
+            items = []
     
-        if utiliser_mots_cles:
-            mots_cles = self.extraire_mots_cles_pour_score()
+        for mot, valeur in items:
+            mot = str(mot or "").strip().lower()
     
-            for mot in mots_cles:
-                if mot not in dict_temp:
-                    dict_temp[mot] = 1
+            if not mot:
+                continue
+    
+            try:
+                valeur = int(valeur)
+            except Exception:
+                alert(f"Valeur incorrecte pour : {mot}")
+                return None
+    
+            if valeur not in [1, 5, 10]:
+                alert(
+                    f"Valeur non autorisée pour : {mot}\n\n"
+                    "Valeurs autorisées : 1, 5 ou 10."
+                )
+                return None
+    
+            dict_temp[mot] = valeur
+    
+        # =====================================================
+        # 2. Ajout automatique des mots obligatoires au score
+        # =====================================================
+        # Ils ne servent pas à faire le OU.
+        # Ils ajoutent seulement un petit score de base.
+    
+        mots_obligatoires = self.extraire_liste_mots_saisie(
+            self.text_box_mot_clef.text or ""
+        )
+    
+        for mot in mots_obligatoires:
+            mot = str(mot or "").strip().lower()
+    
+            if mot and mot not in dict_temp:
+                dict_temp[mot] = 1
     
         return dict_temp
 

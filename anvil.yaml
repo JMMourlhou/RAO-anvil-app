@@ -65,7 +65,7 @@ db_schema:
     - admin_ui: {order: -2, width: 200}
       name: email
       type: string
-    - admin_ui: {order: 3, width: 116}
+    - admin_ui: {order: 3, width: 86}
       client_hidden: false
       name: nb_jours
       type: number
@@ -84,7 +84,7 @@ db_schema:
       client_hidden: false
       name: offres
       type: simpleObject
-    - admin_ui: {order: 5.5, width: 144}
+    - admin_ui: {order: 5.5, width: 87}
       client_hidden: false
       name: nb_offres
       type: number
@@ -92,7 +92,7 @@ db_schema:
       client_hidden: false
       name: mots_cles_in_score
       type: bool
-    - admin_ui: {order: 2, width: 933}
+    - admin_ui: {order: 2, width: 712}
       client_hidden: false
       name: mots_score_obj
       type: simpleObject
