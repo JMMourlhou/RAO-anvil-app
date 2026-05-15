@@ -3,7 +3,7 @@ components:
   - components:
     - layout_properties: {}
       name: text_box_mot
-      properties: {role: m3-tb-compact}
+      properties: {font_size: null, role: m3-tb-compact}
       type: TextBox
     - layout_properties: {width: 141.97884404296875}
       name: dropdown_menu_valeur

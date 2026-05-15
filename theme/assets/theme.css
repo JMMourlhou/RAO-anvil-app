@@ -59,7 +59,7 @@ m3-tb-compact           TextBox M3 plus compacte, sans trait
 /* On compacte seulement le texte interne */
 .anvil-role-m3-tb-compact input {
     font-size: 14px !important;
-    line-height: 18px !important;
+    line-height: 20px !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
 }

@@ -72,11 +72,6 @@ components:
         placeholder: Mots à trouver obligatoirement dans l'offre
         text: ''
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-    - event_bindings: {change: text_box_mots_ou_change, pressed_enter: text_box_mots_ou_pressed_enter}
-      layout_properties: {grid_position: 'GVIAPY,HLQRFW'}
-      name: text_box_mots_ou
-      properties: {appearance: outlined, enabled: true, label: 'Au moins un de ces mots doit être trouvé :', placeholder: 'Au moins un de ces mots doit être trouvé :', visible: false}
-      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - event_bindings: {change: text_box_mots_exclus_change, pressed_enter: text_box_mots_exclus_pressed_enter}
       layout_properties: {grid_position: 'BDJSNN,GVSLOG'}
       name: text_box_mots_exclus
@@ -116,22 +111,6 @@ components:
         name: column_panel_4
         properties: {background: '', col_spacing: tiny, col_widths: '{"HPVWLA":12,"GKJCGS":48}'}
         type: ColumnPanel
-      - event_bindings: {change: text_box_mot_clef_change, focus: text_box_mots_pour_score_focus, pressed_enter: text_box_mot_clef_change}
-        layout_properties: {grid_position: 'OUUGQA,SCWRZM'}
-        name: text_box_mots_pour_score
-        properties:
-          appearance: outlined
-          label: 'Mots : valeur (pour classer les offres retenues)'
-          margin: ['30', null, null, null]
-          placeholder: 'Mots : valeur (pour classer les offres retenues)'
-          supporting_text: 'Ex: rénovation:10, agrandissement:5, démolition:1, ... '
-          visible: false
-        type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-      - event_bindings: {change: checkbox_mots_cles_dans_score_change}
-        layout_properties: {grid_position: 'MVJFJD,TZNUWQ'}
-        name: checkbox_mots_cles_dans_score
-        properties: {align: center, text: Cocher pour que les mots clefs soient inclus dans le score, visible: false}
-        type: form:dep_lin1x4oec0ytd:_Components.Checkbox
       - components:
         - layout_properties: {grid_position: 'CGDTEY,AAKLXG'}
           name: text_3
