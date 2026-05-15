@@ -32,8 +32,8 @@ class search(searchTemplate):
         self.histo_id = None
         self.list_offres = []
         self.offres_preparees = []
-        self.dict_mots_score = dict(dict_mots_score or {})
-        
+        self.dict_mots_score = dict(dict_mots_score or {})    # mots type OU saisis par l'utilisateur + importance
+        self.dict_score_recherche = {}                        # dictionnaire final utilisé pour scorer
         # Evite les traitements indésirables quand on modifie la checkbox par code
         self._ignore_checkbox_on_off_change = False
 
@@ -1277,6 +1277,49 @@ class search(searchTemplate):
         self.column_panel_add.visible = False
         self.button_add_mot.visible = True
 
+    def get_mots_ou_depuis_score(self):
+        """
+        Les mots OU viennent maintenant de self.dict_mots_score.
+    
+        Exemple :
+        self.dict_mots_score = {"sst": 10, "mac": 10, "pse1": 5}
+    
+        Retour :
+        ["sst", "mac", "pse1"]
+        """
+    
+        mots = []
+    
+        try:
+            items = self.dict_mots_score.items()
+        except Exception:
+            return mots
+    
+        deja_vus = set()
+    
+        for mot, valeur in items:
+            mot = str(mot or "").strip().lower()
+    
+            if not mot:
+                continue
+    
+            if mot not in deja_vus:
+                deja_vus.add(mot)
+                mots.append(mot)
+    
+        return mots
+
+
+    def get_mots_ou_texte(self):
+        """
+        Retourne les mots OU sous forme texte pour :
+        - affichage résumé
+        - sauvegarde histo['mots_ou']
+        """
+    
+        return ", ".join(self.get_mots_ou_depuis_score())
+
+        
     def build_dict_mots_score(self):
         """
         Construit le dictionnaire des mots pour le scoring.
