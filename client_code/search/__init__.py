@@ -36,7 +36,11 @@ class search(searchTemplate):
         self.dict_score_recherche = {}                        # dictionnaire final utilisé pour scorer
         # Evite les traitements indésirables quand on modifie la checkbox par code
         self._ignore_checkbox_on_off_change = False
-
+        self.dropdown_menu_valeur.items = [
+            ("*", 1),
+            ("* *", 5),
+            ("* * *", 10)
+        ]
         # =====================================================================
         # Events du repeating panel des mots pour score
         # =====================================================================
@@ -1210,7 +1214,7 @@ class search(searchTemplate):
 
     def icon_button_del_click(self, **event_args):
         self.text_box_mot.text = ""
-        self.text_box_valeur.text = ""
+        self.dropdown_menu_valeur.selected_value = None
         self.icon_button_valid_mot_score.visible = False
         self.column_panel_add.visible = False
         self.button_add_mot.visible = True
@@ -1220,7 +1224,7 @@ class search(searchTemplate):
         self.column_panel_add.visible = True
         self.button_add_mot.visible = False
         self.text_box_mot.focus()
-        self.data_grid_mots_pour_score.visible = False
+        #self.data_grid_mots_pour_score.visible = False
 
     def icon_button_valid_mot_score_click(self, **event_args):
         cle = (self.text_box_mot.text or "").strip().lower()
