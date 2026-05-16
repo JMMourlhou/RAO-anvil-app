@@ -14,7 +14,7 @@ components_by_slot:
       line_height: ''
       scale: large
       spacing:
-        margin: [null, null, '25', null]
+        margin: [null, null, '10', null]
         padding: ['10', null, null, null]
       style: body
       text: A.O.S - Appels d'Offres Survey
@@ -38,7 +38,7 @@ components_by_slot:
       italic: false
       role: outlined-button
       spacing:
-        margin: ['0', null, '20', null]
+        margin: ['0', null, '10', null]
         padding: ['0', null, '0', null]
       spacing_above: small
       spacing_below: none

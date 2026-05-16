@@ -136,16 +136,20 @@ components:
               type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
             - components:
               - event_bindings: {change: dropdown_menu_valeur_change}
-                layout_properties: {grid_position: 'LOSUFG,UATQVE'}
+                layout_properties: {full_width_row: false, grid_position: 'LOSUFG,JPEYVM'}
                 name: dropdown_menu_valeur
                 properties:
                   appearance: outlined
+                  border_color: theme:Primary
                   items: []
                   items_bold: true
                   items_font_size: 12
                   items_text_color: theme:Light Green
-                  label: Valeur
-                  label_color: theme:Primary
+                  label: Importance
+                  label_bold: false
+                  label_color: theme:White
+                  placeholder: Importance
+                  selected_text_color: theme:Light Green
                   visible: true
                 type: form:dep_lin1x4oec0ytd:_Components.DropdownMenu
               - components:
@@ -181,7 +185,7 @@ components:
                 type: FlowPanel
               layout_properties: {grid_position: 'PRNYOO,NLZFGH'}
               name: column_panel_5
-              properties: {background: 'theme:Primar', col_spacing: tiny, col_widths: '{"BXNMQL":47,"UATQVE":19}', wrap_on: never}
+              properties: {background: 'theme:Primar', col_spacing: tiny, col_widths: '{"BXNMQL":50}', wrap_on: never}
               type: ColumnPanel
             layout_properties: {grid_position: 'DODJSV,ZIEUHD'}
             name: column_panel_add_mot_pour_score
@@ -202,6 +206,7 @@ components:
           - layout_properties: {}
             name: repeating_panel_mots_pour_score
             properties:
+              foreground: ''
               item_template: search.Row_mots_pour_score
               margin: [null, '1', null, '1']
             type: RepeatingPanel

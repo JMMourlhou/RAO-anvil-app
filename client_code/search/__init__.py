@@ -439,7 +439,7 @@ class search(searchTemplate):
         self.text_param_summary.text = (
             f"Plateformes : {self.multi_select_drop_down_platformes.selected} / "
             f"Obligatoires : {self.get_mots_obligatoires_texte() or '-'} / "
-            f"Au moins un : {self.text_box_mots_ou.text or '-'} / "
+            f"Au moins un : {mots_ou or '-'} / "
             f"Exclus : {self.get_mots_exclus_texte() or '-'} / "
             f"sur les {self.text_box_nb_jours.text} derniers jours / "
             f"Départements : {self.text_box_departements.text or '-'}"
@@ -1318,20 +1318,6 @@ class search(searchTemplate):
         self.data_grid_mots_pour_score.visible = True
         self.column_panel_add.visible = False
         self.button_add_mot.visible = True
-    
-        # Compatibilité temporaire si text_box_mots_ou existe encore dans l'IDE.
-        # Quand le composant sera supprimé, ce try évitera de casser.
-        try:
-            self.text_box_mots_ou.text = self.get_mots_ou_texte()
-        except Exception:
-            pass
-    
-        # Compatibilité temporaire si text_box_mots_pour_score existe encore.
-        try:
-            self.text_box_mots_pour_score.text = self.mots_score_to_text(self.dict_mots_score)
-        except Exception:
-            pass
-    
         self.button_search.visible = True
 
     def get_mots_ou_depuis_score(self):
