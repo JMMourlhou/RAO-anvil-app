@@ -13,9 +13,14 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
         # Any code you write here will run before the form opens.
+        self.DropDown_compact_valeur.items = [
+            ("*", 1),
+            ("* *", 5),
+            ("* * *", 10)
+        ]
         print(f"item: {self.item}")
         self.text_box_mot.text = self.item[0]     # mot, 1er élément ds la liste
-        self.dropdown_menu_valeur.selected_value = str(self.item[1])
+        self.DropDown_compact_valeur.selected_value = self.item[1]
 
     def icon_button_del_click(self, **event_args):
         self.parent.raise_event("x-del-mot",
@@ -25,7 +30,7 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
     #modif: je dois effecer l'ancienne cle/valeur et créer la nouvelle entrée modifiée    
     def icon_button_valid_mot_score_click(self, **event_args):
         cle = (self.text_box_mot.text or "").strip()
-        valeur = (self.dropdown_menu_valeur.selected_value or 0)
+        valeur = (self.DropDown_compact_valeur.selected_value or 0)
 
         if cle == "" :
             alert("Entrez le mot à prendre en compte dans le scoring")
@@ -52,9 +57,7 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
         """This method is called when the text in this component is edited."""
         self.icon_button_valid_mot_score.visible = True
 
-
-
-    def dropdown_menu_valeur_change(self, **event_args):
+    def DropDown_compact_valeur_change(self, **event_args):
         """This method is called when an item is selected"""
         self.icon_button_valid_mot_score.visible = True
 
