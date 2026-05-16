@@ -157,7 +157,7 @@ class search(searchTemplate):
             # Pas encore d'historique pour un nouvel utilisateur
             self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
             self.text_box_mot_clef.text = "Football et Ballon"
-            self.text_box_mots_ou.text = ""
+            #self.text_box_mots_ou.text = ""
             self.text_box_mots_exclus.text = ""
             self.text_box_nb_jours.text = "30"
             self.text_box_departements.text = None
@@ -1290,8 +1290,8 @@ class search(searchTemplate):
     
         self.dict_mots_score[cle] = valeur
     
-        n = Notification("Modification effectuée", timeout=1.5)
-        n.show()
+        #n = Notification("Modification effectuée", timeout=1.5)
+        #n.show()
     
         self.display_mots_pour_score()
 

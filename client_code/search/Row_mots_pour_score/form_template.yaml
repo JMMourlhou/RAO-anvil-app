@@ -2,7 +2,7 @@ components:
 - components:
   - components:
     - event_bindings: {change: text_box_mot_change, pressed_enter: text_box_mot_pressed_enter}
-      layout_properties: {width: 160.12523193359374}
+      layout_properties: {width: 148.15265380859375}
       name: text_box_mot
       properties:
         background: theme:Background
@@ -12,7 +12,7 @@ components:
         placeholder: Mot
         role: m3-tb-compact
       type: TextBox
-    - event_bindings: {change: DropDown_compact_valeur_change}
+    - event_bindings: {change: icon_button_valid_mot_score_click}
       layout_properties: {expand: false, width: 56.49888251953125}
       name: DropDown_compact_valeur
       properties:
@@ -20,7 +20,7 @@ components:
         background: theme:Background
         bold: true
         font_size: 12
-        foreground: theme:Red
+        foreground: theme:Light Green
         include_placeholder: false
         items: []
         margin: ['0', null, '0', '10']
@@ -32,37 +32,40 @@ components:
         layout_properties: {grid_position: 'VYOHIN,VAEUEL'}
         name: icon_button_valid_mot_score
         properties:
+          align: center
           appearance: elevated
           icon: mi:check_small
           icon_color: theme:Light Green
           icon_size: 28
           spacing:
-            margin: ['0', '0', '0', '2']
-            padding: [null, '4', null, '4']
+            margin: ['0', '2', '0', '2']
+            padding: [null, '2', null, '2']
           text: ''
-          visible: true
+          visible: false
         type: form:dep_lin1x4oec0ytd:_Components.Button
       - event_bindings: {click: icon_button_del_click}
         layout_properties: {grid_position: 'VYOHIN,MCIMSS'}
         name: icon_button_del
         properties:
+          align: center
           appearance: elevated
           icon: mi:close_small
+          icon_align: left
           icon_color: theme:Red
           icon_size: 28
           spacing:
-            margin: ['0', '2', '0', '0']
-            padding: [null, '4', null, '4']
+            margin: ['0', '10', '0', '10']
+            padding: [null, '2', null, '2']
           text: ''
         type: form:dep_lin1x4oec0ytd:_Components.Button
-      layout_properties: {}
+      layout_properties: {width: 80.86823681640624}
       name: column_panel_5
       properties:
         background: ''
-        col_spacing: tiny
-        col_widths: '{"VAEUEL":29,"MCIMSS":31}'
+        col_spacing: none
+        col_widths: '{"VAEUEL":32,"MCIMSS":28}'
         spacing:
-          margin: ['0', null, '0', null]
+          margin: ['0', '0', '0', '0']
         wrap_on: never
       type: ColumnPanel
     layout_properties: {grid_position: 'CZWVXU,SVCSMT'}

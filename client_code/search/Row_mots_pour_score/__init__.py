@@ -57,9 +57,6 @@ class Row_mots_pour_score(Row_mots_pour_scoreTemplate):
         """This method is called when the text in this component is edited."""
         self.icon_button_valid_mot_score.visible = True
 
-    def DropDown_compact_valeur_change(self, **event_args):
-        """This method is called when an item is selected"""
-        self.icon_button_valid_mot_score.visible = True
 
   
   

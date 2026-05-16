@@ -207,8 +207,9 @@ components:
           properties:
             auto_header: false
             background: ''
-            margin: ['0', '25', '10', '25']
+            margin: ['0', '10', '0', '10']
             rows_per_page: 5
+            show_page_controls: false
             visible: false
           type: DataGrid
         layout_properties: {grid_position: 'YPSTKC,RUQKJD'}
