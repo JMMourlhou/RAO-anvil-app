@@ -1185,23 +1185,7 @@ class search(searchTemplate):
     # =========================================================================
     # Gestion du dictionnaire des mots pour scoring
     # =========================================================================
-    """
-    def button_gestion_score_click(self, **event_args):
-        if self.column_panel_mots_pour_score.visible is False:
-            self.column_panel_mots_pour_score.visible = True
-            self.column_panel_add_mot_pour_score.visible = True
-            self.button_search.visible = False
-            self.scroll_into_view(smooth=self.text_box_mot_clef)
-
-            try:
-                if len(self.repeating_panel_mots_pour_score.items) > 0:
-                    self.repeating_panel_mots_pour_score.visible = True
-            except Exception:
-                pass
-        else:
-            self.column_panel_mots_pour_score.visible = False
-            self.button_search.visible = True
-    """
+    
     def text_box_mot_change(self, **event_args):
         if self.dropdown_menu_valeur.selected_value is not None:
             self.icon_button_valid_mot_score.visible = True
@@ -1216,12 +1200,12 @@ class search(searchTemplate):
         self.text_box_mot.text = ""
         self.dropdown_menu_valeur.selected_value = None
         self.icon_button_valid_mot_score.visible = False
-        self.column_panel_add.visible = False
+        self.column_panel_add_mot_pour_score.visible = False
         self.button_add_mot.visible = True
         self.data_grid_mots_pour_score.visible = True
 
     def button_add_mot_click(self, **event_args):
-        self.column_panel_add.visible = True
+        self.column_panel_add_mot_pour_score.visible = True
         self.button_add_mot.visible = False
         self.text_box_mot.focus()
         #self.data_grid_mots_pour_score.visible = False
@@ -1316,7 +1300,7 @@ class search(searchTemplate):
         self.repeating_panel_mots_pour_score.items = list(list_display)
     
         self.data_grid_mots_pour_score.visible = True
-        self.column_panel_add.visible = False
+        self.column_panel_add_mot_pour_score.visible = False
         self.button_add_mot.visible = True
         self.button_search.visible = True
 
