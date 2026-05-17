@@ -593,6 +593,7 @@ class search(searchTemplate):
 
         self.afficher_offres(self.list_offres)
         self.set_checkbox_on_off_sans_event(False)
+        self.column_panel_add_mot_pour_score.visible = False
 
     def button_del_before_modif_param(self, **event_args):
         """

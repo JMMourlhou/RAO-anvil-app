@@ -179,7 +179,7 @@ components:
                 layout_properties: {grid_position: 'MWPNHW,RHEPDE'}
                 name: flow_panel_1
                 properties:
-                  align: center
+                  align: justify
                   background: ''
                   border: ''
                   gap: tiny
@@ -200,7 +200,7 @@ components:
           properties:
             background: ''
             col_spacing: tiny
-            col_widths: '{"UFUTTR":35,"NLZFGH":18,"PXKEYW":27}'
+            col_widths: '{"UFUTTR":29,"NLZFGH":27,"PXKEYW":24}'
             spacing:
               margin: ['0', '2', '0', '2']
             visible: true
@@ -320,7 +320,7 @@ components:
       type: RepeatingPanel
     layout_properties: {slot: card-content-slot}
     name: data_grid_1
-    properties: {rows_per_page: 10, visible: false}
+    properties: {rows_per_page: 10, show_page_controls: false, visible: false}
     type: DataGrid
   layout_properties: {grid_position: 'GUQSUI,TTNXTK'}
   name: card_recherche
