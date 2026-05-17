@@ -320,7 +320,7 @@ components:
       type: RepeatingPanel
     layout_properties: {slot: card-content-slot}
     name: data_grid_1
-    properties: {rows_per_page: 10, show_page_controls: false, visible: false}
+    properties: {rows_per_page: null, show_page_controls: false, visible: false}
     type: DataGrid
   layout_properties: {grid_position: 'GUQSUI,TTNXTK'}
   name: card_recherche
