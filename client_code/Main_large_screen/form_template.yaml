@@ -38,7 +38,7 @@ components_by_slot:
       italic: false
       role: outlined-button
       spacing:
-        margin: ['0', null, '10', null]
+        margin: ['0', null, '2', null]
         padding: ['0', null, '0', null]
       spacing_above: small
       spacing_below: none

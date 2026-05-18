@@ -9,7 +9,8 @@ import m3.components as m3
 from .. import Time
 from datetime import date, datetime
 import re
-
+import anvil.js   # pour la détection d'un click sur le DropDown dropdown_menu_valeur
+from anvil.js import get_dom_node    # pour écouteur JS sur le DropDown
 
 class search(searchTemplate):
 
@@ -34,13 +35,28 @@ class search(searchTemplate):
         self.offres_preparees = []
         self.dict_mots_score = dict(dict_mots_score or {})    # mots type OU saisis par l'utilisateur + importance
         self.dict_score_recherche = {}                        # dictionnaire final utilisé pour scorer
+        #self.column_panel_mots_pour_score.border = "1px solid #BFC8CA"
         # Evite les traitements indésirables quand on modifie la checkbox par code
         self._ignore_checkbox_on_off_change = False
+        
+        # Sert à savoir si text_box_mot a perdu le focus
+        # parce que l'utilisateur a cliqué sur dropdown_menu_valeur
+        self._dropdown_menu_valeur_clicked = False
+        
         self.dropdown_menu_valeur.items = [
             ("*", 1),
             ("* *", 5),
             ("* * *", 10)
         ]
+        
+        # Détection du clic sur le DropDown AVANT le lost_focus du TextBox
+        try:
+            get_dom_node(self.dropdown_menu_valeur).addEventListener(
+                "mousedown",
+                self._dropdown_menu_valeur_mouse_down
+            )
+        except Exception as e:
+            print("Impossible d'ajouter l'écouteur JS sur dropdown_menu_valeur :", e)
         # =====================================================================
         # Events du repeating panel des mots pour score
         # =====================================================================
@@ -1186,66 +1202,83 @@ class search(searchTemplate):
     # =========================================================================
     # Gestion du dictionnaire des mots pour scoring
     # =========================================================================
-    
-    def text_box_mot_change(self, **event_args):
-        if self.dropdown_menu_valeur.selected_value is not None:
-            self.icon_button_valid_mot_score.visible = True
+    @anvil.js.report_exceptions   # Détection du clicksur dropdown (initialisé ds l'init)
+    def _dropdown_menu_valeur_mouse_down(self, event):
+        """
+        Se déclenche dès que l'utilisateur appuie sur le DropDown.
+        Important : mousedown arrive avant le lost_focus du TextBox.
+        """
+        self._dropdown_menu_valeur_clicked = True
 
+
+    def text_box_mot_lost_focus(self, **event_args):
+        """This method is called when the component loses focus."""
+        """
+        Quand text_box_mot perd le focus, on vérifie si c'est parce que
+        l'utilisateur vient de cliquer sur dropdown_menu_valeur.
+        """
+    
+        if self._dropdown_menu_valeur_clicked:
+            # ici, le TextBox a perdu le focus parce qu'on a cliqué sur le DropDown dropdown_menu_valeur
+            self._dropdown_menu_valeur_clicked = False
+    
+            # Exemple : on ne cache pas la zone d'ajout, on ne valide pas encore.
+            return
+    
+        # Ici, le TextBox a perdu le focus pour une autre raison.
+        # Tu peux mettre ton traitement normal ici si besoin.
+        self._dropdown_menu_valeur_clicked = False
+        self.icon_button_del_click()
 
     def dropdown_menu_valeur_change(self, **event_args):
         valeur = self.dropdown_menu_valeur.selected_value or 0
         if valeur != 0:
-            #self.icon_button_valid_mot_score.visible = True
-            self.icon_button_valid_mot_score_click()
+            cle = (self.text_box_mot.text or "").strip().lower()
+            #valeur = self.dropdown_menu_valeur.selected_value or 0
+    
+            if cle == "":
+                alert("Entrez le mot à rechercher.")
+                self.text_box_mot.focus()
+                return
+    
+            if valeur == 0:
+                alert("Sélectionnez l'importance du mot.")
+                return
+    
+            try:
+                valeur = int(valeur)
+            except Exception:
+                alert("La valeur doit être *")
+                return
+    
+            if valeur not in [1, 5, 10]:
+                alert("Valeurs autorisées : 1, 2 ou 3 étoiles.")
+                return
+    
+            # Ajout ou remplacement du mot
+            self.dict_mots_score[cle] = valeur
+    
+            self.display_mots_pour_score()
+    
+            print("dict_mots_score utilisateur :", self.dict_mots_score)
+    
+            self.text_box_mot.text = ""
+            self.dropdown_menu_valeur.selected_value = None
+            self.data_grid_mots_pour_score.visible = True
             
     def icon_button_del_click(self, **event_args):
         self.text_box_mot.text = ""
         self.dropdown_menu_valeur.selected_value = None
-        self.icon_button_valid_mot_score.visible = False
         self.column_panel_add_mot_pour_score.visible = False
         self.button_add_mot.visible = True
         self.data_grid_mots_pour_score.visible = True
 
     def button_add_mot_click(self, **event_args):
+        self.maj_cadre_mots_ou_bleu()
         self.column_panel_add_mot_pour_score.visible = True
         self.button_add_mot.visible = False
         self.text_box_mot.focus()
-        #self.data_grid_mots_pour_score.visible = False
 
-    def icon_button_valid_mot_score_click(self, **event_args):
-        cle = (self.text_box_mot.text or "").strip().lower()
-        valeur = self.dropdown_menu_valeur.selected_value or 0
-    
-        if cle == "":
-            alert("Entrez le mot à rechercher.")
-            self.text_box_mot.focus()
-            return
-    
-        if valeur == 0:
-            alert("Sélectionnez l'importance du mot.")
-            return
-    
-        try:
-            valeur = int(valeur)
-        except Exception:
-            alert("La valeur doit être *")
-            return
-    
-        if valeur not in ["*", "* *", "* * *"]:
-            alert("Valeurs autorisées : 1, 2 ou 3 étoiles.")
-            return
-    
-        # Ajout ou remplacement du mot
-        self.dict_mots_score[cle] = valeur
-    
-        self.display_mots_pour_score()
-    
-        print("dict_mots_score utilisateur :", self.dict_mots_score)
-    
-        self.text_box_mot.text = ""
-        self.dropdown_menu_valeur.selected_value = None
-        self.icon_button_valid_mot_score.visible = False
-        self.data_grid_mots_pour_score.visible = True
 
     def del_mot_pour_score(self, sender, mot=None, **event_args):
         mot = str(mot or "").strip().lower()
@@ -1464,7 +1497,7 @@ class search(searchTemplate):
     def text_box_mot_clef_change(self, **event_args):
         """This method is called when the text in this component is edited."""
         self.button_search.visible = True
-
+        self.maj_cadre_mots_ou_blanc()
    
     def text_box_mots_pour_score_focus(self, **event_args):
         """This method is called when the component gets focus."""
@@ -1586,6 +1619,13 @@ class search(searchTemplate):
     def text_box_mots_exclus_change(self, **event_args):
         self.button_search.visible = True
 
- 
+
+    def maj_cadre_mots_ou_blanc(self, **event_args):
+        # mise en blanc du border quand un champ autre que les mots ou est saisi
+        self.column_panel_mots_pour_score.border = "1px solid #BFC8CA"  # Blanc
+        
+    def maj_cadre_mots_ou_bleu(self, **event_args):
+        # mise en blanc du border quand un champ autre que les mots ou est saisi
+        self.column_panel_mots_pour_score.border = "1px solid #3CD9ED"  # Bleu
 
 

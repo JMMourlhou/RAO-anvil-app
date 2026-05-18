@@ -59,70 +59,42 @@ components:
     properties: {align: center, gap: large, vertical_align: middle}
     type: FlowPanel
   - components:
-    - event_bindings: {change: text_box_mot_clef_change, pressed_enter: text_box_mot_clef_pressed_enter}
+    - event_bindings: {change: text_box_mot_clef_change, focus: maj_cadre_mots_ou_blanc, pressed_enter: text_box_mot_clef_pressed_enter}
       layout_properties: {grid_position: 'UTAJVP,AQYHRQ'}
       name: text_box_mot_clef
       properties:
         appearance: outlined
+        background_color: theme:Primary Overlay 3
         display_text_color: theme:Primary
-        label: Mots à trouver obligatoirement dans l'offre
+        label: 'Mots à trouver obligatoirement dans l''offre :'
         label_italic: true
         leading_icon: mi:key
         margin: ['25', '2', '1', '2']
         placeholder: Mots à trouver obligatoirement dans l'offre
         text: ''
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-    - event_bindings: {change: text_box_mots_exclus_change, pressed_enter: text_box_mots_exclus_pressed_enter}
-      layout_properties: {grid_position: 'BDJSNN,GVSLOG'}
-      name: text_box_mots_exclus
-      properties: {appearance: outlined, label: Mots ne devant pas être trouvés, placeholder: Mots ne devant pas être trouvés, visible: true}
-      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     - components:
+      - layout_properties: {grid_position: 'CGDTEY,AAKLXG'}
+        name: text_3
+        properties:
+          align: left
+          font_size: 12
+          italic: true
+          scale: large
+          spacing:
+            padding: [null, null, null, '15']
+          style: label
+          text: 'Au moins un de ces mots doit être trouvé : '
+          text_color: ''
+        type: form:dep_lin1x4oec0ytd:_Components.Text
+      - event_bindings: {click: button_add_mot_click}
+        layout_properties: {grid_position: 'NJCOOS,ATHJWT'}
+        name: button_add_mot
+        properties: {align: center, text: Ajout d'un mot}
+        type: form:dep_lin1x4oec0ytd:_Components.Button
       - components:
-        - event_bindings: {change: text_box_mot_clef_change, pressed_enter: text_box_nb_jours_pressed_enter}
-          layout_properties: {grid_position: 'HPDZTV,HPVWLA'}
-          name: text_box_nb_jours
-          properties:
-            appearance: outlined
-            character_limit: null
-            display_text_color: theme:On Primary Container
-            label: Sur les x derniers jours
-            label_italic: true
-            leading_icon: mi:calendar_today
-            margin: ['5', null, '1', '2']
-            placeholder: Nb de jours
-            text: '10'
-          type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-        - event_bindings: {change: text_box_mot_clef_change, pressed_enter: text_box_departements_pressed_enter}
-          layout_properties: {grid_position: 'HPDZTV,GKJCGS'}
-          name: text_box_departements
-          properties:
-            appearance: outlined
-            display_text_color: theme:Primary
-            label: 'Sur 1 ou x dépts:   Ex: 75, 91 ,94'
-            label_italic: true
-            leading_icon: mi:location_on
-            margin: ['5', '2', '1', null]
-            placeholder: ' '
-            supporting_text: ''
-            text: ''
-          type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-        layout_properties: {grid_position: 'CQUNNJ,RGFGCK'}
-        name: column_panel_4
-        properties: {background: '', col_spacing: tiny, col_widths: '{"HPVWLA":12,"GKJCGS":48}'}
-        type: ColumnPanel
-      - components:
-        - layout_properties: {grid_position: 'CGDTEY,AAKLXG'}
-          name: text_3
-          properties: {align: center, scale: large, text: 'Au moins un de ces mots doit être trouvé: ', text_color: 'theme:Primary'}
-          type: form:dep_lin1x4oec0ytd:_Components.Text
-        - event_bindings: {click: button_add_mot_click}
-          layout_properties: {grid_position: 'NJCOOS,ATHJWT'}
-          name: button_add_mot
-          properties: {align: center, text: Ajout d'un mot}
-          type: form:dep_lin1x4oec0ytd:_Components.Button
         - components:
-          - event_bindings: {change: text_box_mot_change, lost_focus: icon_button_del_click, pressed_enter: icon_button_valid_mot_score_click}
+          - event_bindings: {lost_focus: text_box_mot_lost_focus}
             layout_properties: {grid_position: 'PRNYOO,UFUTTR'}
             name: text_box_mot
             properties:
@@ -131,7 +103,7 @@ components:
               display_text_color: theme:White
               label: Mot à ajouter
               label_color: theme:White
-              margin: ['10', null, '0', '50']
+              margin: ['10', null, '0', '10']
               placeholder: ''
             type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
           - event_bindings: {change: dropdown_menu_valeur_change}
@@ -139,7 +111,7 @@ components:
             name: dropdown_menu_valeur
             properties:
               appearance: outlined
-              border_color: theme:Primary
+              border_color: ''
               items: []
               items_bold: true
               items_font_size: 12
@@ -148,97 +120,115 @@ components:
               label_bold: false
               label_color: theme:White
               margin: ['10', null, null, null]
-              placeholder: Poids
+              placeholder: Importance
               selected_text_color: theme:Light Green
               visible: true
             type: form:dep_lin1x4oec0ytd:_Components.DropdownMenu
-          - components:
-            - components:
-              - components:
-                - event_bindings: {click: icon_button_valid_mot_score_click}
-                  layout_properties: {}
-                  name: icon_button_valid_mot_score
-                  properties:
-                    align: center
-                    appearance: tonal
-                    icon: mi:check_small
-                    icon_color: theme:Light Green
-                    margin: ['12', null, null, null]
-                    visible: false
-                  type: form:dep_lin1x4oec0ytd:_Components.IconButton
-                - event_bindings: {click: icon_button_del_click}
-                  layout_properties: {}
-                  name: icon_button_del
-                  properties:
-                    align: center
-                    appearance: outlined
-                    icon: mi:close_small
-                    icon_color: theme:Primary
-                    margin: ['12', null, null, null]
-                  type: form:dep_lin1x4oec0ytd:_Components.IconButton
-                layout_properties: {grid_position: 'MWPNHW,RHEPDE'}
-                name: flow_panel_1
-                properties:
-                  align: justify
-                  background: ''
-                  border: ''
-                  gap: tiny
-                  spacing:
-                    margin: ['8', null, '0', null]
-                  vertical_align: middle
-                type: FlowPanel
-              layout_properties: {grid_position: 'LOSUFG,KYTSKX'}
-              name: column_panel_3
-              properties: {wrap_on: never}
-              type: ColumnPanel
-            layout_properties: {grid_position: 'PRNYOO,NLZFGH'}
-            name: column_panel_5
-            properties: {background: 'theme:Primar', col_spacing: tiny, col_widths: '{}', wrap_on: never}
-            type: ColumnPanel
-          layout_properties: {grid_position: 'NUATBJ,YCEFZP'}
+          - event_bindings: {click: icon_button_del_click}
+            layout_properties: {grid_position: 'PRNYOO,BOWNNN'}
+            name: icon_button_del
+            properties:
+              align: center
+              appearance: outlined
+              icon: mi:close_small
+              icon_color: theme:Primary
+              margin: ['25', null, null, null]
+            type: form:dep_lin1x4oec0ytd:_Components.IconButton
+          layout_properties: {width: 401.7428134765625}
           name: column_panel_add_mot_pour_score
           properties:
             background: ''
             col_spacing: tiny
-            col_widths: '{"UFUTTR":29,"NLZFGH":27,"PXKEYW":24}'
+            col_widths: '{"UFUTTR":39,"PXKEYW":31,"BOWNNN":13}'
             spacing:
               margin: ['0', '2', '0', '2']
             visible: true
             wrap_on: never
           type: ColumnPanel
-        - components:
-          - layout_properties: {}
-            name: repeating_panel_mots_pour_score
-            properties:
-              foreground: ''
-              item_template: search.Row_mots_pour_score
-              margin: [null, '1', null, '1']
-            type: RepeatingPanel
-          layout_properties: {grid_position: 'EYBNYG,HYPJBA'}
-          name: data_grid_mots_pour_score
+        layout_properties: {grid_position: 'GDJVBV,RAWQKA'}
+        name: flow_panel_1
+        properties: {align: center, background: ''}
+        type: FlowPanel
+      - components:
+        - layout_properties: {}
+          name: repeating_panel_mots_pour_score
           properties:
-            auto_header: false
-            background: ''
-            margin: ['0', '10', '0', '10']
-            rows_per_page: 5
-            show_page_controls: false
-            visible: false
-          type: DataGrid
-        layout_properties: {grid_position: 'YPSTKC,RUQKJD'}
-        name: column_panel_mots_pour_score
+            foreground: ''
+            item_template: search.Row_mots_pour_score
+            margin: [null, '1', null, '1']
+          type: RepeatingPanel
+        layout_properties: {grid_position: 'EYBNYG,HYPJBA'}
+        name: data_grid_mots_pour_score
         properties:
+          auto_header: false
           background: ''
-          border: '2px solid #3CD9ED'
-          col_spacing: small
-          spacing:
-            margin: [null, '10', null, '10']
-          visible: true
-          wrap_on: never
-        type: ColumnPanel
-      layout_properties: {grid_position: 'PGXVPZ,NFWMWX'}
-      name: column_panel_1
-      properties: {background: '', col_spacing: tiny, col_widths: '{}', wrap_on: never}
+          margin: ['0', '5', '5', '5']
+          rows_per_page: 5
+          show_page_controls: false
+          visible: false
+        type: DataGrid
+      layout_properties: {grid_position: 'UWZRHZ,ZJCKJR'}
+      name: column_panel_mots_pour_score
+      properties:
+        background: theme:Primary Overlay 3
+        border: '1px solid #BFC8CA'
+        col_spacing: small
+        spacing:
+          margin: ['15', '2', null, '2']
+        visible: true
+        wrap_on: never
       type: ColumnPanel
+    - components:
+      - event_bindings: {change: text_box_mot_clef_change, focus: maj_cadre_mots_ou_blanc, pressed_enter: text_box_nb_jours_pressed_enter}
+        layout_properties: {grid_position: 'HPDZTV,HPVWLA'}
+        name: text_box_nb_jours
+        properties:
+          appearance: outlined
+          background_color: theme:Primary Overlay 3
+          character_limit: null
+          display_text_color: theme:On Primary Container
+          label: 'Sur les x derniers jours :'
+          label_italic: true
+          leading_icon: mi:calendar_today
+          margin: ['5', null, '1', '2']
+          placeholder: Nb de jours
+          text: '10'
+        type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+      - event_bindings: {change: text_box_mot_clef_change, focus: maj_cadre_mots_ou_blanc, pressed_enter: text_box_departements_pressed_enter}
+        layout_properties: {grid_position: 'HPDZTV,GKJCGS'}
+        name: text_box_departements
+        properties:
+          appearance: outlined
+          background_color: theme:Primary Overlay 3
+          display_text_color: theme:Primary
+          label: 'Sur 1 ou x dépts:   Ex: 75, 91 ,94'
+          label_italic: true
+          leading_icon: mi:location_on
+          margin: ['5', '2', '1', null]
+          placeholder: ' '
+          supporting_text: ''
+          text: ''
+        type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+      layout_properties: {grid_position: 'IVADMF,IEATDN'}
+      name: column_panel_4
+      properties:
+        background: ''
+        col_spacing: tiny
+        col_widths: '{"HPVWLA":12,"GKJCGS":48}'
+        spacing:
+          margin: ['15', null, null, null]
+      type: ColumnPanel
+    - event_bindings: {change: text_box_mots_exclus_change, focus: maj_cadre_mots_ou_blanc, pressed_enter: text_box_mots_exclus_pressed_enter}
+      layout_properties: {grid_position: 'BDJSNN,GVSLOG'}
+      name: text_box_mots_exclus
+      properties:
+        appearance: outlined
+        background_color: theme:Primary Overlay 3
+        label: 'Mots ne devant pas être trouvés :'
+        margin: ['15', null, null, null]
+        placeholder: Mots ne devant pas être trouvés
+        visible: true
+      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
     layout_properties: {slot: card-content-slot}
     name: column_panel_params
     properties:
@@ -248,11 +238,6 @@ components:
         padding: [null, null, '0', null]
       wrap_on: mobile
     type: ColumnPanel
-  - components: []
-    layout_properties: {slot: card-content-slot}
-    name: flow_panel_3
-    properties: {align: center, gap: medium, vertical_align: middle}
-    type: FlowPanel
   - components:
     - components:
       - event_bindings: {change: checkbox_on_off_change}
@@ -325,9 +310,12 @@ components:
   layout_properties: {grid_position: 'GUQSUI,TTNXTK'}
   name: card_recherche
   properties:
+    background_color: theme:Dark
     spacing:
       margin: [null, '2', null, '2']
     visible: true
   type: form:dep_lin1x4oec0ytd:_Components.Card
-container: {type: ColumnPanel}
+container:
+  properties: {background: ''}
+  type: ColumnPanel
 is_package: true
