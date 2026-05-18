@@ -122,7 +122,7 @@ components:
           properties: {align: center, text: Ajout d'un mot}
           type: form:dep_lin1x4oec0ytd:_Components.Button
         - components:
-          - event_bindings: {change: text_box_mot_change, pressed_enter: icon_button_valid_mot_score_click}
+          - event_bindings: {change: text_box_mot_change, lost_focus: icon_button_del_click, pressed_enter: icon_button_valid_mot_score_click}
             layout_properties: {grid_position: 'PRNYOO,UFUTTR'}
             name: text_box_mot
             properties:
@@ -131,7 +131,7 @@ components:
               display_text_color: theme:White
               label: Mot à ajouter
               label_color: theme:White
-              margin: ['10', null, '0', '0']
+              margin: ['10', null, '0', '50']
               placeholder: ''
             type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
           - event_bindings: {change: dropdown_menu_valeur_change}
@@ -155,7 +155,7 @@ components:
           - components:
             - components:
               - components:
-                - event_bindings: {click: icon_button_valid_mot_score_click}
+                - event_bindings: {click: icon_button_valid_mot_score}
                   layout_properties: {}
                   name: icon_button_valid_mot_score
                   properties:

@@ -1195,8 +1195,9 @@ class search(searchTemplate):
     def dropdown_menu_valeur_change(self, **event_args):
         valeur = self.dropdown_menu_valeur.selected_value or 0
         if valeur != 0:
-            self.icon_button_valid_mot_score.visible = True
-
+            #self.icon_button_valid_mot_score.visible = True
+            self.icon_button_valid_mot_score()
+            
     def icon_button_del_click(self, **event_args):
         self.text_box_mot.text = ""
         self.dropdown_menu_valeur.selected_value = None
@@ -1211,7 +1212,7 @@ class search(searchTemplate):
         self.text_box_mot.focus()
         #self.data_grid_mots_pour_score.visible = False
 
-    def icon_button_valid_mot_score_click(self, **event_args):
+    def icon_button_valid_mot_score(self, **event_args):
         cle = (self.text_box_mot.text or "").strip().lower()
         valeur = self.dropdown_menu_valeur.selected_value or 0
     
@@ -1227,11 +1228,11 @@ class search(searchTemplate):
         try:
             valeur = int(valeur)
         except Exception:
-            alert("La valeur doit être 1, 5 ou 10.")
+            alert("La valeur doit être *")
             return
     
-        if valeur not in [1, 5, 10]:
-            alert("Valeurs autorisées : 1, 5 ou 10.")
+        if valeur not in ["*", "* *", "* * *"]:
+            alert("Valeurs autorisées : 1, 2 ou 3 étoiles.")
             return
     
         # Ajout ou remplacement du mot
@@ -1584,4 +1585,6 @@ class search(searchTemplate):
 
     def text_box_mots_exclus_change(self, **event_args):
         self.button_search.visible = True
+
+
 
