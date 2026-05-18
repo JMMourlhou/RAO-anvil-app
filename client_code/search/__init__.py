@@ -1196,7 +1196,7 @@ class search(searchTemplate):
         valeur = self.dropdown_menu_valeur.selected_value or 0
         if valeur != 0:
             #self.icon_button_valid_mot_score.visible = True
-            self.icon_button_valid_mot_score()
+            self.icon_button_valid_mot_score_click()
             
     def icon_button_del_click(self, **event_args):
         self.text_box_mot.text = ""
@@ -1212,7 +1212,7 @@ class search(searchTemplate):
         self.text_box_mot.focus()
         #self.data_grid_mots_pour_score.visible = False
 
-    def icon_button_valid_mot_score(self, **event_args):
+    def icon_button_valid_mot_score_click(self, **event_args):
         cle = (self.text_box_mot.text or "").strip().lower()
         valeur = self.dropdown_menu_valeur.selected_value or 0
     
@@ -1586,5 +1586,6 @@ class search(searchTemplate):
     def text_box_mots_exclus_change(self, **event_args):
         self.button_search.visible = True
 
+ 
 
 

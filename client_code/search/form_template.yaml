@@ -155,7 +155,7 @@ components:
           - components:
             - components:
               - components:
-                - event_bindings: {click: icon_button_valid_mot_score}
+                - event_bindings: {click: icon_button_valid_mot_score_click}
                   layout_properties: {}
                   name: icon_button_valid_mot_score
                   properties:
