@@ -229,9 +229,18 @@ components:
         placeholder: Mots ne devant pas être trouvés
         visible: true
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-    - layout_properties: {grid_position: 'YDQYHZ,EXBAIF'}
-      name: timer_2
-      properties: {}
+    - layout_properties: {grid_position: 'GLFPQE,BVUFYC'}
+      name: label_nb_offres_progress
+      properties: {align: center, background: 'theme:Background', bold: true, border: '', font: '', font_size: 18, foreground: 'theme:White', icon: '', icon_align: left, italic: false, role: null, spacing_above: none, spacing_below: none, text: '', tooltip: '', underline: false, visible: true}
+      type: Label
+    - layout_properties: {grid_position: 'PBDFHC,HQADYR'}
+      name: label_progress_recherche
+      properties: {align: center, background: 'theme:Background', bold: true, border: '', font: '', font_size: 18, foreground: 'theme:White', icon: '', icon_align: left, italic: false, role: null, spacing_above: none, spacing_below: none, text: '', tooltip: '', underline: false, visible: true}
+      type: Label
+    - event_bindings: {tick: timer_recherche_progress_tick}
+      layout_properties: {grid_position: 'YDQYHZ,EXBAIF'}
+      name: timer_recherche_progress
+      properties: {interval: 1}
       type: Timer
     layout_properties: {slot: card-content-slot}
     name: column_panel_params

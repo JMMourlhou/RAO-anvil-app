@@ -35,7 +35,11 @@ class search(searchTemplate):
         self.offres_preparees = []
         self.dict_mots_score = dict(dict_mots_score or {})    # mots type OU saisis par l'utilisateur + importance
         self.dict_score_recherche = {}                        # dictionnaire final utilisé pour scorer
-        #self.column_panel_mots_pour_score.border = "1px solid #BFC8CA"
+        # Pour l'affichage de la progression de la requête
+        self.label_progress_recherche.visible = False
+        self.label_nb_offres_progress.visible = False
+        self.timer_recherche_progress.enabled = False
+        self.timer_recherche_progress.interval = 1
         # Evite les traitements indésirables quand on modifie la checkbox par code
         self._ignore_checkbox_on_off_change = False
         
@@ -1627,5 +1631,73 @@ class search(searchTemplate):
     def maj_cadre_mots_ou_bleu(self, **event_args):
         # mise en blanc du border quand un champ autre que les mots ou est saisi
         self.column_panel_mots_pour_score.border = "1px solid #3CD9ED"  # Bleu
+
+
+    def timer_recherche_progress_tick(self, **event_args):
+        """This method is called Every [interval] seconds. Does not trigger if [interval] is 0."""
+
+        """
+        Lit l'avancement de la Background Task lancée sur le Pi5.
+        """
+    
+        if self.task_recherche is None:
+            return
+    
+        try:
+            with anvil.server.no_loading_indicator:
+                state = self.task_recherche.get_state() or {}
+    
+        except Exception as e:
+            self.timer_recherche_progress.enabled = False
+            self.button_search.enabled = True
+            alert(f"Impossible de lire la progression : {e}")
+            return
+    
+        progress = state.get("progress", 0)
+        message = state.get("message", "Recherche en cours...")
+        nb_offres = state.get("nb_offres", 0)
+        source = state.get("source_en_cours", "")
+    
+        self.label_progress_recherche.text = f"{progress}% - {message}"
+        self.label_nb_offres_progress.text = f"{nb_offres} offre(s) trouvée(s)"
+    
+        if source:
+            print(f"Progression recherche : {progress}% | {source} | {message}")
+    
+        if not self.task_recherche.is_completed():
+            return
+    
+        # La tâche est terminée
+        self.timer_recherche_progress.enabled = False
+        self.button_search.enabled = True
+    
+        try:
+            with anvil.server.no_loading_indicator:
+                result = self.task_recherche.get_return_value()
+    
+        except Exception as e:
+            print(f"Erreur pendant la tâche background : {e}")
+            self.label_progress_recherche.text = "Erreur pendant la recherche."
+            alert(f"Erreur pendant la recherche : {e}")
+            return
+    
+        self.task_recherche = None
+    
+        if not result:
+            self.label_progress_recherche.text = "Recherche terminée, mais résultat vide."
+            alert("La recherche est terminée, mais aucun résultat n'a été retourné.")
+            return
+    
+        errors = result.get("errors", [])
+    
+        if errors:
+            print("Erreurs partielles pendant la recherche :", errors)
+    
+        offres = result.get("offres", [])
+    
+        self.label_progress_recherche.text = "Recherche terminée. Traitement des offres..."
+        self.label_nb_offres_progress.text = f"{len(offres)} offre(s) récupérée(s)"
+    
+        self.traiter_offres_recuperees_apres_background(offres)
 
 
