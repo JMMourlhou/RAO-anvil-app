@@ -42,6 +42,7 @@ class search(searchTemplate):
         self.timer_recherche_progress.interval = 0
         self.task_recherche = None
         self._ctx_recherche = {}
+        self._recherche_en_cours = False
         
         # Evite les traitements indésirables quand on modifie la checkbox par code
         self._ignore_checkbox_on_off_change = False
@@ -224,13 +225,78 @@ class search(searchTemplate):
 
         return row
 
+    
+    def verrouiller_recherche(self, message="Recherche en cours..."):
+        """
+        Verrouille l'interface pendant une recherche.
+        Empêche un double clic ou un nouveau lancement.
+        """
+    
+        self._recherche_en_cours = True
+    
+        self.button_search.enabled = False
+        self.button_search.text = "Recherche en cours..."
+    
+        self.label_progress_recherche.visible = True
+        self.label_nb_offres_progress.visible = True
+    
+        self.label_progress_recherche.text = message
+        self.label_nb_offres_progress.text = ""
+    
+        # Optionnel mais conseillé :
+        # éviter que l'utilisateur change les paramètres pendant la recherche
+        try:
+            self.text_box_mot_clef.enabled = False
+            self.text_box_mots_exclus.enabled = False
+            self.text_box_nb_jours.enabled = False
+            self.text_box_departements.enabled = False
+            self.multi_select_drop_down_platformes.enabled = False
+            self.button_add_mot.enabled = False
+        except Exception as e:
+            print("Erreur verrouillage UI :", e)
+    
+    
+    def deverrouiller_recherche(self, cacher_bouton=False):
+        """
+        Déverrouille l'interface après fin, erreur ou interruption de recherche.
+        """
+    
+        self._recherche_en_cours = False
+    
+        self.timer_recherche_progress.interval = 0
+        self.task_recherche = None
+    
+        self.button_search.enabled = True
+        self.button_search.text = "Rechercher"
+    
+        if cacher_bouton:
+            self.button_search.visible = False
+        else:
+            self.button_search.visible = True
+    
+        try:
+            self.text_box_mot_clef.enabled = True
+            self.text_box_mots_exclus.enabled = True
+            self.text_box_nb_jours.enabled = True
+            self.text_box_departements.enabled = True
+            self.multi_select_drop_down_platformes.enabled = True
+            self.button_add_mot.enabled = True
+        except Exception as e:
+            print("Erreur déverrouillage UI :", e)
+
+
+    
     # =========================================================================
     # Recherche
     # =========================================================================
 
     def button_search_click(self, **event_args):
         """Recherche les offres, applique les critères positifs/exclusions, score, puis sauvegarde dans histo['offres']."""
-    
+
+        if self._recherche_en_cours:
+            Notification("Recherche déjà en cours...", timeout=2).show()
+            return
+            
         # --- Lecture des champs ---
         mots_obligatoires_texte = self.text_box_mot_clef.text or ""
         mots_exclus_texte = self.text_box_mots_exclus.text or ""
@@ -315,6 +381,8 @@ class search(searchTemplate):
             "selected_platformes": selected_platformes,
         }
         
+        self.verrouiller_recherche("Lancement de la recherche...")
+
         try:
             with anvil.server.no_loading_indicator:
                 self.task_recherche = anvil.server.call(
@@ -329,23 +397,20 @@ class search(searchTemplate):
         
         except Exception as e:
             print(f"Erreur au lancement de la recherche background sur Pi5 : {e}")
+            self.label_progress_recherche.text = "Erreur au lancement de la recherche."
+            self.label_nb_offres_progress.text = ""
+            self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant le lancement de la recherche : {e}")
             return
         
-        self.button_search.enabled = False
-        
-        self.label_progress_recherche.visible = True
-        self.label_nb_offres_progress.visible = True
-        
-        self.label_progress_recherche.text = "0% - Lancement de la recherche..."
-        self.label_nb_offres_progress.text = "0 offre trouvée"
+        self.label_progress_recherche.text = "0% - Recherche lancée..."
+        self.label_nb_offres_progress.text = "Recherche des offres provisoires..."
         
         self.data_grid_1.visible = False
         self.column_panel_select.visible = False
         self.text_nb_offres.visible = False
         
-        self.timer_recherche_progress.interval = 5
-        
+        self.timer_recherche_progress.interval = 1
         return
     
     def traiter_offres_recuperees_apres_background(self, offres):
@@ -373,6 +438,8 @@ class search(searchTemplate):
     
             self.label_progress_recherche.text = "Recherche terminée : aucune offre trouvée."
             self.label_nb_offres_progress.text = "0 offre"
+
+            self.deverrouiller_recherche(cacher_bouton=False)
     
             alert("Désolé... pas d'offres trouvées !")
             return
@@ -402,6 +469,8 @@ class search(searchTemplate):
     
             self.label_progress_recherche.text = "Aucune offre après filtrage positif."
             self.label_nb_offres_progress.text = "0 offre conservée"
+
+            self.deverrouiller_recherche(cacher_bouton=False)
     
             alert(
                 "Des offres ont été récupérées, mais aucune ne respecte les critères :\n\n"
@@ -512,6 +581,7 @@ class search(searchTemplate):
     
         if not result or not result.get("ok"):
             message = result.get("message") if result else "Erreur inconnue"
+            self.deverrouiller_recherche(cacher_bouton=False)
             alert(
                 f"La recherche a fonctionné, mais la sauvegarde dans histo a échoué.\n\n{message}"
             )
@@ -545,7 +615,14 @@ class search(searchTemplate):
         self.text_param_summary.visible = True
     
         self.label_progress_recherche.text = "Recherche terminée."
-        self.label_nb_offres_progress.text = f"{nb_offres} offre(s) affichée(s)"
+
+        if nb_offres > 1:
+            self.label_nb_offres_progress.text = f"{nb_offres} offres retenues après filtrage final"
+        else:
+            self.label_nb_offres_progress.text = f"{nb_offres} offre retenue après filtrage final"
+        
+        # Succès, cacher le bouton
+        self.deverrouiller_recherche(cacher_bouton=True)
 
     # =========================================================================
     # Champs Enter
@@ -1714,13 +1791,14 @@ class search(searchTemplate):
 
 
     def timer_recherche_progress_tick(self, **event_args):
-        """This method is called Every [interval] seconds. Does not trigger if [interval] is 0."""
-
         """
-        Lit l'avancement de la Background Task lancée sur le Pi5.
+        Suit la Background Task.
+        Le bouton reste désactivé jusqu'à la fin complète :
+        recherche + filtrage + scoring + sauvegarde.
         """
     
         if self.task_recherche is None:
+            self.deverrouiller_recherche(cacher_bouton=False)
             return
     
         try:
@@ -1728,28 +1806,35 @@ class search(searchTemplate):
                 state = self.task_recherche.get_state() or {}
     
         except Exception as e:
-            self.timer_recherche_progress.interval = 0
-            self.button_search.enabled = True
+            print(f"Impossible de lire la progression : {e}")
+            self.label_progress_recherche.text = "Erreur de lecture de la progression."
+            self.label_nb_offres_progress.text = ""
+            self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Impossible de lire la progression : {e}")
             return
     
         progress = state.get("progress", 0)
         message = state.get("message", "Recherche en cours...")
         nb_offres = state.get("nb_offres", 0)
-        source = state.get("source_en_cours", "")
     
         self.label_progress_recherche.text = f"{progress}% - {message}"
-        self.label_nb_offres_progress.text = f"{nb_offres} offre(s) trouvée(s)"
     
-        if source:
-            print(f"Progression recherche : {progress}% | {source} | {message}")
+        if nb_offres > 1:
+            self.label_nb_offres_progress.text = (
+                f"{nb_offres} offres provisoires récupérées avant filtrage final"
+            )
+        else:
+            self.label_nb_offres_progress.text = (
+                f"{nb_offres} offre provisoire récupérée avant filtrage final"
+            )
     
         if not self.task_recherche.is_completed():
             return
     
-        # La tâche est terminée
+        # La tâche Uplink est terminée.
+        # On arrête le timer, mais on NE réactive PAS encore le bouton.
+        # Il reste le filtrage, le scoring et la sauvegarde.
         self.timer_recherche_progress.interval = 0
-        self.button_search.enabled = True
     
         try:
             with anvil.server.no_loading_indicator:
@@ -1758,26 +1843,45 @@ class search(searchTemplate):
         except Exception as e:
             print(f"Erreur pendant la tâche background : {e}")
             self.label_progress_recherche.text = "Erreur pendant la recherche."
+            self.label_nb_offres_progress.text = ""
+            self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant la recherche : {e}")
             return
     
-        self.task_recherche = None
-    
         if not result:
             self.label_progress_recherche.text = "Recherche terminée, mais résultat vide."
+            self.label_nb_offres_progress.text = "0 offre récupérée"
+            self.deverrouiller_recherche(cacher_bouton=False)
             alert("La recherche est terminée, mais aucun résultat n'a été retourné.")
             return
     
         errors = result.get("errors", [])
-    
         if errors:
             print("Erreurs partielles pendant la recherche :", errors)
     
         offres = result.get("offres", [])
     
         self.label_progress_recherche.text = "Recherche terminée. Traitement des offres..."
-        self.label_nb_offres_progress.text = f"{len(offres)} offre(s) récupérée(s)"
+        self.label_nb_offres_progress.text = (
+            f"{len(offres)} offres provisoires récupérées avant filtrage final"
+            if len(offres) > 1
+            else f"{len(offres)} offre provisoire récupérée avant filtrage final"
+        )
     
-        self.traiter_offres_recuperees_apres_background(offres)
+        try:
+            self.traiter_offres_recuperees_apres_background(offres)
+    
+        except Exception as e:
+            print(f"Erreur pendant le traitement final des offres : {e}")
+            self.label_progress_recherche.text = "Erreur pendant le traitement final."
+            self.deverrouiller_recherche(cacher_bouton=False)
+            alert(f"Erreur pendant le traitement final des offres : {e}")
+            return
 
-
+    def texte_nb_offres(self, nb, mot_apres_singulier="", mot_apres_pluriel=""):
+        nb = int(nb or 0)
+    
+        if nb > 1:
+            return f"{nb} offres {mot_apres_pluriel}".strip()
+    
+        return f"{nb} offre {mot_apres_singulier}".strip()
