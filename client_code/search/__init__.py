@@ -344,7 +344,7 @@ class search(searchTemplate):
         self.column_panel_select.visible = False
         self.text_nb_offres.visible = False
         
-        self.timer_recherche_progress.interval = 1
+        self.timer_recherche_progress.interval = 5
         
         return
     
