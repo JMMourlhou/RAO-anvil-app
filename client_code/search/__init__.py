@@ -232,7 +232,7 @@ class search(searchTemplate):
         # --- Conversion en listes propres ---
         mots_obligatoires = self.extraire_liste_mots_saisie(mots_obligatoires_texte)
         
-        # Les mots OU viennent maintenant de la liste avec importance
+        # Les mots OU viennent de la liste avec importance
         mots_ou = self.get_mots_ou_depuis_score()
         
         mots_exclus = self.extraire_liste_mots_saisie(mots_exclus_texte)
