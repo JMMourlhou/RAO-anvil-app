@@ -1,8 +1,8 @@
 components:
 - components:
-  - event_bindings: {tick: timer_1_tick}
+  - event_bindings: {tick: timer_ping_tick}
     layout_properties: {slot: card-content-slot}
-    name: timer_1
+    name: timer_ping
     properties: {interval: 300}
     type: Timer
   - components:
@@ -47,7 +47,7 @@ components:
     - event_bindings: {click: button_search_click}
       layout_properties: {}
       name: button_search
-      properties: {align: center, background: 'theme:Olive', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: 'theme:White', icon: '', icon_align: left, italic: false, role: elevated-button, spacing_above: small, spacing_below: small, text: Recherche !, tooltip: '', underline: false, visible: false}
+      properties: {align: left, background: 'theme:Olive', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: 'theme:White', icon: '', icon_align: left, italic: false, role: elevated-button, spacing_above: small, spacing_below: small, text: Recherche !, tooltip: '', underline: false, visible: false}
       type: Button
     - event_bindings: {click: button_retour_click}
       layout_properties: {}
@@ -229,6 +229,10 @@ components:
         placeholder: Mots ne devant pas être trouvés
         visible: true
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+    - layout_properties: {grid_position: 'YDQYHZ,EXBAIF'}
+      name: timer_2
+      properties: {}
+      type: Timer
     layout_properties: {slot: card-content-slot}
     name: column_panel_params
     properties:

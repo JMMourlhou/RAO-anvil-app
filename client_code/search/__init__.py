@@ -779,7 +779,7 @@ class search(searchTemplate):
     # Timer
     # =========================================================================
 
-    def timer_1_tick(self, **event_args):
+    def timer_ping_tick(self, **event_args):
         with anvil.server.no_loading_indicator:
             try:
                 anvil.server.call("ping")
