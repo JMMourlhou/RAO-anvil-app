@@ -35,11 +35,14 @@ class search(searchTemplate):
         self.offres_preparees = []
         self.dict_mots_score = dict(dict_mots_score or {})    # mots type OU saisis par l'utilisateur + importance
         self.dict_score_recherche = {}                        # dictionnaire final utilisé pour scorer
+        
         # Pour l'affichage de la progression de la requête
         self.label_progress_recherche.visible = False
         self.label_nb_offres_progress.visible = False
-        self.timer_recherche_progress.enabled = False
-        self.timer_recherche_progress.interval = 1
+        self.timer_recherche_progress.interval = 0
+        self.task_recherche = None
+        self._ctx_recherche = {}
+        
         # Evite les traitements indésirables quand on modifie la checkbox par code
         self._ignore_checkbox_on_off_change = False
         
@@ -303,39 +306,86 @@ class search(searchTemplate):
         if dict_score is None:
             return
     
-        # --- Récupération brute des offres ---
+        # --- Lancement de la recherche brute en tâche de fond ---
+        self._ctx_recherche = {
+            "mots_obligatoires": mots_obligatoires,
+            "mots_ou": mots_ou,
+            "mots_exclus": mots_exclus,
+            "periode": periode,
+            "selected_platformes": selected_platformes,
+        }
+        
         try:
-            offres = anvil.server.call(
-                "get_offres_multi_sources",
-                mots_clefs,
-                depts,
-                100,
-                1,
-                periode,
-                sources=selected_platformes
-            )
+            with anvil.server.no_loading_indicator:
+                self.task_recherche = anvil.server.call(
+                    "lancer_recherche_multi_sources_background",
+                    mots_clefs,
+                    depts,
+                    100,
+                    1,
+                    periode,
+                    sources=selected_platformes
+                )
+        
         except Exception as e:
-            print(f"Erreur au module 'get_offres_multi_sources' sur Pi5: {e}")
-            alert(f"Erreur pendant la recherche : {e}")
+            print(f"Erreur au lancement de la recherche background sur Pi5 : {e}")
+            alert(f"Erreur pendant le lancement de la recherche : {e}")
             return
+        
+        self.button_search.enabled = False
+        
+        self.label_progress_recherche.visible = True
+        self.label_nb_offres_progress.visible = True
+        
+        self.label_progress_recherche.text = "0% - Lancement de la recherche..."
+        self.label_nb_offres_progress.text = "0 offre trouvée"
+        
+        self.data_grid_1.visible = False
+        self.column_panel_select.visible = False
+        self.text_nb_offres.visible = False
+        
+        self.timer_recherche_progress.interval = 1
+        
+        return
+    
+    def traiter_offres_recuperees_apres_background(self, offres):
+        """
+        Suite du traitement après récupération des offres par Background Task :
+        - filtre positif
+        - exclusions
+        - build_offres_list
+        - scoring
+        - sauvegarde histo
+        - affichage
+        """
+    
+        ctx = self._ctx_recherche or {}
+    
+        mots_obligatoires = ctx.get("mots_obligatoires", [])
+        mots_ou = ctx.get("mots_ou", [])
+        mots_exclus = ctx.get("mots_exclus", [])
+        selected_platformes = ctx.get("selected_platformes", [])
     
         if not offres:
             self.data_grid_1.visible = False
             self.column_panel_select.visible = False
             self.text_nb_offres.visible = False
+    
+            self.label_progress_recherche.text = "Recherche terminée : aucune offre trouvée."
+            self.label_nb_offres_progress.text = "0 offre"
+    
             alert("Désolé... pas d'offres trouvées !")
             return
     
         nb_offres_brutes = len(offres)
         print(f"Offres brutes récupérées : {nb_offres_brutes}")
     
+        self.label_progress_recherche.text = "Filtrage des critères positifs..."
+        self.label_nb_offres_progress.text = f"{nb_offres_brutes} offre(s) brutes récupérée(s)"
+    
         # =====================================================
         # 1. Filtrage positif local
         # =====================================================
-        # Règle :
-        # - tous les mots obligatoires doivent être présents
-        # - si des mots OU existent, au moins un doit être présent
-    
         offres = self.filtrer_offres_criteres_positifs(
             offres,
             mots_obligatoires,
@@ -349,6 +399,10 @@ class search(searchTemplate):
             self.data_grid_1.visible = False
             self.column_panel_select.visible = False
             self.text_nb_offres.visible = False
+    
+            self.label_progress_recherche.text = "Aucune offre après filtrage positif."
+            self.label_nb_offres_progress.text = "0 offre conservée"
+    
             alert(
                 "Des offres ont été récupérées, mais aucune ne respecte les critères :\n\n"
                 f"Obligatoires : {', '.join(mots_obligatoires) or '-'}\n"
@@ -359,6 +413,7 @@ class search(searchTemplate):
         # =====================================================
         # 2. Filtrage local des mots exclus
         # =====================================================
+        self.label_progress_recherche.text = "Application des mots exclus..."
     
         offres = self.filtrer_offres_exclues(offres, mots_exclus)
     
@@ -372,12 +427,18 @@ class search(searchTemplate):
             self.data_grid_1.visible = False
             self.column_panel_select.visible = False
             self.text_nb_offres.visible = False
+    
+            self.label_progress_recherche.text = "Aucune offre après exclusion."
+            self.label_nb_offres_progress.text = "0 offre conservée"
+    
             alert(
                 "Des offres correspondaient aux critères, mais elles contenaient toutes au moins un mot exclu."
             )
             return
     
         # --- Génération de la liste des offres ---
+        self.label_progress_recherche.text = "Préparation des offres..."
+    
         self.offres_preparees = self.build_offres_list(offres, dedoublonner=True)
     
         print(
@@ -387,12 +448,17 @@ class search(searchTemplate):
         )
     
         # --- Calcul du score / pertinence côté serveur ---
+        self.label_progress_recherche.text = "Calcul du score des offres..."
+        self.label_nb_offres_progress.text = f"{len(self.offres_preparees)} offre(s) à scorer"
+    
         try:
-            offres_scorees = anvil.server.call(
-                "scorer_offres",
-                self.offres_preparees,
-                self.dict_score_recherche or {}
-            )
+            with anvil.server.no_loading_indicator:
+                offres_scorees = anvil.server.call(
+                    "scorer_offres",
+                    self.offres_preparees,
+                    self.dict_score_recherche or {}
+                )
+    
         except Exception as e:
             print(f"Erreur au module serveur 'scorer_offres': {e}")
             alert(f"Erreur pendant le calcul du score : {e}")
@@ -404,6 +470,7 @@ class search(searchTemplate):
     
         # --- Ajout sécurité de la clé vu=False dans chaque offre ---
         offres_scorees = self.normaliser_liste_offres_vu(offres_scorees)
+    
         print("===== DEBUG SCORES =====")
         for o in offres_scorees:
             print(
@@ -412,26 +479,36 @@ class search(searchTemplate):
                 "| type:", type(o.get("score"))
             )
         print("========================")
+    
         nb_offres = len(offres_scorees)
     
         # --- Backup de la requête avec les offres scorées ---
+        self.label_progress_recherche.text = "Sauvegarde de la recherche..."
+        self.label_nb_offres_progress.text = f"{nb_offres} offre(s) à sauvegarder"
+    
         date_time = Time.french_zone_time()
     
-        result = anvil.server.call(
-            "backup_requete",
-            self.user,
-            selected_platformes,
-            self.get_mots_obligatoires_texte(),
-            self.text_box_nb_jours.text,
-            self.text_box_departements.text,
-            date_time,
-            nb_offres,
-            offres_scorees,
-            self.dict_mots_score,     # On sauvegarde les mots OU + importance choisis par l'utilisateur
-            True,                     # La checkbox disparaît : les mots obligatoires sont inclus automatiquement dans le scoring final         
-            self.get_mots_ou_texte(),  # mots_ou généré depuis repeating_panel_mots_pour_score
-            self.get_mots_exclus_texte()
-        )
+        try:
+            with anvil.server.no_loading_indicator:
+                result = anvil.server.call(
+                    "backup_requete",
+                    self.user,
+                    selected_platformes,
+                    self.get_mots_obligatoires_texte(),
+                    self.text_box_nb_jours.text,
+                    self.text_box_departements.text,
+                    date_time,
+                    nb_offres,
+                    offres_scorees,
+                    self.dict_mots_score,
+                    True,
+                    self.get_mots_ou_texte(),
+                    self.get_mots_exclus_texte()
+                )
+    
+        except Exception as e:
+            alert(f"Erreur pendant la sauvegarde dans histo : {e}")
+            return
     
         if not result or not result.get("ok"):
             message = result.get("message") if result else "Erreur inconnue"
@@ -466,6 +543,9 @@ class search(searchTemplate):
         )
     
         self.text_param_summary.visible = True
+    
+        self.label_progress_recherche.text = "Recherche terminée."
+        self.label_nb_offres_progress.text = f"{nb_offres} offre(s) affichée(s)"
 
     # =========================================================================
     # Champs Enter
@@ -1648,7 +1728,7 @@ class search(searchTemplate):
                 state = self.task_recherche.get_state() or {}
     
         except Exception as e:
-            self.timer_recherche_progress.enabled = False
+            self.timer_recherche_progress.interval = 0
             self.button_search.enabled = True
             alert(f"Impossible de lire la progression : {e}")
             return
@@ -1668,7 +1748,7 @@ class search(searchTemplate):
             return
     
         # La tâche est terminée
-        self.timer_recherche_progress.enabled = False
+        self.timer_recherche_progress.interval = 0
         self.button_search.enabled = True
     
         try:
