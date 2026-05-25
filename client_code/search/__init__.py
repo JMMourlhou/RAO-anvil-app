@@ -11,6 +11,7 @@ from datetime import date, datetime
 import re
 import anvil.js   # pour la détection d'un click sur le DropDown dropdown_menu_valeur
 from anvil.js import get_dom_node    # pour écouteur JS sur le DropDown
+from .. import Screen
 
 class search(searchTemplate):
 
@@ -29,8 +30,18 @@ class search(searchTemplate):
         self.f = get_open_form()
         self.f.navigation_link_user_parametres.visible = True
         self.f.navigation_link_user_contact.visible = True
-        self.f.navigation_link_search_retour.visible = True
-        self.f.navigation_link_search_go.visible = True
+        
+        self.screen = Screen.screen()
+        if self.screen['screen_type'] == "phone" : 
+            self.f.navigation_link_search_retour.visible = True
+            self.f.navigation_link_search_go.visible = True
+            self.button_search.visible = False
+            self.button_retour.visible = False
+        else:
+            self.button_search.visible = True
+            self.button_retour.visible = True
+            self.f.navigation_link_search_retour.visible = False
+            self.f.navigation_link_search_go.visible = False
         # =====================================================================
         # Variables internes
         # =====================================================================
@@ -141,6 +152,14 @@ class search(searchTemplate):
             # =================================================================
             if origine == "":
                 self.button_search.visible = True
+
+                if self.screen['screen_type'] == "phone" : 
+                    self.button_search.visible = False
+                    self.f.navigation_link_search_retour.visible = True
+                else:
+                    self.button_search.visible = True
+                    self.f.navigation_link_search_retour.visible = False
+                   
                 self.column_panel_params.visible = True
 
             # =================================================================
@@ -163,13 +182,19 @@ class search(searchTemplate):
                     self.dict_mots_score = dict(dict_mots_score)
                     self.text_box_mots_pour_score.text = self.mots_score_to_text(self.dict_mots_score)
 
-                if derniere_ligne:
+                if derniere_ligne : 
                     self.afficher_offres(self.list_offres)
                     self.button_search.visible = False
                 else:
                     self.column_panel_select.visible = False
-                    self.button_search.visible = True
 
+                if derniere_ligne and self.screen['screen_type'] == "phone": 
+                    self.button_search.visible = False
+                    self.f.navigation_link_search_retour.visible = True
+                    
+                if derniere_ligne and self.screen['screen_type'] != "phone":
+                    self.button_search.visible = True
+                    self.f.navigation_link_search_retour.visible = False
     # =========================================================================
     # Chargement de la dernière ligne histo
     # =========================================================================
@@ -274,11 +299,17 @@ class search(searchTemplate):
     
         self.button_search.enabled = True
         self.button_search.text = "Rechercher"
-    
-        if cacher_bouton:
+
+
+        if cacher_bouton and self.screen['screen_type'] != "phone":
             self.button_search.visible = False
         else:
             self.button_search.visible = True
+
+        if cacher_bouton and self.screen['screen_type'] == "phone":
+            self.f.navigation_link_search_go.visible = False
+        else:
+            self.f.navigation_link_search_go.visible = True
     
         try:
             self.text_box_mot_clef.enabled = True
@@ -1773,9 +1804,14 @@ class search(searchTemplate):
 
     def checkbox_mots_cles_dans_score_change(self, **event_args):
         """This method is called when the component is checked or unchecked"""
-        self.button_search.visible = True
+        if self.screen['screen_type'] == "phone" : 
+            self.f.navigation_link_search_go.visible = True
+            self.button_search.visible = False
+        else:
+            self.f.navigation_link_search_go.visible = False
+            self.button_search.visible = True
 
-
+    
     def text_box_mots_ou_pressed_enter(self, **event_args):
         self.button_search_click()
 
@@ -1784,10 +1820,20 @@ class search(searchTemplate):
         self.button_search_click()
 
     def text_box_mots_ou_change(self, **event_args):
-        self.button_search.visible = True
+        if self.screen['screen_type'] == "phone" : 
+            self.f.navigation_link_search_go.visible = True
+            self.button_search.visible = False
+        else:
+            self.f.navigation_link_search_go.visible = False
+            self.button_search.visible = True
 
     def text_box_mots_exclus_change(self, **event_args):
-        self.button_search.visible = True
+        if self.screen['screen_type'] == "phone" : 
+            self.f.navigation_link_search_go.visible = True
+            self.button_search.visible = False
+        else:
+            self.f.navigation_link_search_go.visible = False
+            self.button_search.visible = True
 
 
     def maj_cadre_mots_ou_blanc(self, **event_args):
@@ -1894,3 +1940,9 @@ class search(searchTemplate):
             return f"{nb} offres {mot_apres_pluriel}".strip()
     
         return f"{nb} offre {mot_apres_singulier}".strip()
+
+
+    def button_retour_click(self, **event_args):
+        """This method is called when the button is clicked"""
+        open_form("Main_large_screen")
+
