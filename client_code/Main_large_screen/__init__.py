@@ -18,7 +18,7 @@ class Main_large_screen(Main_large_screenTemplate):
     def __init__(self, first_entry=False, **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
-        #self.form_search = search()
+        
         
         # Any code you write here will run before the form opens.
         user=anvil.users.get_user()
@@ -154,7 +154,8 @@ class Main_large_screen(Main_large_screenTemplate):
         self.bt_user_mail.visible = False
         
         self.content_panel.clear()
-        self.f.content_panel.add_component(self.form_search, full_width_row=False)
+        self.form_search = search()
+        self.content_panel.add_component(self.form_search, full_width_row=False)
         
 
     def navigation_link_fermer_click(self, **event_args):
