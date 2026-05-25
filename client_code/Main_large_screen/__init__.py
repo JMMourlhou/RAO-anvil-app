@@ -18,6 +18,7 @@ class Main_large_screen(Main_large_screenTemplate):
     def __init__(self, first_entry=False, **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
+        #self.form_search = search()
         
         # Any code you write here will run before the form opens.
         user=anvil.users.get_user()
@@ -149,8 +150,11 @@ class Main_large_screen(Main_large_screenTemplate):
         self.navigation_link_fermer.visible = False
         self.navigation_link_user_appels_offres.visible = False
         #open_form('search')
+        self.Titre.visible = False
+        self.bt_user_mail.visible = False
+        
         self.content_panel.clear()
-        self.content_panel.add_component(search(), full_width_row=False)
+        self.f.content_panel.add_component(self.form_search, full_width_row=False)
         
 
     def navigation_link_fermer_click(self, **event_args):
@@ -173,8 +177,19 @@ class Main_large_screen(Main_large_screenTemplate):
         self.content_panel.clear()
         self.content_panel.add_component(Contact(), full_width_row=False)
 
+    
+    def navigation_link_search_retour_click(self, **event_args):
+        """This method is called when the component is clicked"""
+        self.content_panel.clear()
+        open_form("Main_large_screen")
+
+    
+    def navigation_link_search_go_click(self, **event_args):
+        """This method is called when the component is clicked"""
+        self.form_search = search()
+        self.form_search.button_search_click()
  
-  
+ 
 
   
     

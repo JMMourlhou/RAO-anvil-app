@@ -50,7 +50,10 @@ components_by_slot:
   - components: []
     layout_properties: {}
     name: content_panel
-    properties: {col_widths: '{}'}
+    properties:
+      col_widths: '{}'
+      spacing:
+        margin: ['0', null, null, null]
     type: ColumnPanel
   - components:
     - event_bindings: {click: button_se_connecter_click}
@@ -99,6 +102,16 @@ components_by_slot:
     layout_properties: {}
     name: navigation_link_admin
     properties: {badge: false, icon: '', icon_color: 'theme:Red', icon_size: '30', navigate_to: Admin, text: Admin, text_color: 'theme:Red', visible: false}
+    type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
+  - event_bindings: {click: navigation_link_search_go_click}
+    layout_properties: {}
+    name: navigation_link_search_go
+    properties: {icon: 'mi:logout', icon_color: 'theme:Red', icon_size: '30', text: Lance recherche, text_color: 'theme:Red', visible: false}
+    type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
+  - event_bindings: {click: navigation_link_search_retour_click}
+    layout_properties: {}
+    name: navigation_link_search_retour
+    properties: {icon: 'mi:logout', icon_color: 'theme:Red', icon_size: '30', text: Retour, text_color: 'theme:Red', visible: false}
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
   - event_bindings: {click: navigation_link_fermer_click}
     layout_properties: {}

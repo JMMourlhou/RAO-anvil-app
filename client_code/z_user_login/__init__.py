@@ -36,7 +36,7 @@ class z_user_login(z_user_loginTemplate):
         # mail vide ?
         if self.email_box.text == "":
             alert("Entrez votre mail !")
-            #AlertHTML.info("Oublie :", "Entrez votre mail !")
+            #AlertHTML.info("Oublie :", "Entrez votre mail !"
             return
         # mail en minuscule    et strip
         mel = self.email_box.text
@@ -78,10 +78,15 @@ class z_user_login(z_user_loginTemplate):
             
         self.f = get_open_form()
         self.f.bt_user_mail.text = user['email']
-        #self.f.navigation_link_fermer.visible = False
+        self.f.navigation_link_search_retour.visible = True
+        self.f.navigation_link_search_go.visible = True
         self.f.content_panel.clear()
-        self.f.content_panel.add_component(search(), full_width_row=False)
-
+        self.f.Titre.visible = False
+        self.f.bt_user_mail.visible = False
+        self.form_search = search()
+        self.f.content_panel.add_component(self.form_search, full_width_row=False)
+        #self.f.content_panel.add_component(search(), full_width_row=False)
+        
         
     def reset_pw_link_click(self, **event_args):
         """This method is called when the link is clicked"""

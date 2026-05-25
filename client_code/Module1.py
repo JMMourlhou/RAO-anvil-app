@@ -6,7 +6,7 @@ def context_ecran():
     h = int(window.innerHeight)
     landscape = bool(window.matchMedia("(orientation: landscape)").matches)
 
-    # Seuils à adapter à TON interface
+    # Seuils à adapter à l'interface
     if w < 768:
         screen_type = "phone"
     elif w < 1024:

@@ -25,10 +25,16 @@ class search(searchTemplate):
     ):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
-
+        
+        self.f = get_open_form()
+        self.f.navigation_link_user_parametres.visible = True
+        self.f.navigation_link_user_contact.visible = True
+        self.f.navigation_link_search_retour.visible = True
+        self.f.navigation_link_search_go.visible = True
         # =====================================================================
         # Variables internes
         # =====================================================================
+        
         self.user = None
         self.histo_id = None
         self.list_offres = []
@@ -289,8 +295,10 @@ class search(searchTemplate):
     # =========================================================================
     # Recherche
     # =========================================================================
-
     def button_search_click(self, **event_args):
+        self.lancer_recherche()
+
+    def lancer_recherche(self, **event_args):
         """Recherche les offres, applique les critères positifs/exclusions, score, puis sauvegarde dans histo['offres']."""
 
         if self._recherche_en_cours:
@@ -932,10 +940,11 @@ class search(searchTemplate):
     # =========================================================================
     # Navigation
     # =========================================================================
-
+       
+    """
     def button_retour_click(self, **event_args):
         open_form("Main_large_screen")
-
+    """
     # =========================================================================
     # Timer
     # =========================================================================
