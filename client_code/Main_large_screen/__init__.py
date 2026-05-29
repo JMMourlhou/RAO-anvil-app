@@ -14,7 +14,7 @@ from ..z_user_new_account import z_user_new_account
 from anvil.js import window
 from ..search import search
 from ..Contact import Contact
-from ..Parametres import Parametres
+from ..Param import Param
 
 class Main_large_screen(Main_large_screenTemplate):
     def __init__(self, first_entry=False, **properties):
@@ -151,8 +151,13 @@ class Main_large_screen(Main_large_screenTemplate):
         self.bt_deconnect.visible = False
         self.navigation_link_fermer.visible = False
         self.navigation_link_user_appels_offres.visible = False
+        
         self.Titre.visible = False
         self.bt_user_mail.visible = False
+        self.navigation_link_user_contact.visible = False
+        self.navigation_link_user_parametres.visible = False
+        
+        self.navigation_link_retour.visible = True
         
         self.content_panel.clear()
         self.form_search = search()
@@ -172,15 +177,31 @@ class Main_large_screen(Main_large_screenTemplate):
         self.bt_deconnect.visible = False
         self.navigation_link_fermer.visible = False
         self.navigation_link_user_contact.visible = False
+        self.navigation_link_retour.visible = True
+        self.navigation_link_fermer.visible = False
+
+        
+        self.navigation_link_user_contact.visible = False
+        
         self.content_panel.clear()
         self.content_panel.add_component(Contact(), full_width_row=False)
 
     
-    def navigation_link_search_retour_click(self, **event_args):
+    def navigation_link_retour_click(self, **event_args):
         """This method is called when the component is clicked"""
+        # réaffichage des boutons du menu
+        self.navigation_link_user_contact.visible = True
+        self.navigation_link_user_parametres.visible = True
+        self.navigation_link_user_appels_offres.visible = True
+        self.navigation_link_fermer.visible = True
+        self.Titre.visible = True
+        self.bt_user_mail.visible = True
+        
+        self.navigation_link_retour.visible = False
+        self.navigation_link_search_go.visible = False
+        print("ok")
         self.content_panel.clear()
-        open_form("Main_large_screen")
-
+        
     # lancement de la requete de la forme search
     def navigation_link_search_go_click(self, **event_args):
         """This method is called when the component is clicked"""
@@ -192,10 +213,19 @@ class Main_large_screen(Main_large_screenTemplate):
         self.bt_deconnect.visible = False
         self.navigation_link_fermer.visible = False
         self.navigation_link_user_contact.visible = False
-        self.navigation_link_search_retour.visible = True
+        self.navigation_link_retour.visible = True
+        self.navigation_link_fermer.visible = False
+        
+        self.navigation_link_user_parametres.visible = False
+        
         self.content_panel.clear()
-        self.content_panel.add_component(Parametres(), full_width_row=False)
-        #self.content_panel.add_component(search(), full_width_row=False)
+        self.content_panel.add_component(Param(), full_width_row=False)
+
+
+    def navigation_link_admin_click(self, **event_args):
+        """This method is called when the component is clicked"""
+        pass  # Write Code Here
+
 
  
  

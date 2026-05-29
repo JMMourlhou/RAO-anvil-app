@@ -105,11 +105,6 @@ components:
       name: button_envoi_mail
       properties: {align: center, background: 'theme:Olive', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: 'theme:White', icon: '', icon_align: left_edge, italic: false, role: null, spacing_above: none, spacing_below: small, text: Envoi du message, tooltip: '', underline: false, visible: false}
       type: Button
-    - event_bindings: {click: button_retour_click}
-      layout_properties: {}
-      name: button_retour
-      properties: {align: center, background: 'theme:Red', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '#000000', icon: '', icon_align: left_edge, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Retour, tooltip: '', underline: false, visible: true}
-      type: Button
     layout_properties: {slot: card-content-slot}
     name: flow_panel_1
     properties: {align: center, background: ''}

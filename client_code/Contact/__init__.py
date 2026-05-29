@@ -14,10 +14,6 @@ class Contact(ContactTemplate):
         self.init_components(**properties)
         self.text_area_message.height = 100
 
-        
-    def button_retour_click(self, **event_args):
-        """This method is called when the button is clicked"""
-        open_form("Main_large_screen")
 
     def button_envoi_mail_click(self, **event_args):
         """This method is called when the button is clicked"""

@@ -91,14 +91,14 @@ components_by_slot:
   - event_bindings: {click: navigation_link_user_parametres_click}
     layout_properties: {}
     name: navigation_link_user_parametres
-    properties: {icon: 'mi:tools_wrench', icon_color: 'theme:Primary', icon_size: '30', navigate_to: Parametres, text: Paramètres, text_color: 'theme:On Primary Container', tooltip: '', visible: false}
+    properties: {icon: 'mi:tools_wrench', icon_color: 'theme:Primary', icon_size: '30', navigate_to: null, text: Paramètres, text_color: 'theme:On Primary Container', tooltip: '', visible: false}
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
   - event_bindings: {click: navigation_link_user_contact_click}
     layout_properties: {}
     name: navigation_link_user_contact
     properties: {icon: 'mi:contact_mail', icon_color: 'theme:Light Green', icon_size: '30', navigate_to: null, selected: false, text: Contact, text_color: 'theme:Light Green', tooltip: '', visible: false}
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
-  - event_bindings: {}
+  - event_bindings: {click: navigation_link_admin_click}
     layout_properties: {}
     name: navigation_link_admin
     properties: {badge: false, icon: '', icon_color: 'theme:Red', icon_size: '30', navigate_to: Admin, text: Admin, text_color: 'theme:Red', visible: false}
@@ -108,9 +108,9 @@ components_by_slot:
     name: navigation_link_search_go
     properties: {icon: 'mi:logout', icon_color: 'theme:Light Green', icon_size: '30', text: Lance recherche, text_color: 'theme:Light Green', visible: false}
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
-  - event_bindings: {click: navigation_link_search_retour_click}
+  - event_bindings: {click: navigation_link_retour_click}
     layout_properties: {}
-    name: navigation_link_search_retour
+    name: navigation_link_retour
     properties: {icon: 'mi:logout', icon_color: 'theme:Red', icon_size: '30', text: Retour, text_color: 'theme:Red', visible: false}
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
   - event_bindings: {click: navigation_link_fermer_click}
@@ -120,5 +120,5 @@ components_by_slot:
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
 is_package: true
 layout:
-  properties: {navigation_rail_collapse_to: bottom_app_bar, navigation_rail_color: '', navigation_rail_vertical_align: bottom, show_sidesheet: false}
+  properties: {navigation_rail_collapse_to: bottom_app_bar, navigation_rail_color: 'theme:Background', navigation_rail_vertical_align: bottom, show_sidesheet: false}
   type: form:dep_lin1x4oec0ytd:Layouts.NavigationRailLayout

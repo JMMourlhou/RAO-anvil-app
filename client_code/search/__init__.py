@@ -28,20 +28,10 @@ class search(searchTemplate):
         self.init_components(**properties)
         
         self.f = get_open_form()
-        self.f.navigation_link_user_parametres.visible = True
-        self.f.navigation_link_user_contact.visible = True
-        
-        self.screen = Screen.screen()
-        if self.screen['screen_type'] == "phone" : 
-            self.f.navigation_link_search_retour.visible = True
-            self.f.navigation_link_search_go.visible = True
-            self.button_search.visible = False
-            self.button_retour.visible = False
-        else:
-            self.button_search.visible = True
-            self.button_retour.visible = True
-            self.f.navigation_link_search_retour.visible = False
-            self.f.navigation_link_search_go.visible = False
+  
+        self.button_search.visible = False
+        self.button_retour.visible = False
+
         # =====================================================================
         # Variables internes
         # =====================================================================
@@ -152,14 +142,8 @@ class search(searchTemplate):
             # =================================================================
             if origine == "":
                 self.button_search.visible = True
-
-                if self.screen['screen_type'] == "phone" : 
-                    self.button_search.visible = False
-                    self.f.navigation_link_search_retour.visible = True
-                else:
-                    self.button_search.visible = True
-                    self.f.navigation_link_search_retour.visible = False
-                   
+                self.f.navigation_link_search_go.visible = True
+                self.button_search.visible = False
                 self.column_panel_params.visible = True
 
             # =================================================================

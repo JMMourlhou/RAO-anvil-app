@@ -80,7 +80,7 @@ components:
         text: ''
         type: email
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-    - event_bindings: {click: button_retour_click}
+    - event_bindings: {}
       layout_properties: {grid_position: 'XQLXEH,EVGTIM'}
       name: button_retour_2
       properties:
@@ -124,14 +124,11 @@ components:
     name: column_panel_abonmt
     properties: {background: 'theme:On Surface Variant Overlay 2', wrap_on: never}
     type: ColumnPanel
-  layout_properties: {grid_position: 'HCIMSS,NGUPGK'}
+  layout_properties: {grid_position: 'ETMUQY,WVMAMK'}
   name: card_1
   properties: {}
   type: form:dep_lin1x4oec0ytd:_Components.Card
-- event_bindings: {click: button_retour_click}
-  layout_properties: {grid_position: 'LVTCMC,XGBUCU'}
-  name: button_retour
-  properties: {align: center, background: 'theme:Red', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: '#000000', icon: '', icon_align: left_edge, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Retour, tooltip: '', underline: false, visible: true}
-  type: Button
-container: {type: ColumnPanel}
+container:
+  properties: {tooltip: Votre message}
+  type: ColumnPanel
 is_package: true
