@@ -65,7 +65,7 @@ class Main_large_screen(Main_large_screenTemplate):
                     else: # pas le dernier lien cliqué
                         anvil.set_url_hash("")
                         alert(msg, title="Réinitialisation du mot de passe")
-                        open_form("Main")
+                        open_form("Main_large_screen")
                 anvil.set_url_hash("")  
         else: # Il y a un user
             self.bt_user_mail.text = user['email']
@@ -161,10 +161,6 @@ class Main_large_screen(Main_large_screenTemplate):
 
     def navigation_link_fermer_click(self, **event_args):
         """This method is called when the component is clicked"""
-        self.navigation_link_user_appels_offres.visible = False
-        self.navigation_link_user_contact.visible = False
-        self.navigation_link_user_parametres.visible = False
-        self.bt_user_mail.text = ""
         self.content_panel.clear()
         anvil.users.logout()  # logging out the user
         self.user = None
@@ -196,8 +192,10 @@ class Main_large_screen(Main_large_screenTemplate):
         self.bt_deconnect.visible = False
         self.navigation_link_fermer.visible = False
         self.navigation_link_user_contact.visible = False
+        self.navigation_link_search_retour.visible = True
         self.content_panel.clear()
         self.content_panel.add_component(Parametres(), full_width_row=False)
+        #self.content_panel.add_component(search(), full_width_row=False)
 
  
  

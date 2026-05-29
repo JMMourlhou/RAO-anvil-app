@@ -13,6 +13,7 @@ class Parametres(ParametresTemplate):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
         # Any code you write here will run before the form opens.
+        alert("1")
         self.card_1.background_color = "theme:Background"
 
     
