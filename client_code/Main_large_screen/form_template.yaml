@@ -88,7 +88,7 @@ components_by_slot:
     name: navigation_link_user_appels_offres
     properties: {badge: false, icon: 'mi:pin', icon_color: 'theme:Light Green', icon_size: '30', navigate_to: null, selected: false, text: Appels d'offres, text_color: 'theme:Light Green', tooltip: '', visible: false}
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
-  - event_bindings: {}
+  - event_bindings: {click: navigation_link_user_parametres_click}
     layout_properties: {}
     name: navigation_link_user_parametres
     properties: {icon: 'mi:tools_wrench', icon_color: 'theme:Primary', icon_size: '30', navigate_to: Parametres, text: Paramètres, text_color: 'theme:On Primary Container', tooltip: '', visible: false}

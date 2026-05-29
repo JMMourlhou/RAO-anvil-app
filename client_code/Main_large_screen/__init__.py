@@ -10,9 +10,11 @@ from .. import Screen
 from ..z_user_login import z_user_login
 from ..z_user_pw_reset import z_user_pw_reset
 from ..z_user_new_account import z_user_new_account
+
 from anvil.js import window
 from ..search import search
 from ..Contact import Contact
+from ..Parametres import Parametres
 
 class Main_large_screen(Main_large_screenTemplate):
     def __init__(self, first_entry=False, **properties):
@@ -149,7 +151,6 @@ class Main_large_screen(Main_large_screenTemplate):
         self.bt_deconnect.visible = False
         self.navigation_link_fermer.visible = False
         self.navigation_link_user_appels_offres.visible = False
-        #open_form('search')
         self.Titre.visible = False
         self.bt_user_mail.visible = False
         
@@ -184,11 +185,20 @@ class Main_large_screen(Main_large_screenTemplate):
         self.content_panel.clear()
         open_form("Main_large_screen")
 
-    
+    # lancement de la requete de la forme search
     def navigation_link_search_go_click(self, **event_args):
         """This method is called when the component is clicked"""
         self.form_search = search()
         self.form_search.button_search_click()
+
+    def navigation_link_user_parametres_click(self, **event_args):
+        """This method is called when the component is clicked"""
+        self.bt_deconnect.visible = False
+        self.navigation_link_fermer.visible = False
+        self.navigation_link_user_contact.visible = False
+        self.content_panel.clear()
+        self.content_panel.add_component(Parametres(), full_width_row=False)
+
  
  
 
