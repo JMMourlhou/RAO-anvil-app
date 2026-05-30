@@ -151,7 +151,6 @@ class Main_large_screen(Main_large_screenTemplate):
         self.bt_deconnect.visible = False
         self.navigation_link_fermer.visible = False
         
-        
         self.Titre.visible = False
         self.bt_user_mail.visible = False
         self.navigation_link_user_contact.visible = False
@@ -190,7 +189,7 @@ class Main_large_screen(Main_large_screenTemplate):
     def navigation_link_search_go_click(self, **event_args):
         """This method is called when the component is clicked"""
         self.form_search = search()
-        self.form_search.button_search_click()
+        self.form_search.lancer_recherche()
 
     def navigation_link_user_parametres_click(self, **event_args):
         """This method is called when the component is clicked"""
@@ -198,6 +197,9 @@ class Main_large_screen(Main_large_screenTemplate):
         self.navigation_link_fermer.visible = False
         self.navigation_link_user_contact.visible = False
         self.navigation_link_retour.visible = True
+        self.navigation_link_user_appels_offres.visible = True
+        self.navigation_link_user_contact.visible = True
+        
         self.navigation_link_fermer.visible = False
         self.content_panel.clear()
         
