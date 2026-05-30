@@ -150,12 +150,13 @@ class Main_large_screen(Main_large_screenTemplate):
         """This method is called when the component is clicked"""
         self.bt_deconnect.visible = False
         self.navigation_link_fermer.visible = False
-        self.navigation_link_user_appels_offres.visible = False
+        
         
         self.Titre.visible = False
         self.bt_user_mail.visible = False
         self.navigation_link_user_contact.visible = False
         self.navigation_link_user_parametres.visible = False
+        self.navigation_link_user_appels_offres.visible = False
         
         self.navigation_link_retour.visible = True
         
@@ -171,22 +172,6 @@ class Main_large_screen(Main_large_screenTemplate):
         self.user = None
         window.close()
 
-    
-    def navigation_link_user_contact_click(self, **event_args):
-        """This method is called when the component is clicked"""
-        self.bt_deconnect.visible = False
-        self.navigation_link_fermer.visible = False
-        self.navigation_link_user_contact.visible = False
-        self.navigation_link_retour.visible = True
-        self.navigation_link_fermer.visible = False
-
-        
-        self.navigation_link_user_contact.visible = False
-        
-        self.content_panel.clear()
-        self.content_panel.add_component(Contact(), full_width_row=False)
-
-    
     def navigation_link_retour_click(self, **event_args):
         """This method is called when the component is clicked"""
         # réaffichage des boutons du menu
@@ -199,7 +184,6 @@ class Main_large_screen(Main_large_screenTemplate):
         
         self.navigation_link_retour.visible = False
         self.navigation_link_search_go.visible = False
-        print("ok")
         self.content_panel.clear()
         
     # lancement de la requete de la forme search
@@ -215,13 +199,24 @@ class Main_large_screen(Main_large_screenTemplate):
         self.navigation_link_user_contact.visible = False
         self.navigation_link_retour.visible = True
         self.navigation_link_fermer.visible = False
+        self.content_panel.clear()
         
         self.navigation_link_user_parametres.visible = False
-        
-        self.content_panel.clear()
         self.content_panel.add_component(Param(), full_width_row=False)
 
 
+    def navigation_link_user_contact_click(self, **event_args):
+        """This method is called when the component is clicked"""
+        self.bt_deconnect.visible = False
+        self.navigation_link_fermer.visible = False
+        self.navigation_link_user_contact.visible = False
+        self.navigation_link_retour.visible = True
+        self.navigation_link_fermer.visible = False
+        self.content_panel.clear()
+        
+        self.navigation_link_user_contact.visible = False
+        self.content_panel.add_component(Contact(), full_width_row=False)
+    
     def navigation_link_admin_click(self, **event_args):
         """This method is called when the component is clicked"""
         pass  # Write Code Here
