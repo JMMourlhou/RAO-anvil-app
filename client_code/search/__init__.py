@@ -173,7 +173,6 @@ class search(searchTemplate):
                 self.f.navigation_link_search_go.visible = False
                 self.button_search.visible = False
                 
-                self.f.navigation_link_search_retour.visible = True
                  
     # =========================================================================
     # Chargement de la dernière ligne histo
@@ -247,6 +246,9 @@ class search(searchTemplate):
     
         self.button_search.enabled = False
         self.button_search.text = "Recherche en cours..."
+        
+        self.f.navigation_link_search_go.enable = False
+        self.f.navigation_link_search_go.text = "Recherche en cours..."
     
         self.label_progress_recherche.visible = True
         self.label_nb_offres_progress.visible = True
@@ -279,7 +281,9 @@ class search(searchTemplate):
     
         self.button_search.enabled = True
         self.button_search.text = "Rechercher"
-
+        
+        self.f.navigation_link_search_go.enable = True
+        self.f.navigation_link_search_go.text = "Rechercher"
 
         if cacher_bouton:
             self.f.navigation_link_search_go.visible = False
@@ -615,6 +619,8 @@ class search(searchTemplate):
         self.afficher_offres(self.list_offres)
     
         self.button_search.visible = False
+        self.f.navigation_link_search_go.enable = False
+        
         self.column_panel_params.visible = False
     
         self.text_param_summary.text = (
@@ -643,13 +649,13 @@ class search(searchTemplate):
     # =========================================================================
 
     def text_box_nb_jours_pressed_enter(self, **event_args):
-        self.button_search_click()
+        self.lancer_recherche()
 
     def text_box_mot_clef_pressed_enter(self, **event_args):
-        self.button_search_click()
+        self.lancer_recherche()
 
     def text_box_departements_pressed_enter(self, **event_args):
-        self.button_search_click()
+        self.lancer_recherche()
 
     # =========================================================================
     # Sélection / désélection / inversion
@@ -785,6 +791,9 @@ class search(searchTemplate):
         self.afficher_offres(self.list_offres)
         self.set_checkbox_on_off_sans_event(False)
         self.column_panel_add_mot_pour_score.visible = False
+        
+        self.button_search.visible = True
+        self.f.navigation_link_search_go.visible = True
 
     def button_del_before_modif_param(self, **event_args):
         """
@@ -1506,7 +1515,9 @@ class search(searchTemplate):
         self.data_grid_mots_pour_score.visible = True
         self.column_panel_add_mot_pour_score.visible = False
         self.button_add_mot.visible = True
+        
         self.button_search.visible = True
+        self.f.navigation_link_search_go.visible = True
 
     def get_mots_ou_depuis_score(self):
         """
@@ -1666,6 +1677,7 @@ class search(searchTemplate):
     def text_box_mot_clef_change(self, **event_args):
         """This method is called when the text in this component is edited."""
         self.button_search.visible = True
+        self.f.navigation_link_search_go.visible = True
         self.maj_cadre_mots_ou_blanc()
    
     def text_box_mots_pour_score_focus(self, **event_args):
@@ -1773,27 +1785,24 @@ class search(searchTemplate):
     def checkbox_mots_cles_dans_score_change(self, **event_args):
         """This method is called when the component is checked or unchecked"""
         self.f.navigation_link_search_go.visible = True
-        self.button_search.visible = False
+        self.button_search.visible = True
        
 
-    
     def text_box_mots_ou_pressed_enter(self, **event_args):
-        self.button_search_click()
+        self.lancer_recherche()
 
 
     def text_box_mots_exclus_pressed_enter(self, **event_args):
-        self.button_search_click()
+        self.lancer_recherche()
 
     def text_box_mots_ou_change(self, **event_args):
         self.f.navigation_link_search_go.visible = True
-        self.button_search.visible = False
-
+        self.button_search.visible = True
 
     def text_box_mots_exclus_change(self, **event_args):
         self.f.navigation_link_search_go.visible = True
-        self.button_search.visible = False
-       
-
+        self.button_search.visible = True
+    
 
     def maj_cadre_mots_ou_blanc(self, **event_args):
         # mise en blanc du border quand un champ autre que les mots ou est saisi
