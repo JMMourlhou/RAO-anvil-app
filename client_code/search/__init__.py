@@ -30,7 +30,7 @@ class search(searchTemplate):
         self.f = get_open_form()
   
         self.button_search.visible = False
-        self.button_retour.visible = False
+        self.f.navigation_link_search_go.visible = False
 
         # =====================================================================
         # Variables internes
@@ -141,8 +141,7 @@ class search(searchTemplate):
             # Ouverture normale : on affiche seulement les derniers paramètres
             # =================================================================
             if origine == "":
-                self.button_search.visible = True
-                self.f.navigation_link_search_go.visible = True
+                self.f.navigation_link_search_go.visible = False
                 self.button_search.visible = False
                 self.column_panel_params.visible = True
 
@@ -168,17 +167,14 @@ class search(searchTemplate):
 
                 if derniere_ligne : 
                     self.afficher_offres(self.list_offres)
-                    self.button_search.visible = False
                 else:
                     self.column_panel_select.visible = False
 
-                if derniere_ligne and self.screen['screen_type'] == "phone": 
-                    self.button_search.visible = False
-                    self.f.navigation_link_search_retour.visible = True
-                    
-                if derniere_ligne and self.screen['screen_type'] != "phone":
-                    self.button_search.visible = True
-                    self.f.navigation_link_search_retour.visible = False
+                self.f.navigation_link_search_go.visible = False
+                self.button_search.visible = False
+                
+                self.f.navigation_link_search_retour.visible = True
+                 
     # =========================================================================
     # Chargement de la dernière ligne histo
     # =========================================================================
@@ -285,16 +281,11 @@ class search(searchTemplate):
         self.button_search.text = "Rechercher"
 
 
-        if cacher_bouton and self.screen['screen_type'] != "phone":
-            self.button_search.visible = False
-        else:
-            self.button_search.visible = True
-
-        if cacher_bouton and self.screen['screen_type'] == "phone":
+        if cacher_bouton:
             self.f.navigation_link_search_go.visible = False
         else:
             self.f.navigation_link_search_go.visible = True
-    
+            
         try:
             self.text_box_mot_clef.enabled = True
             self.text_box_mots_exclus.enabled = True
@@ -952,14 +943,7 @@ class search(searchTemplate):
         """Envoi d'un mail contenant les offres cochées."""
         pass
 
-    # =========================================================================
-    # Navigation
-    # =========================================================================
-       
-    """
-    def button_retour_click(self, **event_args):
-        open_form("Main_large_screen")
-    """
+
     # =========================================================================
     # Timer
     # =========================================================================
@@ -1788,12 +1772,9 @@ class search(searchTemplate):
 
     def checkbox_mots_cles_dans_score_change(self, **event_args):
         """This method is called when the component is checked or unchecked"""
-        if self.screen['screen_type'] == "phone" : 
-            self.f.navigation_link_search_go.visible = True
-            self.button_search.visible = False
-        else:
-            self.f.navigation_link_search_go.visible = False
-            self.button_search.visible = True
+        self.f.navigation_link_search_go.visible = True
+        self.button_search.visible = False
+       
 
     
     def text_box_mots_ou_pressed_enter(self, **event_args):
@@ -1804,20 +1785,14 @@ class search(searchTemplate):
         self.button_search_click()
 
     def text_box_mots_ou_change(self, **event_args):
-        if self.screen['screen_type'] == "phone" : 
-            self.f.navigation_link_search_go.visible = True
-            self.button_search.visible = False
-        else:
-            self.f.navigation_link_search_go.visible = False
-            self.button_search.visible = True
+        self.f.navigation_link_search_go.visible = True
+        self.button_search.visible = False
+
 
     def text_box_mots_exclus_change(self, **event_args):
-        if self.screen['screen_type'] == "phone" : 
-            self.f.navigation_link_search_go.visible = True
-            self.button_search.visible = False
-        else:
-            self.f.navigation_link_search_go.visible = False
-            self.button_search.visible = True
+        self.f.navigation_link_search_go.visible = True
+        self.button_search.visible = False
+       
 
 
     def maj_cadre_mots_ou_blanc(self, **event_args):
@@ -1926,7 +1901,4 @@ class search(searchTemplate):
         return f"{nb} offre {mot_apres_singulier}".strip()
 
 
-    def button_retour_click(self, **event_args):
-        """This method is called when the button is clicked"""
-        open_form("Main_large_screen")
 
