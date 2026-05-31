@@ -28,8 +28,8 @@ class search(searchTemplate):
         
         self.f = get_open_form()
   
-        self.button_search.visible = False
-        self.f.navigation_link_search_go.visible = False
+        #self.button_search.visible = False
+        #self.f.navigation_link_search_go.visible = False
 
         # =====================================================================
         # Variables internes
@@ -136,14 +136,15 @@ class search(searchTemplate):
             # =================================================================
             derniere_ligne = self.charger_derniere_ligne_histo(rows_platformes)
             self.display_mots_pour_score()
+            
             # =================================================================
             # Ouverture normale : on affiche seulement les derniers paramètres
             # =================================================================
             if origine == "":
-                self.f.navigation_link_search_go.visible = False
-                self.button_search.visible = False
                 self.column_panel_params.visible = True
 
+                self.maj_bouton_recherche_visible()
+                    
             # =================================================================
             # Réaffichage après traitement éventuel
             # Aujourd'hui, on évite open_form("search", "check") autant que possible.
@@ -246,7 +247,7 @@ class search(searchTemplate):
         self.button_search.enabled = False
         self.button_search.text = "Recherche en cours..."
         
-        self.f.navigation_link_search_go.enable = False
+        self.f.navigation_link_search_go.enabled = False
         self.f.navigation_link_search_go.text = "Recherche en cours..."
     
         self.label_progress_recherche.visible = True
@@ -281,7 +282,7 @@ class search(searchTemplate):
         self.button_search.enabled = True
         self.button_search.text = "Rechercher"
         
-        self.f.navigation_link_search_go.enable = True
+        self.f.navigation_link_search_go.enabled = True
         self.f.navigation_link_search_go.text = "Rechercher"
 
         if cacher_bouton:
@@ -516,10 +517,9 @@ class search(searchTemplate):
     
             self.label_progress_recherche.text = "Aucune offre après exclusion."
             self.label_nb_offres_progress.text = "0 offre conservée"
-    
-            alert(
-                "Des offres correspondaient aux critères, mais elles contenaient toutes au moins un mot exclu."
-            )
+
+            self.deverrouiller_recherche(cacher_bouton=False)
+            alert("Des offres correspondaient aux critères, mais elles contenaient toutes au moins un mot exclu.")
             return
     
         # --- Génération de la liste des offres ---
@@ -593,6 +593,7 @@ class search(searchTemplate):
                 )
     
         except Exception as e:
+            self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant la sauvegarde dans histo : {e}")
             return
     
@@ -607,6 +608,7 @@ class search(searchTemplate):
         self.histo_id = result.get("histo_id")
     
         if not self.histo_id:
+            self.deverrouiller_recherche(cacher_bouton=False)
             alert("Sauvegarde histo effectuée, mais histo_id manquant.")
             return
     
@@ -618,7 +620,7 @@ class search(searchTemplate):
         self.afficher_offres(self.list_offres)
     
         self.button_search.visible = False
-        self.f.navigation_link_search_go.enable = False
+        self.f.navigation_link_search_go.enabled = False
         
         self.column_panel_params.visible = False
     
@@ -1515,8 +1517,7 @@ class search(searchTemplate):
         self.column_panel_add_mot_pour_score.visible = False
         self.button_add_mot.visible = True
         
-        self.button_search.visible = True
-        self.f.navigation_link_search_go.visible = True
+        self.maj_bouton_recherche_visible()
 
     def get_mots_ou_depuis_score(self):
         """
@@ -1675,9 +1676,9 @@ class search(searchTemplate):
 
     def text_box_mot_clef_change(self, **event_args):
         """This method is called when the text in this component is edited."""
-        self.button_search.visible = True
-        self.f.navigation_link_search_go.visible = True
+        self.maj_bouton_recherche_visible()
         self.maj_cadre_mots_ou_blanc()
+
    
     def text_box_mots_pour_score_focus(self, **event_args):
         """This method is called when the component gets focus."""
@@ -1783,8 +1784,7 @@ class search(searchTemplate):
 
     def checkbox_mots_cles_dans_score_change(self, **event_args):
         """This method is called when the component is checked or unchecked"""
-        self.f.navigation_link_search_go.visible = True
-        self.button_search.visible = True
+        self.maj_bouton_recherche_visible()
        
 
     def text_box_mots_ou_pressed_enter(self, **event_args):
@@ -1795,12 +1795,10 @@ class search(searchTemplate):
         self.lancer_recherche()
 
     def text_box_mots_ou_change(self, **event_args):
-        self.f.navigation_link_search_go.visible = True
-        self.button_search.visible = True
+        self.maj_bouton_recherche_visible()
 
     def text_box_mots_exclus_change(self, **event_args):
-        self.f.navigation_link_search_go.visible = True
-        self.button_search.visible = True
+        self.maj_bouton_recherche_visible()
     
 
     def maj_cadre_mots_ou_blanc(self, **event_args):
@@ -1907,6 +1905,21 @@ class search(searchTemplate):
             return f"{nb} offres {mot_apres_pluriel}".strip()
     
         return f"{nb} offre {mot_apres_singulier}".strip()
+
+    def maj_bouton_recherche_visible(self):
+        """
+        Affiche le bouton de recherche si au moins un critère positif existe :
+        - mots obligatoires
+        - ou mots OU avec importance
+        """
+    
+        has_mots_obligatoires = bool((self.text_box_mot_clef.text or "").strip())
+        has_mots_ou = len(self.dict_mots_score or {}) > 0
+    
+        visible = has_mots_obligatoires or has_mots_ou
+    
+        self.button_search.visible = visible
+        self.f.navigation_link_search_go.visible = visible
 
 
 

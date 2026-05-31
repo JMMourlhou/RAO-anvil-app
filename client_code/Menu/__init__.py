@@ -187,10 +187,14 @@ class Menu(MenuTemplate):
         
     # lancement de la requete de la forme search
     def navigation_link_search_go_click(self, **event_args):
-        """Lance la recherche depuis la Form search déjà affichée."""
-        self.content_panel.clear()
-        self.form_search = search()   # initialisé en init, remis à vide par bt retour
-        self.content_panel.add_component(self.form_search, full_width_row=False)
+
+        # appel lancer_recherche() sur l’instance déjà placée dans content_panel
+        if self.form_search is None:
+            alert("Ouvrir d'abord la page des appels d'offres.")
+            return
+
+        self.form_search.lancer_recherche()
+
 
     def navigation_link_user_parametres_click(self, **event_args):
         """This method is called when the component is clicked"""
