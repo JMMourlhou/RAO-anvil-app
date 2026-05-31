@@ -29,9 +29,6 @@ class search(searchTemplate):
         self.f = get_open_form()
 
         # roles css des champs d'affichage du progrès de la requête
-        self.column_panel_progress_recherche.role = "progress-search-box"
-        self.label_progress_recherche.role = "progress-search-main"
-        self.label_nb_offres_progress.role = "progress-search-sub"
 
         self.column_panel_progress_recherche.role = "progress-search-box"
         self.label_progress_recherche.role = "progress-search-main"
@@ -59,6 +56,9 @@ class search(searchTemplate):
         self.task_recherche = None
         self._ctx_recherche = {}
         self._recherche_en_cours = False
+        self.label_jauge_globale.visible = False
+        self.label_jauge_source.visible = False
+        self.text_param_summary.visible = False
         
         # Evite les traitements indésirables quand on modifie la checkbox par code
         self._ignore_checkbox_on_off_change = False
@@ -261,11 +261,11 @@ class search(searchTemplate):
         self.f.navigation_link_search_go.text = "Recherche en cours..."
     
         self.afficher_progression_recherche(
-            ligne_1=ligne_1,
-            ligne_2=ligne_2,
+            ligne_1="🔎 Lancement de la recherche",
+            ligne_2="Préparation des plateformes...",
             etat="running",
-            progress_global=progress,
-            progress_source=source_progress
+            progress_global=0,
+            progress_source=0
         )
     
         # Optionnel mais conseillé :
@@ -462,8 +462,13 @@ class search(searchTemplate):
             alert(f"Erreur pendant le lancement de la recherche : {e}")
             return
         
-        self.label_progress_recherche.text = "0% - Recherche lancée..."
-        self.label_nb_offres_progress.text = "Recherche des offres provisoires..."
+        self.afficher_progression_recherche(
+            ligne_1="🔎 0 % — Recherche lancée",
+            ligne_2="Recherche des offres provisoires...",
+            etat="running",
+            progress_global=0,
+            progress_source=0
+        )
         
         self.data_grid_1.visible = False
         self.column_panel_select.visible = False
@@ -676,15 +681,7 @@ class search(searchTemplate):
     
         self.column_panel_progress_recherche.visible = True
     
-        self.label_progress_recherche.text = "Recherche terminée."
-
-        if nb_offres > 1:
-            self.label_nb_offres_progress.text = f"{nb_offres} offres retenues après filtrage final"
-        else:
-            self.label_nb_offres_progress.text = f"{nb_offres} offre retenue après filtrage final"
-        
-        # Succès, cacher le bouton
-        self.deverrouiller_recherche(cacher_bouton=True)
+        self.text_param_summary.visible = True
 
         self.afficher_progression_recherche(
             ligne_1="✅ Recherche terminée",
@@ -695,8 +692,12 @@ class search(searchTemplate):
             ),
             etat="success",
             progress_global=100,
-            progress_source=100
+            progress_source=100,
+            afficher_jauges=False
         )
+        
+        # Succès : on cache les boutons de recherche
+        self.deverrouiller_recherche(cacher_bouton=True)
 
     # =========================================================================
     # Champs Enter
@@ -1894,10 +1895,9 @@ class search(searchTemplate):
             return
     
         progress = state.get("progress", 0)
+        source_progress = state.get("source_progress", 0)
         message = state.get("message", "Recherche en cours...")
         nb_offres = state.get("nb_offres", 0)
-        source_progress = state.get("source_progress", 0)
-        source_en_cours = state.get("source_en_cours", "")
     
         self.afficher_progression_recherche(
             ligne_1=f"🔎 {progress} % — {message}",
@@ -1906,7 +1906,9 @@ class search(searchTemplate):
                 "provisoire récupérée avant filtrage final",
                 "provisoires récupérées avant filtrage final"
             ),
-            etat="running"
+            etat="running",
+            progress_global=progress,
+            progress_source=source_progress
         )
     
         if not self.task_recherche.is_completed():
@@ -1929,7 +1931,7 @@ class search(searchTemplate):
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
                 etat="error",
                 progress_global=0,
-                progress_source=0  
+                progress_source=0
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -1942,7 +1944,7 @@ class search(searchTemplate):
                 ligne_2="0 offre récupérée",
                 etat="error",
                 progress_global=0,
-                progress_source=0  
+                progress_source=0
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -1963,7 +1965,9 @@ class search(searchTemplate):
                 "provisoire récupérée avant filtrage final",
                 "provisoires récupérées avant filtrage final"
             ),
-            etat="running"
+            etat="running",
+            progress_global=100,
+            progress_source=100
         )
     
         try:
@@ -1977,7 +1981,7 @@ class search(searchTemplate):
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
                 etat="error",
                 progress_global=0,
-                progress_source=0  
+                progress_source=0
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -2023,13 +2027,12 @@ class search(searchTemplate):
         ligne_2="",
         etat="running",
         progress_global=0,
-        progress_source=0
+        progress_source=0,
+        afficher_jauges=True
     ):
         """
-        Affiche toujours la progression sur deux lignes
-        + deux jauges :
-        - progression globale
-        - progression plateforme en cours
+        Affiche toujours la progression sur deux lignes.
+        Les jauges peuvent être masquées en fin de traitement.
         """
     
         try:
@@ -2051,13 +2054,18 @@ class search(searchTemplate):
         self.label_progress_recherche.text = ligne_1 or "Recherche en cours..."
         self.label_nb_offres_progress.text = ligne_2 or "Préparation des résultats..."
     
-        self.label_jauge_globale.visible = True
-        self.label_jauge_source.visible = True
+        if afficher_jauges:
+            self.label_jauge_globale.visible = True
+            self.label_jauge_source.visible = True
     
-        self.regler_jauge(self.label_jauge_globale, progress_global)
-        self.regler_jauge(self.label_jauge_source, progress_source)
-
-
+            self.regler_jauge(self.label_jauge_globale, progress_global)
+            self.regler_jauge(self.label_jauge_source, progress_source)
+    
+        else:
+            self.label_jauge_globale.visible = False
+            self.label_jauge_source.visible = False
+    
+    
     def regler_jauge(self, composant, pourcentage):
         """
         Met à jour une jauge CSS via la variable --progress-value.
