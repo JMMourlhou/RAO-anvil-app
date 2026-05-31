@@ -1,4 +1,4 @@
-from ._anvil_designer import Main_large_screenTemplate
+from ._anvil_designer import MenuTemplate
 from anvil import *
 import anvil.server
 import m3.components as m3
@@ -6,7 +6,6 @@ import anvil.users
 import anvil.tables as tables
 import anvil.tables.query as q
 from anvil.tables import app_tables
-from .. import Screen
 from ..z_user_login import z_user_login
 from ..z_user_pw_reset import z_user_pw_reset
 from ..z_user_new_account import z_user_new_account
@@ -16,13 +15,13 @@ from ..search import search
 from ..Contact import Contact
 from ..Param import Param
 
-class Main_large_screen(Main_large_screenTemplate):
+class Menu(MenuTemplate):
     def __init__(self, first_entry=False, **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
-        
-        
         # Any code you write here will run before the form opens.
+        self.form_search = None
+        
         user=anvil.users.get_user()
         if not user or first_entry is True:
             # hide the drawer
@@ -65,7 +64,7 @@ class Main_large_screen(Main_large_screenTemplate):
                     else: # pas le dernier lien cliqué
                         anvil.set_url_hash("")
                         alert(msg, title="Réinitialisation du mot de passe")
-                        open_form("Main_large_screen")
+                        open_form("Menu")
                 anvil.set_url_hash("")  
         else: # Il y a un user
             self.bt_user_mail.text = user['email']
@@ -184,12 +183,14 @@ class Main_large_screen(Main_large_screenTemplate):
         self.navigation_link_retour.visible = False
         self.navigation_link_search_go.visible = False
         self.content_panel.clear()
+        self.form_search = None
         
     # lancement de la requete de la forme search
     def navigation_link_search_go_click(self, **event_args):
-        """This method is called when the component is clicked"""
-        self.form_search = search()
-        self.form_search.lancer_recherche()
+        """Lance la recherche depuis la Form search déjà affichée."""
+        self.content_panel.clear()
+        self.form_search = search()   # initialisé en init, remis à vide par bt retour
+        self.content_panel.add_component(self.form_search, full_width_row=False)
 
     def navigation_link_user_parametres_click(self, **event_args):
         """This method is called when the component is clicked"""

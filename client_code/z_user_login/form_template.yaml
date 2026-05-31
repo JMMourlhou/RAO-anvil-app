@@ -40,10 +40,6 @@ components:
         name: button_validation
         properties: {align: center, background: 'theme:Olive', bold: false, border: '', enabled: true, font: '', font_size: null, foreground: 'theme:White', icon: '', icon_align: left, italic: false, role: raised, spacing_above: none, spacing_below: small, text: Valider, tooltip: '', underline: false, visible: false}
         type: Button
-      - layout_properties: {width: 45.5137939453125}
-        name: spacer_1
-        properties: {height: 31.8165283203125}
-        type: Spacer
       - event_bindings: {click: button_retour_click}
         layout_properties: {}
         name: button_retour

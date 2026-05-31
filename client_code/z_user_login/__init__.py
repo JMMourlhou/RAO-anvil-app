@@ -28,7 +28,7 @@ class z_user_login(z_user_loginTemplate):
     def button_retour_click(self, **event_args):
         """This method is called when the button is clicked"""
         # context écran
-        open_form('Main_large_screen')
+        open_form('Menu')
     
     def button_validation_click(self, **event_args):
         """This method is called when the button is clicked"""
@@ -85,7 +85,7 @@ class z_user_login(z_user_loginTemplate):
         #self.f.bt_user_mail.visible = False
         #self.form_search = search()
         #self.f.content_panel.add_component(self.form_search, full_width_row=False)
-        open_form('Main_large_screen')
+        open_form('Menu')
         
     def reset_pw_link_click(self, **event_args):
         """This method is called when the link is clicked"""

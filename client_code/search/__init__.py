@@ -11,7 +11,6 @@ from datetime import date, datetime
 import re
 import anvil.js   # pour la détection d'un click sur le DropDown dropdown_menu_valeur
 from anvil.js import get_dom_node    # pour écouteur JS sur le DropDown
-from .. import Screen
 
 class search(searchTemplate):
 

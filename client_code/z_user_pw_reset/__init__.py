@@ -50,7 +50,7 @@ class z_user_pw_reset(z_user_pw_resetTemplate):
 
     def button_retour_click(self, **event_args):
         """This method is called when the button is clicked"""
-        open_form('Main_large_screen')
+        open_form('Menu')
 
     def password_repeat_box_pressed_enter(self, **event_args):
         """This method is called when the user presses enter in this component."""

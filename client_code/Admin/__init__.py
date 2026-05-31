@@ -17,4 +17,4 @@ class Admin(AdminTemplate):
 
     def button_retour_click(self, **event_args):
         """This method is called when the button is clicked"""
-        open_form("Main_large_screen")
+        open_form("Menu")
