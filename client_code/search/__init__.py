@@ -27,9 +27,11 @@ class search(searchTemplate):
         self.init_components(**properties)
         
         self.f = get_open_form()
-  
-        #self.button_search.visible = False
-        #self.f.navigation_link_search_go.visible = False
+
+        # roles css des champs d'affichage du progrès de la requête
+        self.column_panel_progress_recherche.role = "progress-search-box"
+        self.label_progress_recherche.role = "progress-search-main"
+        self.label_nb_offres_progress.role = "progress-search-sub"
 
         # =====================================================================
         # Variables internes
@@ -250,11 +252,11 @@ class search(searchTemplate):
         self.f.navigation_link_search_go.enabled = False
         self.f.navigation_link_search_go.text = "Recherche en cours..."
     
-        self.label_progress_recherche.visible = True
-        self.label_nb_offres_progress.visible = True
-    
-        self.label_progress_recherche.text = message
-        self.label_nb_offres_progress.text = ""
+        self.afficher_progression_recherche(
+            ligne_1=f"🔎 {message}",
+            ligne_2="Préparation de la recherche...",
+            etat="running"
+        )
     
         # Optionnel mais conseillé :
         # éviter que l'utilisateur change les paramètres pendant la recherche
@@ -633,7 +635,7 @@ class search(searchTemplate):
             f"Départements : {self.text_box_departements.text or '-'}"
         )
     
-        self.text_param_summary.visible = True
+        self.column_panel_progress_recherche.visible = True
     
         self.label_progress_recherche.text = "Recherche terminée."
 
@@ -916,7 +918,7 @@ class search(searchTemplate):
         else:
             self.text_nb_offres.text = f"{nb} offres"
     
-        self.text_nb_offres.visible = True
+        self.text_nb_offres.visible = False
         self.data_grid_1.visible = True
         self.column_panel_select.visible = True
     
@@ -1827,8 +1829,13 @@ class search(searchTemplate):
     
         except Exception as e:
             print(f"Impossible de lire la progression : {e}")
-            self.label_progress_recherche.text = "Erreur de lecture de la progression."
-            self.label_nb_offres_progress.text = ""
+    
+            self.afficher_progression_recherche(
+                ligne_1="⚠️ Erreur de lecture de la progression",
+                ligne_2="Le bouton Rechercher est à nouveau disponible",
+                etat="error"
+            )
+    
             self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Impossible de lire la progression : {e}")
             return
@@ -1837,16 +1844,15 @@ class search(searchTemplate):
         message = state.get("message", "Recherche en cours...")
         nb_offres = state.get("nb_offres", 0)
     
-        self.label_progress_recherche.text = f"{progress}% - {message}"
-    
-        if nb_offres > 1:
-            self.label_nb_offres_progress.text = (
-                f"{nb_offres} offres provisoires récupérées avant filtrage final"
-            )
-        else:
-            self.label_nb_offres_progress.text = (
-                f"{nb_offres} offre provisoire récupérée avant filtrage final"
-            )
+        self.afficher_progression_recherche(
+            ligne_1=f"🔎 {progress} % — {message}",
+            ligne_2=self.format_nb_offres(
+                nb_offres,
+                "provisoire récupérée avant filtrage final",
+                "provisoires récupérées avant filtrage final"
+            ),
+            etat="running"
+        )
     
         if not self.task_recherche.is_completed():
             return
@@ -1862,30 +1868,43 @@ class search(searchTemplate):
     
         except Exception as e:
             print(f"Erreur pendant la tâche background : {e}")
-            self.label_progress_recherche.text = "Erreur pendant la recherche."
-            self.label_nb_offres_progress.text = ""
+    
+            self.afficher_progression_recherche(
+                ligne_1="⚠️ Erreur pendant la recherche",
+                ligne_2="Le bouton Rechercher est à nouveau disponible",
+                etat="error"
+            )
+    
             self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant la recherche : {e}")
             return
     
         if not result:
-            self.label_progress_recherche.text = "Recherche terminée, mais résultat vide."
-            self.label_nb_offres_progress.text = "0 offre récupérée"
+            self.afficher_progression_recherche(
+                ligne_1="⚠️ Recherche terminée, mais résultat vide",
+                ligne_2="0 offre récupérée",
+                etat="error"
+            )
+    
             self.deverrouiller_recherche(cacher_bouton=False)
             alert("La recherche est terminée, mais aucun résultat n'a été retourné.")
             return
     
         errors = result.get("errors", [])
+    
         if errors:
             print("Erreurs partielles pendant la recherche :", errors)
     
         offres = result.get("offres", [])
     
-        self.label_progress_recherche.text = "Recherche terminée. Traitement des offres..."
-        self.label_nb_offres_progress.text = (
-            f"{len(offres)} offres provisoires récupérées avant filtrage final"
-            if len(offres) > 1
-            else f"{len(offres)} offre provisoire récupérée avant filtrage final"
+        self.afficher_progression_recherche(
+            ligne_1="🔎 Recherche terminée — traitement final des offres",
+            ligne_2=self.format_nb_offres(
+                len(offres),
+                "provisoire récupérée avant filtrage final",
+                "provisoires récupérées avant filtrage final"
+            ),
+            etat="running"
         )
     
         try:
@@ -1893,7 +1912,13 @@ class search(searchTemplate):
     
         except Exception as e:
             print(f"Erreur pendant le traitement final des offres : {e}")
-            self.label_progress_recherche.text = "Erreur pendant le traitement final."
+    
+            self.afficher_progression_recherche(
+                ligne_1="⚠️ Erreur pendant le traitement final",
+                ligne_2="Le bouton Rechercher est à nouveau disponible",
+                etat="error"
+            )
+    
             self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant le traitement final des offres : {e}")
             return
@@ -1922,4 +1947,36 @@ class search(searchTemplate):
         self.f.navigation_link_search_go.visible = visible
 
 
+    def format_nb_offres(self, nb, suffixe_singulier="", suffixe_pluriel=""):
+        nb = int(nb or 0)
 
+        if nb > 1:
+            return f"{nb} offres {suffixe_pluriel}".strip()
+    
+        return f"{nb} offre {suffixe_singulier}".strip()
+    
+    
+    def afficher_progression_recherche(self, ligne_1="", ligne_2="", etat="running"):
+        """
+        Affiche toujours la progression sur deux lignes.
+        etat : running | success | error
+        """
+    
+        try:
+            self.column_panel_progress_recherche.visible = True
+    
+            if etat == "success":
+                self.column_panel_progress_recherche.role = "progress-search-box-success"
+            elif etat == "error":
+                self.column_panel_progress_recherche.role = "progress-search-box-error"
+            else:
+                self.column_panel_progress_recherche.role = "progress-search-box"
+    
+        except Exception:
+            pass
+    
+        self.label_progress_recherche.visible = True
+        self.label_nb_offres_progress.visible = True
+    
+        self.label_progress_recherche.text = ligne_1 or "Recherche en cours..."
+        self.label_nb_offres_progress.text = ligne_2 or "Préparation des résultats..."

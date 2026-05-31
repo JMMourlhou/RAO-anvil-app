@@ -810,3 +810,58 @@ CORRECTIF TERMINAL JM - TextBox blanc / Dropdown transparent
     border-radius: 6px;
     font-size: 14px;
 }
+
+
+
+/* Bloc progression recherche appels d'offres */
+.anvil-role-progress-search-box {
+    background: #f7fafc;
+    border: 1px solid #d5e3ea;
+    border-left: 5px solid #3CD9ED;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Ligne 1 : état courant */
+.anvil-role-progress-search-main {
+    font-size: 14px;
+    font-weight: 600;
+    color: #16343d;
+    line-height: 1.35;
+}
+
+/* Ligne 2 : nombre d'offres */
+.anvil-role-progress-search-sub {
+    font-size: 13px;
+    font-weight: 400;
+    color: #52636b;
+    line-height: 1.35;
+    margin-top: 3px;
+}
+
+/* Variante succès */
+.anvil-role-progress-search-box-success {
+    background: #f4fbf6;
+    border: 1px solid #cfe9d5;
+    border-left: 5px solid #2e7d32;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Variante erreur */
+.anvil-role-progress-search-box-error {
+    background: #fff7f7;
+    border: 1px solid #f0caca;
+    border-left: 5px solid #c62828;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
