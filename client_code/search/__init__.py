@@ -33,6 +33,14 @@ class search(searchTemplate):
         self.label_progress_recherche.role = "progress-search-main"
         self.label_nb_offres_progress.role = "progress-search-sub"
 
+        self.column_panel_progress_recherche.role = "progress-search-box"
+        self.label_progress_recherche.role = "progress-search-main"
+        self.label_nb_offres_progress.role = "progress-search-sub"
+        
+        self.label_jauge_globale.role = "progress-gauge-global"
+        self.label_jauge_source.role = "progress-gauge-source"
+        
+        self.column_panel_progress_recherche.visible = False
         # =====================================================================
         # Variables internes
         # =====================================================================
@@ -253,9 +261,11 @@ class search(searchTemplate):
         self.f.navigation_link_search_go.text = "Recherche en cours..."
     
         self.afficher_progression_recherche(
-            ligne_1=f"🔎 {message}",
-            ligne_2="Préparation de la recherche...",
-            etat="running"
+            ligne_1=ligne_1,
+            ligne_2=ligne_2,
+            etat="running",
+            progress_global=progress,
+            progress_source=source_progress
         )
     
         # Optionnel mais conseillé :
@@ -274,24 +284,52 @@ class search(searchTemplate):
     def deverrouiller_recherche(self, cacher_bouton=False):
         """
         Déverrouille l'interface après fin, erreur ou interruption de recherche.
+    
+        Important :
+        - ne vide pas les labels de progression ;
+        - ne masque pas column_panel_progress_recherche ;
+        - ne remet pas les jauges à zéro.
+        
+        Le message final reste donc visible :
+        - succès : "Recherche terminée"
+        - erreur : message d'erreur
         """
     
         self._recherche_en_cours = False
     
+        # Arrêt du timer Anvil
         self.timer_recherche_progress.interval = 0
         self.task_recherche = None
     
+        # Bouton recherche classique
         self.button_search.enabled = True
         self.button_search.text = "Rechercher"
-        
-        self.f.navigation_link_search_go.enabled = True
-        self.f.navigation_link_search_go.text = "Rechercher"
-
+    
+        # Bouton recherche du menu
+        try:
+            self.f.navigation_link_search_go.enabled = True
+            self.f.navigation_link_search_go.text = "Rechercher"
+        except Exception as e:
+            print("Erreur réactivation navigation_link_search_go :", e)
+    
+        # Gestion visibilité après succès ou erreur
         if cacher_bouton:
-            self.f.navigation_link_search_go.visible = False
+            self.button_search.visible = False
+    
+            try:
+                self.f.navigation_link_search_go.visible = False
+            except Exception as e:
+                print("Erreur masquage navigation_link_search_go :", e)
+    
         else:
-            self.f.navigation_link_search_go.visible = True
-            
+            self.button_search.visible = True
+    
+            try:
+                self.f.navigation_link_search_go.visible = True
+            except Exception as e:
+                print("Erreur affichage navigation_link_search_go :", e)
+    
+        # Réactivation des champs de recherche
         try:
             self.text_box_mot_clef.enabled = True
             self.text_box_mots_exclus.enabled = True
@@ -299,6 +337,7 @@ class search(searchTemplate):
             self.text_box_departements.enabled = True
             self.multi_select_drop_down_platformes.enabled = True
             self.button_add_mot.enabled = True
+    
         except Exception as e:
             print("Erreur déverrouillage UI :", e)
 
@@ -646,6 +685,18 @@ class search(searchTemplate):
         
         # Succès, cacher le bouton
         self.deverrouiller_recherche(cacher_bouton=True)
+
+        self.afficher_progression_recherche(
+            ligne_1="✅ Recherche terminée",
+            ligne_2=self.format_nb_offres(
+                nb_offres,
+                "retenue après filtrage final",
+                "retenues après filtrage final"
+            ),
+            etat="success",
+            progress_global=100,
+            progress_source=100
+        )
 
     # =========================================================================
     # Champs Enter
@@ -1833,7 +1884,9 @@ class search(searchTemplate):
             self.afficher_progression_recherche(
                 ligne_1="⚠️ Erreur de lecture de la progression",
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
-                etat="error"
+                etat="error",
+                progress_global=0,
+                progress_source=0
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -1843,6 +1896,8 @@ class search(searchTemplate):
         progress = state.get("progress", 0)
         message = state.get("message", "Recherche en cours...")
         nb_offres = state.get("nb_offres", 0)
+        source_progress = state.get("source_progress", 0)
+        source_en_cours = state.get("source_en_cours", "")
     
         self.afficher_progression_recherche(
             ligne_1=f"🔎 {progress} % — {message}",
@@ -1872,7 +1927,9 @@ class search(searchTemplate):
             self.afficher_progression_recherche(
                 ligne_1="⚠️ Erreur pendant la recherche",
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
-                etat="error"
+                etat="error",
+                progress_global=0,
+                progress_source=0  
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -1883,7 +1940,9 @@ class search(searchTemplate):
             self.afficher_progression_recherche(
                 ligne_1="⚠️ Recherche terminée, mais résultat vide",
                 ligne_2="0 offre récupérée",
-                etat="error"
+                etat="error",
+                progress_global=0,
+                progress_source=0  
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -1916,7 +1975,9 @@ class search(searchTemplate):
             self.afficher_progression_recherche(
                 ligne_1="⚠️ Erreur pendant le traitement final",
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
-                etat="error"
+                etat="error",
+                progress_global=0,
+                progress_source=0  
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -1956,10 +2017,19 @@ class search(searchTemplate):
         return f"{nb} offre {suffixe_singulier}".strip()
     
     
-    def afficher_progression_recherche(self, ligne_1="", ligne_2="", etat="running"):
+    def afficher_progression_recherche(
+        self,
+        ligne_1="",
+        ligne_2="",
+        etat="running",
+        progress_global=0,
+        progress_source=0
+    ):
         """
-        Affiche toujours la progression sur deux lignes.
-        etat : running | success | error
+        Affiche toujours la progression sur deux lignes
+        + deux jauges :
+        - progression globale
+        - progression plateforme en cours
         """
     
         try:
@@ -1980,3 +2050,27 @@ class search(searchTemplate):
     
         self.label_progress_recherche.text = ligne_1 or "Recherche en cours..."
         self.label_nb_offres_progress.text = ligne_2 or "Préparation des résultats..."
+    
+        self.label_jauge_globale.visible = True
+        self.label_jauge_source.visible = True
+    
+        self.regler_jauge(self.label_jauge_globale, progress_global)
+        self.regler_jauge(self.label_jauge_source, progress_source)
+
+
+    def regler_jauge(self, composant, pourcentage):
+        """
+        Met à jour une jauge CSS via la variable --progress-value.
+        """
+        try:
+            p = int(pourcentage or 0)
+        except Exception:
+            p = 0
+    
+        p = max(0, min(100, p))
+    
+        try:
+            node = get_dom_node(composant)
+            node.style.setProperty("--progress-value", f"{p}%")
+        except Exception as e:
+            print("Erreur réglage jauge :", e)

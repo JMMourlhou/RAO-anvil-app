@@ -812,7 +812,7 @@ CORRECTIF TERMINAL JM - TextBox blanc / Dropdown transparent
 }
 
 
-
+/* Gages de progression */
 /* Bloc progression recherche appels d'offres */
 .anvil-role-progress-search-box {
     background: #f7fafc;
@@ -855,6 +855,92 @@ CORRECTIF TERMINAL JM - TextBox blanc / Dropdown transparent
 }
 
 /* Variante erreur */
+.anvil-role-progress-search-box-error {
+    background: #fff7f7;
+    border: 1px solid #f0caca;
+    border-left: 5px solid #c62828;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Bloc progression recherche */
+.anvil-role-progress-search-box {
+    background: #f7fafc;
+    border: 1px solid #d5e3ea;
+    border-left: 5px solid #3CD9ED;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Ligne principale */
+.anvil-role-progress-search-main {
+    font-size: 14px;
+    font-weight: 600;
+    color: #16343d;
+    line-height: 1.35;
+}
+
+/* Ligne secondaire */
+.anvil-role-progress-search-sub {
+    font-size: 13px;
+    font-weight: 400;
+    color: #52636b;
+    line-height: 1.35;
+    margin-top: 3px;
+}
+
+/* Jauge globale */
+.anvil-role-progress-gauge-global {
+    height: 8px;
+    min-height: 8px;
+    border-radius: 999px;
+    margin-top: 6px;
+    margin-bottom: 8px;
+    background: linear-gradient(
+        to right,
+        #3CD9ED var(--progress-value, 0%),
+        #e1edf2 var(--progress-value, 0%)
+    );
+    transition: background 0.35s ease;
+}
+
+/* Jauge plateforme */
+.anvil-role-progress-gauge-source {
+    height: 8px;
+    min-height: 8px;
+    border-radius: 999px;
+    margin-top: 6px;
+    margin-bottom: 2px;
+    background: linear-gradient(
+        to right,
+        #7cb342 var(--progress-value, 0%),
+        #e7efe2 var(--progress-value, 0%)
+    );
+    transition: background 0.35s ease;
+}
+
+
+
+
+/* Succès */
+.anvil-role-progress-search-box-success {
+    background: #f4fbf6;
+    border: 1px solid #cfe9d5;
+    border-left: 5px solid #2e7d32;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Erreur */
 .anvil-role-progress-search-box-error {
     background: #fff7f7;
     border: 1px solid #f0caca;
