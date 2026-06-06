@@ -20,7 +20,7 @@ class Contact(ContactTemplate):
         drop = self.dropdown_sujets.selected_value
         nom = (self.text_box_nom.text or "").capitalize().strip()
         activite = (self.text_box_activite.text or "").capitalize().strip()
-        tel = (self.text_box_tel.text or "").strip()
+        tel = (self.text_box_tel.text or "")
         mail = (self.text_box_mail.text or "").strip()
         message = (self.text_area_message.text or "").strip()
         
@@ -46,9 +46,10 @@ class Contact(ContactTemplate):
             return
 
         # Tel au bon format
-        #alert(len(tel))
-        #alert(tel.isdigit())
-        if len(tel) != 10 or not tel.isdigit():
+        # un numéro de téléphone doit toujours être traité comme du texte, jamais comme un nombre.
+        #alert(len(str(tel)))
+        #alert(str(tel).isdigit())
+        if len(str(tel)) != 10 or not str(tel).isdigit():
             alert("Le numéro de téléphone doit contenir exactement 10 chiffres, sans espace ni autre caractère.")
             self.text_box_tel.focus()
             return

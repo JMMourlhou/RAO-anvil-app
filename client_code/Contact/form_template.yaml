@@ -34,7 +34,7 @@ components:
         label_italic: true
         leading_icon: mi:contact_mail
         leading_icon_color: theme:Olive
-        margin: ['1', null, '1', '2']
+        margin: ['4', null, '1', '2']
         placeholder: ''
         text: ''
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
@@ -47,14 +47,14 @@ components:
           border_color: theme:Olive
           character_limit: null
           display_text_color: theme:On Primary Container
-          label: Tel
+          label: 'Tel '
           label_italic: true
           leading_icon: mi:contact_mail
           leading_icon_color: theme:Olive
-          margin: ['1', null, '1', '2']
+          margin: ['4', null, '1', '2']
           placeholder: ''
           text: ''
-          type: number
+          type: tel
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       - event_bindings: {}
         layout_properties: {grid_position: 'GXPLZU,SMRCRZ'}
@@ -68,14 +68,19 @@ components:
           label_italic: true
           leading_icon: mi:contact_mail
           leading_icon_color: theme:Olive
-          margin: ['1', null, '1', '2']
+          margin: ['4', null, '1', '2']
           placeholder: ''
           text: ''
           type: email
         type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
       layout_properties: {slot: card-content-container-slot}
       name: column_panel_1
-      properties: {wrap_on: never}
+      properties:
+        col_spacing: tiny
+        col_widths: '{"RWFUAA":20,"SMRCRZ":40}'
+        spacing:
+          padding: ['0', null, null, null]
+        wrap_on: never
       type: ColumnPanel
     - event_bindings: {change: dropdown_sujets_change}
       layout_properties: {slot: card-content-container-slot}
@@ -87,13 +92,14 @@ components:
         icon_color: theme:Primary
         items: [Questions, Demande de Rendez-Vous, Rapporter un bug]
         label: 'Objet :'
+        margin: ['4', null, null, null]
         placeholder: Cliquez pour sélectionner l'objet du message
         supporting_text: ''
       type: form:dep_lin1x4oec0ytd:_Components.DropdownMenu
     - event_bindings: {change: text_area_message_change}
       layout_properties: {slot: card-content-container-slot}
       name: text_area_message
-      properties: {appearance: outlined, background_color: '', border_color: 'theme:Primary', height: 120.807373046875, label: 'Message :', placeholder: Entrez votre message ici}
+      properties: {appearance: outlined, background_color: '', border_color: 'theme:Primary', height: 175.1121826171875, label: 'Message :', placeholder: Entrez votre message ici}
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextArea
     layout_properties: {slot: card-content-slot}
     name: card_content_container_1
