@@ -56,6 +56,10 @@ class search(searchTemplate):
         self.task_recherche = None
         self._ctx_recherche = {}
         self._recherche_en_cours = False
+        self.base_app = ""
+        self._last_progress_global = None
+        self._last_progress_source = None
+        self._last_progress_role = None
         self.label_jauge_globale.visible = False
         self.label_jauge_source.visible = False
         self.text_param_summary.visible = False
@@ -121,6 +125,13 @@ class search(searchTemplate):
                 alert("Vous n'êtes pas connecté.")
                 return
 
+            try:
+                self.base_app = anvil.server.call("get_variable_value", "code_app1")
+            except Exception as e:
+                print("Impossible de récupérer code_app1 :", e)
+                self.base_app = ""
+
+            
             # =================================================================
             # Init de la drop down plateforme multi-sélectable
             # =================================================================
@@ -254,11 +265,13 @@ class search(searchTemplate):
     
         self._recherche_en_cours = True
     
-        #self.button_search.enabled = False
-        #self.button_search.text = "Recherche en cours..."
-        
-        self.f.navigation_link_search_go.enabled = False
-        self.f.navigation_link_search_go.text = "Recherche en cours..."
+        try:
+            self.f.navigation_link_search_go.visible = True
+            self.f.navigation_link_search_go.enabled = False
+            # Ne pas changer le texte ici : cela peut faire bouger le menu M3.
+            # self.f.navigation_link_search_go.text = "Recherche en cours..."
+        except Exception as e:
+            print("Erreur verrouillage navigation_link_search_go :", e)
     
         self.afficher_progression_recherche(
             ligne_1="🔎 Lancement de la recherche",
@@ -268,8 +281,6 @@ class search(searchTemplate):
             progress_source=0
         )
     
-        # Optionnel mais conseillé :
-        # éviter que l'utilisateur change les paramètres pendant la recherche
         try:
             self.text_box_mot_clef.enabled = False
             self.text_box_mots_exclus.enabled = False
@@ -284,52 +295,28 @@ class search(searchTemplate):
     def deverrouiller_recherche(self, cacher_bouton=False):
         """
         Déverrouille l'interface après fin, erreur ou interruption de recherche.
-    
-        Important :
-        - ne vide pas les labels de progression ;
-        - ne masque pas column_panel_progress_recherche ;
-        - ne remet pas les jauges à zéro.
-        
-        Le message final reste donc visible :
-        - succès : "Recherche terminée"
-        - erreur : message d'erreur
         """
     
         self._recherche_en_cours = False
     
-        # Arrêt du timer Anvil
         self.timer_recherche_progress.interval = 0
         self.task_recherche = None
     
-        # Bouton recherche classique
-        #self.button_search.enabled = True
-        #self.button_search.text = "Rechercher"
-    
-        # Bouton recherche du menu
         try:
-            self.f.navigation_link_search_go.enabled = True
+            self.f.navigation_link_search_go.visible = True
+    
+            if cacher_bouton:
+                # On ne le cache pas : le masquer fait bouger le menu M3.
+                self.f.navigation_link_search_go.enabled = False
+            else:
+                self.f.navigation_link_search_go.enabled = True
+    
+            # Ne pas changer le texte à chaque fin de recherche.
             self.f.navigation_link_search_go.text = "Rechercher"
+    
         except Exception as e:
             print("Erreur réactivation navigation_link_search_go :", e)
     
-        # Gestion visibilité après succès ou erreur
-        if cacher_bouton:
-            #self.button_search.visible = False
-    
-            try:
-                self.f.navigation_link_search_go.visible = False
-            except Exception as e:
-                print("Erreur masquage navigation_link_search_go :", e)
-    
-        else:
-            #self.button_search.visible = True
-    
-            try:
-                self.f.navigation_link_search_go.visible = True
-            except Exception as e:
-                print("Erreur affichage navigation_link_search_go :", e)
-    
-        # Réactivation des champs de recherche
         try:
             self.text_box_mot_clef.enabled = True
             self.text_box_mots_exclus.enabled = True
@@ -849,7 +836,9 @@ class search(searchTemplate):
         
         #self.button_search.visible = True
         self.f.navigation_link_search_go.visible = True
+        self.f.navigation_link_search_go.enabled = True
 
+        
     def button_del_before_modif_param(self, **event_args):
         """
         Anciennement : effacement de app_tables.appels_offres.
@@ -1385,7 +1374,16 @@ class search(searchTemplate):
         offres = []
         vus = set()
 
-        base_app = anvil.server.call("get_variable_value", "code_app1")
+        base_app = self.base_app
+
+        if not base_app:
+            try:
+                with anvil.server.no_loading_indicator:
+                    base_app = anvil.server.call("get_variable_value", "code_app1")
+                self.base_app = base_app
+            except Exception as e:
+                print("Impossible de récupérer code_app1 dans build_offres_list :", e)
+                base_app = ""
 
         for item in resultats or []:
             uid = self._make_offer_uid(item)
@@ -1878,7 +1876,7 @@ class search(searchTemplate):
         try:
             with anvil.server.no_loading_indicator:
                 state = self.task_recherche.get_state() or {}
-    
+                task_completed = self.task_recherche.is_completed()
         except Exception as e:
             print(f"Impossible de lire la progression : {e}")
     
@@ -1920,7 +1918,7 @@ class search(searchTemplate):
             afficher_jauges=True
         )
     
-        if not self.task_recherche.is_completed():
+        if not task_completed:
             return
     
         # La tâche Uplink est terminée.
@@ -2014,7 +2012,7 @@ class search(searchTemplate):
 
     def maj_bouton_recherche_visible(self):
         """
-        Affiche le bouton de recherche si au moins un critère positif existe :
+        Active le bouton de recherche si au moins un critère positif existe :
         - mots obligatoires
         - ou mots OU avec importance
         """
@@ -2022,10 +2020,13 @@ class search(searchTemplate):
         has_mots_obligatoires = bool((self.text_box_mot_clef.text or "").strip())
         has_mots_ou = len(self.dict_mots_score or {}) > 0
     
-        visible = has_mots_obligatoires or has_mots_ou
+        actif = has_mots_obligatoires or has_mots_ou
     
-        #self.button_search.visible = visible
-        self.f.navigation_link_search_go.visible = visible
+        try:
+            self.f.navigation_link_search_go.visible = True
+            self.f.navigation_link_search_go.enabled = actif and not self._recherche_en_cours
+        except Exception as e:
+            print("Erreur maj navigation_link_search_go :", e)
 
 
     def format_nb_offres(self, nb, suffixe_singulier="", suffixe_pluriel=""):
@@ -2051,37 +2052,49 @@ class search(searchTemplate):
     ):
         """
         Affiche la progression sur deux lignes
-        + deux jauges :
-        - jauge bleue : progression globale en %
-        - jauge verte : plateforme en cours + progression locale
+        + deux jauges.
         """
     
-        try:
-            self.column_panel_progress_recherche.visible = True
+        if etat == "success":
+            role = "progress-search-box-success"
+        elif etat == "error":
+            role = "progress-search-box-error"
+        else:
+            role = "progress-search-box"
     
-            if etat == "success":
-                self.column_panel_progress_recherche.role = "progress-search-box-success"
-            elif etat == "error":
-                self.column_panel_progress_recherche.role = "progress-search-box-error"
-            else:
-                self.column_panel_progress_recherche.role = "progress-search-box"
+        try:
+            if not self.column_panel_progress_recherche.visible:
+                self.column_panel_progress_recherche.visible = True
+    
+            if self._last_progress_role != role:
+                self.column_panel_progress_recherche.role = role
+                self._last_progress_role = role
     
         except Exception:
             pass
     
-        self.label_progress_recherche.visible = True
-        #self.label_nb_offres_progress.visible = True
+        if not self.label_progress_recherche.visible:
+            self.label_progress_recherche.visible = True
     
-        self.label_progress_recherche.text = ligne_1 or "Recherche en cours..."
-        #self.label_nb_offres_progress.text = ligne_2 or "Préparation des résultats..."
+        texte = ligne_1 or "Recherche en cours..."
+    
+        if ligne_2:
+            texte = f"{texte}\n{ligne_2}"
+    
+        if self.label_progress_recherche.text != texte:
+            self.label_progress_recherche.text = texte
     
         if not afficher_jauges:
-            self.label_jauge_globale.visible = False
-            self.label_jauge_source.visible = False
+            if self.label_jauge_globale.visible:
+                self.label_jauge_globale.visible = False
+            if self.label_jauge_source.visible:
+                self.label_jauge_source.visible = False
             return
     
-        self.label_jauge_globale.visible = True
-        self.label_jauge_source.visible = True
+        if not self.label_jauge_globale.visible:
+            self.label_jauge_globale.visible = True
+        if not self.label_jauge_source.visible:
+            self.label_jauge_source.visible = True
     
         try:
             progress_global = int(progress_global or 0)
@@ -2096,35 +2109,50 @@ class search(searchTemplate):
         progress_global = max(0, min(100, progress_global))
         progress_source = max(0, min(100, progress_source))
     
-        # Texte au centre de la jauge bleue
-        self.label_jauge_globale.text = f"{progress_global} %"
+        texte_global = f"{progress_global} %"
     
-        # Texte au centre de la jauge verte
         source_nom = str(source_nom or "").strip()
     
         if source_nom:
             if source_current is not None and source_total:
-                self.label_jauge_source.text = f"{source_nom} — {source_current}/{source_total}"
+                texte_source = f"{source_nom} — {source_current}/{source_total}"
             else:
-                self.label_jauge_source.text = f"{source_nom} — {progress_source} %"
+                texte_source = f"{source_nom} — {progress_source} %"
         else:
-            self.label_jauge_source.text = f"{progress_source} %"
+            texte_source = f"{progress_source} %"
     
-        self.regler_jauge(self.label_jauge_globale, progress_global)
-        self.regler_jauge(self.label_jauge_source, progress_source)
+        if self.label_jauge_globale.text != texte_global:
+            self.label_jauge_globale.text = texte_global
+    
+        if self.label_jauge_source.text != texte_source:
+            self.label_jauge_source.text = texte_source
+    
+        self.regler_jauge(self.label_jauge_globale, progress_global, "global")
+        self.regler_jauge(self.label_jauge_source, progress_source, "source")
     
     
-    def regler_jauge(self, composant, pourcentage):
+    def regler_jauge(self, composant, pourcentage, nom=""):
         """
         Met à jour une jauge CSS via la variable --progress-value.
         La jauge se remplit de gauche à droite.
         """
+    
         try:
             p = int(pourcentage or 0)
         except Exception:
             p = 0
     
         p = max(0, min(100, p))
+    
+        if nom == "global":
+            if self._last_progress_global == p:
+                return
+            self._last_progress_global = p
+    
+        elif nom == "source":
+            if self._last_progress_source == p:
+                return
+            self._last_progress_source = p
     
         try:
             node = get_dom_node(composant)
