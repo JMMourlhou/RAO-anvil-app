@@ -181,7 +181,7 @@ class search(searchTemplate):
                     self.column_panel_select.visible = False
 
                 self.f.navigation_link_search_go.visible = False
-                self.button_search.visible = False
+                #self.button_search.visible = False
                 
                  
     # =========================================================================
@@ -254,8 +254,8 @@ class search(searchTemplate):
     
         self._recherche_en_cours = True
     
-        self.button_search.enabled = False
-        self.button_search.text = "Recherche en cours..."
+        #self.button_search.enabled = False
+        #self.button_search.text = "Recherche en cours..."
         
         self.f.navigation_link_search_go.enabled = False
         self.f.navigation_link_search_go.text = "Recherche en cours..."
@@ -302,7 +302,7 @@ class search(searchTemplate):
         self.task_recherche = None
     
         # Bouton recherche classique
-        self.button_search.enabled = True
+        #self.button_search.enabled = True
         self.button_search.text = "Rechercher"
     
         # Bouton recherche du menu
@@ -1887,7 +1887,8 @@ class search(searchTemplate):
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
                 etat="error",
                 progress_global=0,
-                progress_source=0
+                progress_source=0,
+                afficher_jauges=False
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -1896,11 +1897,15 @@ class search(searchTemplate):
     
         progress = state.get("progress", 0)
         source_progress = state.get("source_progress", 0)
+        source_en_cours = state.get("source_en_cours", "")
+        source_current = state.get("source_current", None)
+        source_total = state.get("source_total", None)
+    
         message = state.get("message", "Recherche en cours...")
         nb_offres = state.get("nb_offres", 0)
     
         self.afficher_progression_recherche(
-            ligne_1=f"🔎 {progress} % — {message}",
+            ligne_1=f"🔎 {message}",
             ligne_2=self.format_nb_offres(
                 nb_offres,
                 "provisoire récupérée avant filtrage final",
@@ -1908,7 +1913,11 @@ class search(searchTemplate):
             ),
             etat="running",
             progress_global=progress,
-            progress_source=source_progress
+            progress_source=source_progress,
+            source_nom=source_en_cours,
+            source_current=source_current,
+            source_total=source_total,
+            afficher_jauges=True
         )
     
         if not self.task_recherche.is_completed():
@@ -1931,7 +1940,8 @@ class search(searchTemplate):
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
                 etat="error",
                 progress_global=0,
-                progress_source=0
+                progress_source=0,
+                afficher_jauges=False
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -1944,7 +1954,8 @@ class search(searchTemplate):
                 ligne_2="0 offre récupérée",
                 etat="error",
                 progress_global=0,
-                progress_source=0
+                progress_source=0,
+                afficher_jauges=False
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -1967,7 +1978,11 @@ class search(searchTemplate):
             ),
             etat="running",
             progress_global=100,
-            progress_source=100
+            progress_source=100,
+            source_nom="Traitement final",
+            source_current=None,
+            source_total=None,
+            afficher_jauges=True
         )
     
         try:
@@ -1981,7 +1996,8 @@ class search(searchTemplate):
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
                 etat="error",
                 progress_global=0,
-                progress_source=0
+                progress_source=0,
+                afficher_jauges=False
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -2028,11 +2044,16 @@ class search(searchTemplate):
         etat="running",
         progress_global=0,
         progress_source=0,
+        source_nom="",
+        source_current=None,
+        source_total=None,
         afficher_jauges=True
     ):
         """
-        Affiche toujours la progression sur deux lignes.
-        Les jauges peuvent être masquées en fin de traitement.
+        Affiche la progression sur deux lignes
+        + deux jauges :
+        - jauge bleue : progression globale en %
+        - jauge verte : plateforme en cours + progression locale
         """
     
         try:
@@ -2054,21 +2075,49 @@ class search(searchTemplate):
         self.label_progress_recherche.text = ligne_1 or "Recherche en cours..."
         self.label_nb_offres_progress.text = ligne_2 or "Préparation des résultats..."
     
-        if afficher_jauges:
-            self.label_jauge_globale.visible = True
-            self.label_jauge_source.visible = True
-    
-            self.regler_jauge(self.label_jauge_globale, progress_global)
-            self.regler_jauge(self.label_jauge_source, progress_source)
-    
-        else:
+        if not afficher_jauges:
             self.label_jauge_globale.visible = False
             self.label_jauge_source.visible = False
+            return
+    
+        self.label_jauge_globale.visible = True
+        self.label_jauge_source.visible = True
+    
+        try:
+            progress_global = int(progress_global or 0)
+        except Exception:
+            progress_global = 0
+    
+        try:
+            progress_source = int(progress_source or 0)
+        except Exception:
+            progress_source = 0
+    
+        progress_global = max(0, min(100, progress_global))
+        progress_source = max(0, min(100, progress_source))
+    
+        # Texte au centre de la jauge bleue
+        self.label_jauge_globale.text = f"{progress_global} %"
+    
+        # Texte au centre de la jauge verte
+        source_nom = str(source_nom or "").strip()
+    
+        if source_nom:
+            if source_current is not None and source_total:
+                self.label_jauge_source.text = f"{source_nom} — {source_current}/{source_total}"
+            else:
+                self.label_jauge_source.text = f"{source_nom} — {progress_source} %"
+        else:
+            self.label_jauge_source.text = f"{progress_source} %"
+    
+        self.regler_jauge(self.label_jauge_globale, progress_global)
+        self.regler_jauge(self.label_jauge_source, progress_source)
     
     
     def regler_jauge(self, composant, pourcentage):
         """
         Met à jour une jauge CSS via la variable --progress-value.
+        La jauge se remplit de gauche à droite.
         """
         try:
             p = int(pourcentage or 0)

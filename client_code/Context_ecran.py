@@ -1,7 +1,9 @@
-from anvil import *
 from anvil.js import window
 
-def context_ecran():
+# ==================================================================================================
+#  Appel d'une form
+# ==================================================================================================
+def context_screen():
     w = int(window.innerWidth)
     h = int(window.innerHeight)
     landscape = bool(window.matchMedia("(orientation: landscape)").matches)
@@ -22,13 +24,5 @@ def context_ecran():
         "is_wide": w >= 768,
     }
     print(f"Ecran {ctx['screen_type']}, ({ctx['width']} x {ctx['height']})")
-    
-    open_form('Menu',True)   # first_entry True
-    
-    
-# appel de la fonction (quand ce module est le start up module )
-context_ecran()
 
-
-# Ne pas mettre d'autres fonctions dessous,
-#   car contexte_ecran ci-dessous est exécutée automatiquement dès que le module est chargé/importé d'une autre form
+    return ctx

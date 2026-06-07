@@ -7,13 +7,18 @@ import anvil.tables as tables
 import anvil.tables.query as q
 from anvil.tables import app_tables
 from .. import Mail_valideur  
+from .. import Context_ecran
 
 class Contact(ContactTemplate):
     def __init__(self, **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
         self.text_area_message.height = 100
-
+        context = Context_ecran.context_screen()
+        if context['screen_type']=="phone":
+            self.column_panel_tel_mail.wrap_on = 'mobile'
+        else:
+            self.column_panel_tel_mail.wrap_on = 'never'
 
     def button_envoi_mail_click(self, **event_args):
         """This method is called when the button is clicked"""
