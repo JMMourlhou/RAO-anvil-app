@@ -32,7 +32,7 @@ class search(searchTemplate):
 
         self.column_panel_progress_recherche.role = "progress-search-box"
         self.label_progress_recherche.role = "progress-search-main"
-        self.label_nb_offres_progress.role = "progress-search-sub"
+        #self.label_nb_offres_progress.role = "progress-search-sub"
         
         self.label_jauge_globale.role = "progress-gauge-global"
         self.label_jauge_source.role = "progress-gauge-source"
@@ -51,7 +51,7 @@ class search(searchTemplate):
         
         # Pour l'affichage de la progression de la requête
         self.label_progress_recherche.visible = False
-        self.label_nb_offres_progress.visible = False
+        #self.label_nb_offres_progress.visible = False
         self.timer_recherche_progress.interval = 0
         self.task_recherche = None
         self._ctx_recherche = {}
@@ -303,7 +303,7 @@ class search(searchTemplate):
     
         # Bouton recherche classique
         #self.button_search.enabled = True
-        self.button_search.text = "Rechercher"
+        #self.button_search.text = "Rechercher"
     
         # Bouton recherche du menu
         try:
@@ -314,7 +314,7 @@ class search(searchTemplate):
     
         # Gestion visibilité après succès ou erreur
         if cacher_bouton:
-            self.button_search.visible = False
+            #self.button_search.visible = False
     
             try:
                 self.f.navigation_link_search_go.visible = False
@@ -322,7 +322,7 @@ class search(searchTemplate):
                 print("Erreur masquage navigation_link_search_go :", e)
     
         else:
-            self.button_search.visible = True
+            #self.button_search.visible = True
     
             try:
                 self.f.navigation_link_search_go.visible = True
@@ -457,7 +457,7 @@ class search(searchTemplate):
         except Exception as e:
             print(f"Erreur au lancement de la recherche background sur Pi5 : {e}")
             self.label_progress_recherche.text = "Erreur au lancement de la recherche."
-            self.label_nb_offres_progress.text = ""
+            #self.label_nb_offres_progress.text = ""
             self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant le lancement de la recherche : {e}")
             return
@@ -501,7 +501,7 @@ class search(searchTemplate):
             self.text_nb_offres.visible = False
     
             self.label_progress_recherche.text = "Recherche terminée : aucune offre trouvée."
-            self.label_nb_offres_progress.text = "0 offre"
+            #self.label_nb_offres_progress.text = "0 offre"
 
             self.deverrouiller_recherche(cacher_bouton=False)
     
@@ -512,7 +512,7 @@ class search(searchTemplate):
         print(f"Offres brutes récupérées : {nb_offres_brutes}")
     
         self.label_progress_recherche.text = "Filtrage des critères positifs..."
-        self.label_nb_offres_progress.text = f"{nb_offres_brutes} offre(s) brutes récupérée(s)"
+        #self.label_nb_offres_progress.text = f"{nb_offres_brutes} offre(s) brutes récupérée(s)"
     
         # =====================================================
         # 1. Filtrage positif local
@@ -532,7 +532,7 @@ class search(searchTemplate):
             self.text_nb_offres.visible = False
     
             self.label_progress_recherche.text = "Aucune offre après filtrage positif."
-            self.label_nb_offres_progress.text = "0 offre conservée"
+            #self.label_nb_offres_progress.text = "0 offre conservée"
 
             self.deverrouiller_recherche(cacher_bouton=False)
     
@@ -562,7 +562,7 @@ class search(searchTemplate):
             self.text_nb_offres.visible = False
     
             self.label_progress_recherche.text = "Aucune offre après exclusion."
-            self.label_nb_offres_progress.text = "0 offre conservée"
+            #self.label_nb_offres_progress.text = "0 offre conservée"
 
             self.deverrouiller_recherche(cacher_bouton=False)
             alert("Des offres correspondaient aux critères, mais elles contenaient toutes au moins un mot exclu.")
@@ -581,7 +581,7 @@ class search(searchTemplate):
     
         # --- Calcul du score / pertinence côté serveur ---
         self.label_progress_recherche.text = "Calcul du score des offres..."
-        self.label_nb_offres_progress.text = f"{len(self.offres_preparees)} offre(s) à scorer"
+        #self.label_nb_offres_progress.text = f"{len(self.offres_preparees)} offre(s) à scorer"
     
         try:
             with anvil.server.no_loading_indicator:
@@ -616,7 +616,7 @@ class search(searchTemplate):
     
         # --- Backup de la requête avec les offres scorées ---
         self.label_progress_recherche.text = "Sauvegarde de la recherche..."
-        self.label_nb_offres_progress.text = f"{nb_offres} offre(s) à sauvegarder"
+        #self.label_nb_offres_progress.text = f"{nb_offres} offre(s) à sauvegarder"
     
         date_time = Time.french_zone_time()
     
@@ -665,7 +665,7 @@ class search(searchTemplate):
     
         self.afficher_offres(self.list_offres)
     
-        self.button_search.visible = False
+        #self.button_search.visible = False
         self.f.navigation_link_search_go.enabled = False
         
         self.column_panel_params.visible = False
@@ -847,7 +847,7 @@ class search(searchTemplate):
         self.set_checkbox_on_off_sans_event(False)
         self.column_panel_add_mot_pour_score.visible = False
         
-        self.button_search.visible = True
+        #self.button_search.visible = True
         self.f.navigation_link_search_go.visible = True
 
     def button_del_before_modif_param(self, **event_args):
@@ -2024,7 +2024,7 @@ class search(searchTemplate):
     
         visible = has_mots_obligatoires or has_mots_ou
     
-        self.button_search.visible = visible
+        #self.button_search.visible = visible
         self.f.navigation_link_search_go.visible = visible
 
 
@@ -2070,10 +2070,10 @@ class search(searchTemplate):
             pass
     
         self.label_progress_recherche.visible = True
-        self.label_nb_offres_progress.visible = True
+        #self.label_nb_offres_progress.visible = True
     
         self.label_progress_recherche.text = ligne_1 or "Recherche en cours..."
-        self.label_nb_offres_progress.text = ligne_2 or "Préparation des résultats..."
+        #self.label_nb_offres_progress.text = ligne_2 or "Préparation des résultats..."
     
         if not afficher_jauges:
             self.label_jauge_globale.visible = False
