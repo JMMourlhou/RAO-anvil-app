@@ -451,8 +451,8 @@ class search(searchTemplate):
             return
         
         self.afficher_progression_recherche(
-            ligne_1="🔎 0 % — Recherche lancée",
-            ligne_2="Recherche des offres provisoires...",
+            ligne_1="🔎 Recherche lancée",
+            ligne_2="Lecture des offres en cours...",
             etat="running",
             progress_global=0,
             progress_source=0
@@ -675,8 +675,8 @@ class search(searchTemplate):
             ligne_1="✅ Recherche terminée",
             ligne_2=self.format_nb_offres(
                 nb_offres,
-                "retenue après filtrage final",
-                "retenues après filtrage final"
+                "retenue",
+                "retenues"
             ),
             etat="success",
             progress_global=100,
@@ -1862,7 +1862,29 @@ class search(searchTemplate):
         # mise en blanc du border quand un champ autre que les mots ou est saisi
         self.column_panel_mots_pour_score.border = "1px solid #3CD9ED"  # Bleu
 
+    def message_progression_source(self, source_en_cours):
+        """
+        Message simple affiché côté utilisateur pendant la lecture des plateformes.
+        On évite les termes techniques : provisoire, brut, filtrage final, XML, etc.
+        """
+    
+        source = str(source_en_cours or "").strip().upper()
+    
+        if source == "TED":
+            return "Lecture des offres TED en cours..."
+    
+        if source == "BOAMP":
+            return "Lecture des offres BOAMP en cours..."
+    
+        if source == "AWS":
+            return "Lecture des offres AWS en cours..."
+    
+        if source in ("FUSION", "TERMINÉ", "TRAITEMENT FINAL"):
+            return "Préparation des résultats..."
+    
+        return "Lecture des offres en cours..."
 
+    
     def timer_recherche_progress_tick(self, **event_args):
         """
         Suit la Background Task.
@@ -1904,18 +1926,14 @@ class search(searchTemplate):
         nb_offres = state.get("nb_offres", 0)
     
         self.afficher_progression_recherche(
-            ligne_1=f"🔎 {message}",
-            ligne_2=self.format_nb_offres(
-                nb_offres,
-                "provisoire récupérée avant filtrage final",
-                "provisoires récupérées avant filtrage final"
-            ),
+            ligne_1="🔎 Recherche en cours",
+            ligne_2=self.message_progression_source(source_en_cours),
             etat="running",
             progress_global=progress,
             progress_source=source_progress,
             source_nom=source_en_cours,
             source_current=source_current,
-            source_total=source_total,
+            source_total=None,
             afficher_jauges=True
         )
     
@@ -1969,12 +1987,8 @@ class search(searchTemplate):
         offres = result.get("offres", [])
     
         self.afficher_progression_recherche(
-            ligne_1="🔎 Recherche terminée — traitement final des offres",
-            ligne_2=self.format_nb_offres(
-                len(offres),
-                "provisoire récupérée avant filtrage final",
-                "provisoires récupérées avant filtrage final"
-            ),
+            ligne_1="🔎 Préparation des résultats",
+            ligne_2="Analyse et classement des offres en cours...",
             etat="running",
             progress_global=100,
             progress_source=100,
@@ -2070,7 +2084,6 @@ class search(searchTemplate):
             if self._last_progress_role != role:
                 self.column_panel_progress_recherche.role = role
                 self._last_progress_role = role
-    
         except Exception:
             pass
     
