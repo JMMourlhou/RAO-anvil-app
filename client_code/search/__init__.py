@@ -288,6 +288,7 @@ class search(searchTemplate):
             self.text_box_departements.enabled = False
             self.multi_select_drop_down_platformes.enabled = False
             self.button_add_mot.enabled = False
+            # jm 
         except Exception as e:
             print("Erreur verrouillage UI :", e)
     

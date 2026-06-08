@@ -46,40 +46,49 @@ components:
         placeholder: ''
         text: ''
       type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-    - event_bindings: {}
-      layout_properties: {grid_position: 'PHEUZS,GCZYTL'}
-      name: text_box_tel
+    - components:
+      - event_bindings: {}
+        layout_properties: {grid_position: 'ESNSWM,HRROWU'}
+        name: text_box_tel
+        properties:
+          appearance: outlined
+          border_color: theme:Olive
+          character_limit: null
+          display_text_color: theme:On Primary Container
+          label: Tel
+          label_italic: true
+          leading_icon: mi:contact_mail
+          leading_icon_color: theme:Olive
+          margin: ['1', null, '1', '2']
+          placeholder: ''
+          text: ''
+          type: tel
+        type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+      - event_bindings: {}
+        layout_properties: {grid_position: 'ESNSWM,DJJVJX'}
+        name: text_box_mail
+        properties:
+          appearance: outlined
+          border_color: theme:Olive
+          character_limit: null
+          display_text_color: theme:On Primary Container
+          label: Mail
+          label_italic: true
+          leading_icon: mi:contact_mail
+          leading_icon_color: theme:Olive
+          margin: ['1', null, '1', '2']
+          placeholder: ''
+          text: ''
+          type: email
+        type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+      layout_properties: {grid_position: 'WABFIX,RLRQGT'}
+      name: column_panel_tel_mail
       properties:
-        appearance: outlined
-        border_color: theme:Olive
-        character_limit: null
-        display_text_color: theme:On Primary Container
-        label: Tel
-        label_italic: true
-        leading_icon: mi:contact_mail
-        leading_icon_color: theme:Olive
-        margin: ['1', null, '1', '2']
-        placeholder: ''
-        text: ''
-        type: tel
-      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
-    - event_bindings: {}
-      layout_properties: {grid_position: 'PHEUZS,ZGLRNI'}
-      name: text_box_mail
-      properties:
-        appearance: outlined
-        border_color: theme:Olive
-        character_limit: null
-        display_text_color: theme:On Primary Container
-        label: Mail
-        label_italic: true
-        leading_icon: mi:contact_mail
-        leading_icon_color: theme:Olive
-        margin: ['1', null, '1', '2']
-        placeholder: ''
-        text: ''
-        type: email
-      type: form:dep_lin1x4oec0ytd:_Components.TextInput.TextBox
+        col_spacing: tiny
+        spacing:
+          margin: ['0', null, null, null]
+        wrap_on: never
+      type: ColumnPanel
     - event_bindings: {}
       layout_properties: {grid_position: 'XQLXEH,EVGTIM'}
       name: button_retour_2
@@ -110,7 +119,7 @@ components:
     properties:
       background: theme:Dark Overlay 2
       col_spacing: tiny
-      col_widths: '{"GCZYTL":25,"ZGLRNI":35}'
+      col_widths: '{}'
       spacing:
         padding: [null, '2', null, '2']
       wrap_on: never
