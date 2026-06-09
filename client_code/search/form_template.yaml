@@ -82,7 +82,7 @@ components:
         label: 'Mots à trouver obligatoirement dans l''offre :'
         label_italic: true
         leading_icon: mi:key
-        leading_icon_color: theme:Primary
+        leading_icon_color: theme:Light Green
         margin: ['5', '2', '1', '2']
         placeholder: Mots à trouver obligatoirement dans l'offre
         text: ''
@@ -204,7 +204,7 @@ components:
           label: 'Sur les x derniers jours :'
           label_italic: true
           leading_icon: mi:calendar_today
-          leading_icon_color: theme:Primary
+          leading_icon_color: theme:Light Green
           margin: ['5', null, '1', '2']
           placeholder: Nb de jours
           text: '10'
@@ -219,7 +219,7 @@ components:
           label: 'Sur 1 ou x dépts:   Ex: 75, 91 ,94'
           label_italic: true
           leading_icon: mi:location_on
-          leading_icon_color: theme:Primary
+          leading_icon_color: theme:Light Green
           margin: ['5', '2', '1', null]
           placeholder: ' '
           supporting_text: ''
@@ -242,7 +242,7 @@ components:
         background_color: theme:Primary Overlay 3
         label: 'Mots ne devant pas être trouvés :'
         leading_icon: mi:dangerous
-        leading_icon_color: theme:On Error
+        leading_icon_color: theme:Light Green
         margin: ['5', null, null, null]
         placeholder: Mots ne devant pas être trouvés
         visible: true
