@@ -282,13 +282,13 @@ class search(searchTemplate):
         )
     
         try:
-            self.text_box_mot_clef.enabled = False
-            self.text_box_mots_exclus.enabled = False
-            self.text_box_nb_jours.enabled = False
-            self.text_box_departements.enabled = False
-            self.multi_select_drop_down_platformes.enabled = False
-            self.button_add_mot.enabled = False
-            # jm 
+            #self.text_box_mot_clef.enabled = False
+            #self.text_box_mots_exclus.enabled = False
+            #self.text_box_nb_jours.enabled = False
+            #self.text_box_departements.enabled = False
+            #self.multi_select_drop_down_platformes.enabled = False
+            #self.button_add_mot.enabled = False
+            pass
         except Exception as e:
             print("Erreur verrouillage UI :", e)
     
@@ -297,9 +297,7 @@ class search(searchTemplate):
         """
         Déverrouille l'interface après fin, erreur ou interruption de recherche.
         """
-    
         self._recherche_en_cours = False
-    
         self.timer_recherche_progress.interval = 0
         self.task_recherche = None
     
@@ -314,7 +312,6 @@ class search(searchTemplate):
     
             # Ne pas changer le texte à chaque fin de recherche.
             self.f.navigation_link_search_go.text = "Rechercher"
-    
         except Exception as e:
             print("Erreur réactivation navigation_link_search_go :", e)
     
@@ -325,7 +322,6 @@ class search(searchTemplate):
             self.text_box_departements.enabled = True
             self.multi_select_drop_down_platformes.enabled = True
             self.button_add_mot.enabled = True
-    
         except Exception as e:
             print("Erreur déverrouillage UI :", e)
 
@@ -335,7 +331,10 @@ class search(searchTemplate):
     # Recherche
     # =========================================================================
     def button_search_click(self, **event_args):
-        self.lancer_recherche()
+        if self._recherche_en_cours is True:
+            self.lancer_recherche()
+        else:
+            Notification("Recherche déjà en cours...", timeout=2).show()
 
     def lancer_recherche(self, **event_args):
         """Recherche les offres, applique les critères positifs/exclusions, score, puis sauvegarde dans histo['offres']."""
@@ -692,13 +691,22 @@ class search(searchTemplate):
     # =========================================================================
 
     def text_box_nb_jours_pressed_enter(self, **event_args):
-        self.lancer_recherche()
+        if self._recherche_en_cours is True:
+            self.lancer_recherche()
+        else:
+            Notification("Recherche déjà en cours...", timeout=2).show()
 
     def text_box_mot_clef_pressed_enter(self, **event_args):
-        self.lancer_recherche()
+        if self._recherche_en_cours is True:
+            self.lancer_recherche()
+        else:
+            Notification("Recherche déjà en cours...", timeout=2).show()
 
     def text_box_departements_pressed_enter(self, **event_args):
-        self.lancer_recherche()
+        if self._recherche_en_cours is True:
+            self.lancer_recherche()
+        else:
+            Notification("Recherche déjà en cours...", timeout=2).show()
 
     # =========================================================================
     # Sélection / désélection / inversion
@@ -1841,11 +1849,17 @@ class search(searchTemplate):
        
 
     def text_box_mots_ou_pressed_enter(self, **event_args):
-        self.lancer_recherche()
+        if self._recherche_en_cours is True:
+            self.lancer_recherche()
+        else:
+            Notification("Recherche déjà en cours...", timeout=2).show()
 
 
     def text_box_mots_exclus_pressed_enter(self, **event_args):
-        self.lancer_recherche()
+        if self._recherche_en_cours is True:
+            self.lancer_recherche()
+        else:
+            Notification("Recherche déjà en cours...", timeout=2).show()
 
     def text_box_mots_ou_change(self, **event_args):
         self.maj_bouton_recherche_visible()
