@@ -201,7 +201,7 @@ components:
           background_color: theme:Primary Overlay 3
           character_limit: null
           display_text_color: theme:On Primary Container
-          label: 'Sur les x derniers jours :'
+          label: 'Sur les x derniers jours : (max 365)'
           label_italic: true
           leading_icon: mi:calendar_today
           leading_icon_color: theme:Light Green
@@ -230,7 +230,7 @@ components:
       properties:
         background: ''
         col_spacing: tiny
-        col_widths: '{"HPVWLA":13,"GKJCGS":47}'
+        col_widths: '{"HPVWLA":17,"GKJCGS":43}'
         spacing:
           margin: ['5', null, null, null]
       type: ColumnPanel

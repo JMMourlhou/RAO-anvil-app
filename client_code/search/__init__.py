@@ -381,7 +381,17 @@ class search(searchTemplate):
             alert("Le nombre de jours doit être un nombre entier.")
             self.text_box_nb_jours.focus()
             return
-    
+
+        if periode < 1:
+            periode = 1
+            self.text_box_nb_jours.text = "1"
+        
+        if periode > 365:
+            periode = 365
+            self.text_box_nb_jours.text = "365"
+            Notification("La période a été limitée à 365 jours.", timeout=3).show()
+
+        
         selected_platformes = self.multi_select_drop_down_platformes.selected
     
         if not selected_platformes:
