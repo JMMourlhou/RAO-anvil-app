@@ -1951,7 +1951,7 @@ class search(searchTemplate):
     
         self.afficher_progression_recherche(
             ligne_1="🔎 Recherche en cours",
-            ligne_2=self.message_progression_source(source_en_cours),
+            ligne_2="",
             etat="running",
             progress_global=progress,
             progress_source=source_progress,
@@ -2082,7 +2082,37 @@ class search(searchTemplate):
             return f"{nb} offres {suffixe_pluriel}".strip()
     
         return f"{nb} offre {suffixe_singulier}".strip()
-    
+
+
+    def libelle_jauge_source(self, source_nom):
+        """
+            Texte affiché dans la jauge verte.
+            """
+        
+        source = str(source_nom or "").strip().upper()
+        
+        if source == "TED":
+            return "Lecture des offres TED"
+        
+            if source == "BOAMP":
+                return "Lecture des offres BOAMP"
+        
+        if source == "AWS":
+            return "Lecture des offres AWS"
+        
+            if source == "FUSION":
+                return "Préparation des résultats"
+        
+        if source == "TERMINÉ":
+            return "Recherche terminée"
+        
+            if source == "TRAITEMENT FINAL":
+                return "Analyse des offres"
+        
+        if source:
+            return f"Lecture des offres {source}"
+        
+            return "Lecture des offres"   
     
     def afficher_progression_recherche(
         self,
@@ -2157,15 +2187,13 @@ class search(searchTemplate):
         texte_global = f"{progress_global} %"
     
         source_nom = str(source_nom or "").strip()
-    
-        if source_nom:
-            if source_current is not None and source_total:
-                texte_source = f"{source_nom} — {source_current}/{source_total}"
-            else:
-                texte_source = f"{source_nom} — {progress_source} %"
+        libelle_source = self.libelle_jauge_source(source_nom)
+        
+        if source_current is not None and source_total:
+            texte_source = f"{libelle_source} — {source_current}/{source_total}"
         else:
-            texte_source = f"{progress_source} %"
-    
+            texte_source = f"{libelle_source} — {progress_source} %"
+            
         if self.label_jauge_globale.text != texte_global:
             self.label_jauge_globale.text = texte_global
     
