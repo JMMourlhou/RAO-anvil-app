@@ -39,14 +39,14 @@ components:
     type: Label
   - layout_properties: {slot: card-content-slot}
     name: label_progress_recherche
-    properties: {align: center, background: 'theme:Background', bold: false, border: '', font: '', font_size: 16, foreground: 'theme:Light Green', icon: '', icon_align: left, italic: false, role: null, spacing_above: none, spacing_below: none, text: '', tooltip: '', underline: false, visible: true}
-    type: Label
-  - layout_properties: {slot: card-content-slot}
-    name: label_jauge_globale
-    properties: {align: center, background: 'theme:Background', bold: false, border: '', font: '', font_size: 16, foreground: orange, icon: '', icon_align: left, italic: false, role: null, spacing_above: none, spacing_below: none, text: '', tooltip: '', underline: false, visible: true}
+    properties: {align: center, background: 'theme:Background', bold: false, border: '', font: '', font_size: 16, foreground: '#8bc34a', icon: '', icon_align: left, italic: false, role: null, spacing_above: none, spacing_below: none, text: '', tooltip: '', underline: false, visible: true}
     type: Label
   - layout_properties: {slot: card-content-slot}
     name: label_jauge_source
+    properties: {align: center, background: 'theme:Background', bold: false, border: '', font: '', font_size: 16, foreground: orange, icon: '', icon_align: left, italic: false, role: null, spacing_above: none, spacing_below: none, text: '', tooltip: '', underline: false, visible: true}
+    type: Label
+  - layout_properties: {slot: card-content-slot}
+    name: label_jauge_globale
     properties: {align: center, background: 'theme:Background', bold: false, border: '', font: '', font_size: 16, foreground: orange, icon: '', icon_align: left, italic: false, role: null, spacing_above: none, spacing_below: none, text: '', tooltip: '', underline: false, visible: true}
     type: Label
   - components:
