@@ -2009,6 +2009,13 @@ class search(searchTemplate):
             print("Erreurs partielles pendant la recherche :", errors)
     
         offres = result.get("offres", [])
+
+        if result.get("recherche_limitee"):
+            message_limite = result.get("message_limite") or (
+                "Recherche trop large : une partie seulement des offres est affichée."
+            )
+            alert(message_limite)
+            print("⚠️ Recherche limitée :", message_limite)
     
         self.afficher_progression_recherche(
             ligne_1="🔎 Préparation des résultats",
