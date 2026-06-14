@@ -331,10 +331,12 @@ class search(searchTemplate):
     # Recherche
     # =========================================================================
     def button_search_click(self, **event_args):
-        if self._recherche_en_cours is True:
-            self.lancer_recherche()
-        else:
-            Notification("Recherche déjà en cours...", timeout=2).show()
+        def button_search_click(self, **event_args):
+            if self._recherche_en_cours is True:
+                Notification("Recherche déjà en cours...", timeout=2).show()
+                return
+
+        self.lancer_recherche()
 
     def lancer_recherche(self, **event_args):
         """Recherche les offres, applique les critères positifs/exclusions, score, puis sauvegarde dans histo['offres']."""
@@ -443,12 +445,15 @@ class search(searchTemplate):
             with anvil.server.no_loading_indicator:
                 self.task_recherche = anvil.server.call(
                     "lancer_recherche_multi_sources_background",
-                    mots_clefs,
-                    depts,
-                    100,
-                    1,
-                    periode,
-                    sources=selected_platformes
+                    mots=mots_clefs,
+                    departements=depts,
+                    rows=100,
+                    pages=1,
+                    filtre_jours=periode,
+                    sources=selected_platformes,
+                    operateur="ET",
+                    mots_ou=mots_ou,
+                    mots_exclus=mots_exclus
                 )
         
         except Exception as e:
