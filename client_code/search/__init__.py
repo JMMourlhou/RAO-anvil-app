@@ -671,15 +671,9 @@ class search(searchTemplate):
         self.f.navigation_link_search_go.enabled = False
         
         self.column_panel_params.visible = False
-    
-        self.text_param_summary.text = (
-            f"Plateformes : {self.multi_select_drop_down_platformes.selected} / "
-            f"Obligatoires : {self.get_mots_obligatoires_texte() or '-'} / "
-            f"Au moins un : {mots_ou or '-'} / "
-            f"Exclus : {self.get_mots_exclus_texte() or '-'} / "
-            f"sur les {self.text_box_nb_jours.text} derniers jours / "
-            f"Départements : {self.text_box_departements.text or '-'}"
-        )
+
+        # Affichage du résumé des paramètres de la requête
+        self.display_param_summary()
     
         self.column_panel_progress_recherche.visible = True
     
@@ -701,6 +695,16 @@ class search(searchTemplate):
         # Succès : on cache les boutons de recherche
         self.deverrouiller_recherche(cacher_bouton=True)
 
+    def display_param_summary(self, **event_args):
+        self.text_param_summary.text = (
+            f"Plateformes : {self.multi_select_drop_down_platformes.selected} / "
+            f"Obligatoires : {self.get_mots_obligatoires_texte() or '-'} / "
+            f"Au moins un : {self.get_mots_ou_depuis_score() or '-'} / "
+            f"Exclus : {self.get_mots_exclus_texte() or '-'} / "
+            f"sur les {self.text_box_nb_jours.text} derniers jours / "
+            f"Départements : {self.text_box_departements.text or '-'}"
+        )
+    
     # =========================================================================
     # Champs Enter
     # =========================================================================
@@ -856,6 +860,10 @@ class search(searchTemplate):
 
         self.afficher_offres(self.list_offres)
         self.set_checkbox_on_off_sans_event(False)
+        
+        # Affichage du résumé des paramètres de la requête
+        self.display_param_summary()
+        
         self.column_panel_add_mot_pour_score.visible = False
         
         #self.button_search.visible = True
