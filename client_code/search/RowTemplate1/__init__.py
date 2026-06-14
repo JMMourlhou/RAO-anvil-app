@@ -445,6 +445,7 @@ class RowTemplate1(RowTemplate1Template):
         mots_clefs_trouves = self.mots_cles_presents(texte, mots_clefs)
 
         # Priorité : afficher le score quand il existe
+        priorite = ""
         if score > 0:
             priorite = ""
 
