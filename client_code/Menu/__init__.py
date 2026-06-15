@@ -172,6 +172,9 @@ class Menu(MenuTemplate):
 
     def navigation_link_retour_click(self, **event_args):
         """This method is called when the component is clicked"""
+        # effacer la background task si elle est lancée
+        
+        
         # réaffichage des boutons du menu
         self.navigation_link_user_contact.visible = True
         self.navigation_link_user_parametres.visible = True
