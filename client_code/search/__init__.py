@@ -463,6 +463,9 @@ class search(searchTemplate):
             self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant le lancement de la recherche : {e}")
             return
+
+        # afficher les paramètres 
+        self.display_param_summary()
         
         self.afficher_progression_recherche(
             ligne_1="🔎 Recherche lancée",
