@@ -1,40 +1,50 @@
 import anvil.server
+import time
 
 
 @anvil.server.callable
-def task_killer_by_id(task_id=None, timing=None):
-    """
-    Tue une background task Anvil à partir de son ID.
-    """
-
-    if not task_id:
+def task_killer(task=None, timing="0"):
+    if task is None:
         return {
             "ok": False,
-            "message": "Aucun task_id fourni"
+            "message": "Aucune task fournie"
         }
 
     try:
-        task = anvil.server.get_background_task(task_id)
+        task_id = task.get_id()
 
         if task.is_running():
             task.kill()
-            status = task.get_termination_status()
+
+            # Petite pause pour laisser Anvil mettre à jour le statut
+            time.sleep(0.2)
+
+            try:
+                status = task.get_termination_status()
+            except Exception:
+                status = None
 
             print()
             print(f"task id {task_id} killed")
-            if timing is not None:
+            print(f"status après kill : {status}")
+            if timing != "0":
                 print(f"Tps de traitement: {timing} secondes")
             print()
 
             return {
                 "ok": True,
                 "task_id": task_id,
-                "status": status,
+                "status": status or "kill_requested",
                 "message": "Task tuée"
             }
 
         else:
             status = task.get_termination_status()
+
+            print()
+            print(f"task id {task_id} non tuée : déjà terminée")
+            print(f"status: {status}")
+            print()
 
             return {
                 "ok": True,
@@ -46,6 +56,5 @@ def task_killer_by_id(task_id=None, timing=None):
     except Exception as e:
         return {
             "ok": False,
-            "task_id": task_id,
             "message": str(e)
         }

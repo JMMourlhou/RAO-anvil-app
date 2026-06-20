@@ -1,10 +1,5 @@
 components:
 - components:
-  - event_bindings: {tick: timer_ping_tick}
-    layout_properties: {slot: card-content-slot}
-    name: timer_ping
-    properties: {interval: 300}
-    type: Timer
   - components:
     - layout_properties: {width: 321.26614404296873}
       name: Titre_2

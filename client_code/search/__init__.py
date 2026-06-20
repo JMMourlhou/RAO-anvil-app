@@ -53,9 +53,12 @@ class search(searchTemplate):
         self.label_progress_recherche.visible = False
         #self.label_nb_offres_progress.visible = False
         self.timer_recherche_progress.interval = 0
+        
         self.task_recherche = None
         self._ctx_recherche = {}
         self._recherche_en_cours = False
+        self._annulation_recherche_demandee = False
+        
         self.base_app = ""
         self._last_progress_global = None
         self._last_progress_source = None
@@ -325,16 +328,77 @@ class search(searchTemplate):
         except Exception as e:
             print("Erreur déverrouillage UI :", e)
 
-
+    def annuler_recherche_depuis_menu(self):
+        """
+        Appelée par la Form mère Menu avant de quitter la page search.
+        Arrête le timer client et tue la background task si elle existe.
+        """
+    
+        print("Demande d'annulation de la recherche depuis Menu")
+    
+        self._annulation_recherche_demandee = True
+    
+        # 1. Arrêter immédiatement le timer côté client
+        try:
+            self.timer_recherche_progress.interval = 0
+        except Exception as e:
+            print("Erreur arrêt timer_recherche_progress :", e)
+    
+        # 2. Récupérer la task avant de la remettre à None
+        task = self.task_recherche
+    
+        if task is None:
+            print("Aucune task_recherche à tuer")
+            self.deverrouiller_recherche(cacher_bouton=False)
+            return {
+                "ok": True,
+                "message": "Aucune recherche en cours"
+            }
+    
+        # 3. Tuer la task côté serveur
+        try:
+            with anvil.server.no_loading_indicator:
+                result = anvil.server.call("task_killer", task)
+    
+            print("Résultat task_killer :", result)
+    
+        except Exception as e:
+            print("Erreur pendant task_killer :", e)
+            result = {
+                "ok": False,
+                "message": str(e)
+            }
+    
+        # 4. Nettoyer l'état local de search
+        self.task_recherche = None
+        self._recherche_en_cours = False
+    
+        try:
+            self.afficher_progression_recherche(
+                ligne_1="⛔ Recherche annulée",
+                ligne_2="Retour au menu.",
+                etat="error",
+                progress_global=0,
+                progress_source=0,
+                afficher_jauges=False
+            )
+        except Exception as e:
+            print("Erreur affichage annulation :", e)
+    
+        try:
+            self.deverrouiller_recherche(cacher_bouton=False)
+        except Exception as e:
+            print("Erreur déverrouillage après annulation :", e)
+    
+        return result
     
     # =========================================================================
     # Recherche
     # =========================================================================
     def button_search_click(self, **event_args):
-        def button_search_click(self, **event_args):
-            if self._recherche_en_cours is True:
-                Notification("Recherche déjà en cours...", timeout=2).show()
-                return
+        if self._recherche_en_cours is True:
+            Notification("Recherche déjà en cours...", timeout=2).show()
+            return
 
         self.lancer_recherche()
 
@@ -439,6 +503,7 @@ class search(searchTemplate):
             "selected_platformes": selected_platformes,
         }
         
+        self._annulation_recherche_demandee = False
         self.verrouiller_recherche("Lancement de la recherche...")
 
         try:
@@ -714,21 +779,24 @@ class search(searchTemplate):
 
     def text_box_nb_jours_pressed_enter(self, **event_args):
         if self._recherche_en_cours is True:
-            self.lancer_recherche()
-        else:
             Notification("Recherche déjà en cours...", timeout=2).show()
+            return
+        
+        self.lancer_recherche()
 
     def text_box_mot_clef_pressed_enter(self, **event_args):
         if self._recherche_en_cours is True:
-            self.lancer_recherche()
-        else:
             Notification("Recherche déjà en cours...", timeout=2).show()
+            return
+
+        self.lancer_recherche()
 
     def text_box_departements_pressed_enter(self, **event_args):
         if self._recherche_en_cours is True:
-            self.lancer_recherche()
-        else:
             Notification("Recherche déjà en cours...", timeout=2).show()
+            return
+
+        self.lancer_recherche()
 
     # =========================================================================
     # Sélection / désélection / inversion
@@ -1032,16 +1100,6 @@ class search(searchTemplate):
         pass
 
 
-    # =========================================================================
-    # Timer
-    # =========================================================================
-
-    def timer_ping_tick(self, **event_args):
-        with anvil.server.no_loading_indicator:
-            try:
-                anvil.server.call("ping")
-            except Exception as e:
-                print(e)
 
     # =========================================================================
     # Recalcule visibilité du bouton mail
@@ -1876,16 +1934,18 @@ class search(searchTemplate):
 
     def text_box_mots_ou_pressed_enter(self, **event_args):
         if self._recherche_en_cours is True:
-            self.lancer_recherche()
-        else:
             Notification("Recherche déjà en cours...", timeout=2).show()
+            return
+
+        self.lancer_recherche()
 
 
     def text_box_mots_exclus_pressed_enter(self, **event_args):
         if self._recherche_en_cours is True:
-            self.lancer_recherche()
-        else:
             Notification("Recherche déjà en cours...", timeout=2).show()
+            return
+
+        self.lancer_recherche()
 
     def text_box_mots_ou_change(self, **event_args):
         self.maj_bouton_recherche_visible()
@@ -1931,7 +1991,13 @@ class search(searchTemplate):
         Le bouton reste désactivé jusqu'à la fin complète :
         recherche + filtrage + scoring + sauvegarde.
         """
-    
+        
+        if self._annulation_recherche_demandee:
+            self.timer_recherche_progress.interval = 0
+            self.task_recherche = None
+            self._recherche_en_cours = False
+            return
+            
         if self.task_recherche is None:
             self.deverrouiller_recherche(cacher_bouton=False)
             return

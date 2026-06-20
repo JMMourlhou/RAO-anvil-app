@@ -23,6 +23,11 @@ class Menu(MenuTemplate):
         self.form_search = None
         
         user=anvil.users.get_user()
+        if user:
+            self.timer_ping.interval = 600
+        else:
+            self.timer_ping.interval = 0
+            
         if not user or first_entry is True:
             # hide the drawer
             self.navigation_link_fermer.visible = False
@@ -109,6 +114,7 @@ class Menu(MenuTemplate):
         self.bt_sign_in.visible = True
         self.bt_deconnect.visible = False
         self.navigation_link_user_appels_offres.visible = False
+        self.timer_ping.interval = 0
         
     """ ***********************************************************************************************"""
     """ ****************************** Gestions  BOUTONS CONNECTION et leurs clicks ******************************"""
@@ -165,26 +171,63 @@ class Menu(MenuTemplate):
 
     def navigation_link_fermer_click(self, **event_args):
         """This method is called when the component is clicked"""
+    
+        # Annuler la recherche avant de fermer
+        self.arreter_recherche_active()
+    
         self.content_panel.clear()
-        anvil.users.logout()  # logging out the user
+        anvil.users.logout()
         self.user = None
         window.close()
 
+    
+    def arreter_recherche_active(self):
+        """
+        Demande à la Form search d'annuler sa background task si elle existe.
+        """
+    
+        if self.form_search is None:
+            return {
+                "ok": True,
+                "message": "Aucune Form search ouverte"
+            }
+    
+        try:
+            if hasattr(self.form_search, "annuler_recherche_depuis_menu"):
+                result = self.form_search.annuler_recherche_depuis_menu()
+                print("Annulation recherche depuis Menu :", result)
+                return result
+    
+            return {
+                "ok": False,
+                "message": "La Form search ne possède pas annuler_recherche_depuis_menu()"
+            }
+    
+        except Exception as e:
+            print("Erreur arrêt recherche active :", e)
+            return {
+                "ok": False,
+                "message": str(e)
+            }
+    
     def navigation_link_retour_click(self, **event_args):
         """This method is called when the component is clicked"""
-        # effacer la background task si elle est lancée
-        
-        
-        # réaffichage des boutons du menu
+    
+        # 1. Annuler la background task si la recherche est en cours
+        self.arreter_recherche_active()
+    
+        # 2. Réaffichage des boutons du menu
         self.navigation_link_user_contact.visible = True
         self.navigation_link_user_parametres.visible = True
         self.navigation_link_user_appels_offres.visible = True
         self.navigation_link_fermer.visible = True
         self.Titre.visible = True
         self.bt_user_mail.visible = True
-        
+    
         self.navigation_link_retour.visible = False
         self.navigation_link_search_go.visible = False
+    
+        # 3. Nettoyage de la zone centrale
         self.content_panel.clear()
         self.form_search = None
         
@@ -230,6 +273,23 @@ class Menu(MenuTemplate):
     def navigation_link_admin_click(self, **event_args):
         """This method is called when the component is clicked"""
         pass  # Write Code Here
+
+    
+    # =========================================================================
+    # Timer
+    # =========================================================================
+
+    def timer_ping_tick(self, **event_args):
+        # pendant une recherche, l'app communique déjà avec le serveur toutes les secondes.
+        # Le ping est alors inutile.
+        if getattr(self, "_recherche_en_cours", False):
+            return
+
+        with anvil.server.no_loading_indicator:
+            try:
+                anvil.server.call("ping")
+            except Exception as e:
+                print("Ping serveur échoué :", e)
 
 
  

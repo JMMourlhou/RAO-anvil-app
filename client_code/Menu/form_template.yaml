@@ -1,5 +1,10 @@
 components_by_slot:
   content:
+  - event_bindings: {tick: timer_ping_tick}
+    layout_properties: {}
+    name: timer_ping
+    properties: {interval: 600}
+    type: Timer
   - layout_properties: {}
     name: Titre
     properties:
