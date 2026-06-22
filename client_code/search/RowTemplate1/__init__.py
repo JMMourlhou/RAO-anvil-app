@@ -53,7 +53,7 @@ class RowTemplate1(RowTemplate1Template):
         
             
         # Libellé du bouton Vérification :
-        # score + mots_score trouvés + mots-clés classiques si besoin
+        # niveau de correspondance + mots OU trouvés
         self.maj_libelle_bouton_verification()
 
     def form_show(self, **event_args):
@@ -222,8 +222,7 @@ class RowTemplate1(RowTemplate1Template):
 
     def button_generer_html_click(self, **event_args):
         """
-        Affiche le texte avec mots-clés surlignés en couleurs
-        + mots de scoring en gras / italique.
+        Affiche le texte avec les mots-clés recherchés surlignés.
         """
     
         # Changement apparence du bouton
@@ -250,13 +249,8 @@ class RowTemplate1(RowTemplate1Template):
         # Mots-clés de recherche
         mots_cles = self.extraire_mots_cles()
     
-        # Mots utilisés pour le scoring, transmis par la forme Search via repeating_panel_1.tag
-        try:
-            dict_mots_score = self.parent.tag.dict_mots_score or {}
-        except Exception:
-            dict_mots_score = {}
     
-        mots_score = list(dict_mots_score.keys())
+        mots_score = []
     
         # Sécurité : si aucun mot à mettre en évidence
         if not mots_cles and not mots_score:
@@ -413,72 +407,115 @@ class RowTemplate1(RowTemplate1Template):
 
     def maj_libelle_bouton_verification(self):
         """
-        Met à jour le texte du bouton Vérification.
-
-        Affichage voulu :
-        - si score présent :
-          Vérification | score 10 | rénovation
-
-        - si pas de score mais mots-clés classiques trouvés :
-          Vérification : porte, fenêtre
-
-        - sinon :
-          Vérification
+        Met à jour le texte et la couleur du bouton Vérification.
+    
+        Nouvelle logique :
+        - on n'utilise plus le score manuel
+        - on utilise le niveau de correspondance calculé dans search :
+            forte / moyenne / faible
+        - on affiche éventuellement le nombre de mots OU trouvés
         """
-        self.button_generer_html.role = ""   # Reset qui évite qu’un ancien rôle reste accroché si la row est réutilisée.
-        score = self.item_value("score", 0)
-        mots_score_trouves = self.item_value("mots_score_trouves", [])
-
+    
+        # Reset du rôle CSS, utile si Anvil réutilise une row
+        self.button_generer_html.role = ""
+    
+        # ---------------------------------------------------------------------
+        # 1. Lecture des nouvelles valeurs ajoutées dans search
+        # ---------------------------------------------------------------------
+        niveau = str(
+            self.item_value("niveau_correspondance", "") or ""
+        ).strip().lower()
+    
+        nb_total = self.item_value("nb_mots_ou_total", 0)
+        nb_trouves = self.item_value("nb_mots_ou_trouves", 0)
+        taux = self.item_value("taux_mots_ou", None)
+        mots_ou_trouves = self.item_value("mots_ou_trouves", [])
+    
         try:
-            score = int(score or 0)
+            nb_total = int(nb_total or 0)
         except Exception:
-            score = 0
-
-        if mots_score_trouves is None:
-            mots_score_trouves = []
-
-        if isinstance(mots_score_trouves, str):
-            mots_score_trouves = [mots_score_trouves]
-
-        texte = self.get_texte_source_verification()
-        mots_clefs = self.extraire_mots_cles()
-        mots_clefs_trouves = self.mots_cles_presents(texte, mots_clefs)
-
-        # Priorité : afficher le score quand il existe
-        priorite = ""
-        if score > 0:
-            priorite = ""
-
-        if score >= 10:
-            self.button_generer_html.role = "bt-verif-forte"   # le role est définit ds le theme.css
-            priorite = "forte priorité"
+            nb_total = 0
     
-        elif score >= 2:
+        try:
+            nb_trouves = int(nb_trouves or 0)
+        except Exception:
+            nb_trouves = 0
+    
+        try:
+            taux = int(taux)
+        except Exception:
+            taux = None
+    
+        if mots_ou_trouves is None:
+            mots_ou_trouves = []
+    
+        if isinstance(mots_ou_trouves, str):
+            mots_ou_trouves = [mots_ou_trouves]
+    
+        # ---------------------------------------------------------------------
+        # 2. Compatibilité avec les anciennes offres sauvegardées
+        # ---------------------------------------------------------------------
+        # Si une ancienne offre n'a pas encore niveau_correspondance,
+        # on retombe sur l'ancien champ score pour éviter un affichage vide.
+        if niveau not in ["forte", "moyenne", "faible"]:
+            score = self.item_value("score", 0)
+    
+            try:
+                score = int(score or 0)
+            except Exception:
+                score = 0
+    
+            if score >= 10:
+                niveau = "forte"
+            elif score >= 2:
+                niveau = "moyenne"
+            elif score == 1:
+                niveau = "faible"
+            else:
+                niveau = "forte"
+    
+        # ---------------------------------------------------------------------
+        # 3. Application du rôle CSS
+        # ---------------------------------------------------------------------
+        if niveau == "forte":
+            self.button_generer_html.role = "bt-verif-forte"
+            libelle = "Vérification · correspondance forte"
+    
+        elif niveau == "moyenne":
             self.button_generer_html.role = "bt-verif-moyenne"
-            priorite = "priorité moyenne"
+            libelle = "Vérification · correspondance moyenne"
     
-        elif score == 1:
-            self.button_generer_html.role = "bt-verif-faible"
-            priorite = "priorité faible"
-    
-        if priorite:
-            libelle = f"Vérification · {priorite}"
         else:
-            libelle = "Vérification"
+            self.button_generer_html.role = "bt-verif-faible"
+            libelle = "Vérification · correspondance faible"
     
-        if mots_score_trouves:
-            libelle += " : " + ", ".join(mots_score_trouves)
-        elif mots_clefs_trouves:
-            libelle += " : " + ", ".join(mots_clefs_trouves)
+        # ---------------------------------------------------------------------
+        # 4. Ajout du détail des mots OU
+        # ---------------------------------------------------------------------
+        if nb_total > 0:
+            libelle += f" ({nb_trouves}/{nb_total}"
+    
+            if taux is not None:
+                libelle += f" - {taux} %"
+    
+            libelle += ")"
+    
+        # ---------------------------------------------------------------------
+        # 5. Ajout des mots trouvés
+        # ---------------------------------------------------------------------
+        if mots_ou_trouves:
+            libelle += " : " + ", ".join(mots_ou_trouves)
+    
+        else:
+            # Si aucun mot OU spécifique à afficher, on affiche les mots-clés trouvés
+            texte = self.get_texte_source_verification()
+            mots_clefs = self.extraire_mots_cles()
+            mots_clefs_trouves = self.mots_cles_presents(texte, mots_clefs)
+    
+            if mots_clefs_trouves:
+                libelle += " : " + ", ".join(mots_clefs_trouves)
     
         self.button_generer_html.text = libelle
-        return
-
-        # Sinon, ancien comportement
-        if mots_clefs_trouves:
-            self.button_generer_html.text = "Vérification : " + ", ".join(mots_clefs_trouves)
-        else:
-            self.button_generer_html.text = "Vérification"
 
     def mots_cles_presents(self, texte, mots_clefs):
         texte_norm = self._normalize_text(texte)

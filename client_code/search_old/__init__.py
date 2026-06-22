@@ -1,4 +1,4 @@
-from ._anvil_designer import searchTemplate
+from ._anvil_designer import search_oldTemplate
 from anvil import *
 import anvil.users
 import anvil.server
@@ -9,53 +9,58 @@ import m3.components as m3
 from .. import Time
 from datetime import date, datetime
 import re
-from anvil.js import get_dom_node    # pour écouteur JS sur le DropDown
+import anvil.js  # pour la détection d'un click sur le DropDown dropdown_menu_valeur
+from anvil.js import get_dom_node  # pour écouteur JS sur le DropDown
 
-class search(searchTemplate):
 
+class search_old(search_oldTemplate):
     def __init__(
         self,
         origine="",
         checkbox_on_off=False,
         mk="",
         bt_mail_visible=False,
-        **properties
+        dict_mots_score=None,
+        **properties,
     ):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
-        
+
         self.f = get_open_form()
 
         # roles css des champs d'affichage du progrès de la requête
 
         self.column_panel_progress_recherche.role = "progress-search-box"
         self.label_progress_recherche.role = "progress-search-main"
-        #self.label_nb_offres_progress.role = "progress-search-sub"
-        
+        # self.label_nb_offres_progress.role = "progress-search-sub"
+
         self.label_jauge_globale.role = "progress-gauge-global"
         self.label_jauge_source.role = "progress-gauge-source"
-        
+
         self.column_panel_progress_recherche.visible = False
         # =====================================================================
         # Variables internes
         # =====================================================================
-        
+
         self.user = None
         self.histo_id = None
         self.list_offres = []
         self.offres_preparees = []
-        self.mots_ou_recherche = []
-        
+        self.dict_mots_score = dict(
+            dict_mots_score or {}
+        )  # mots type OU saisis par l'utilisateur + importance
+        self.dict_score_recherche = {}  # dictionnaire final utilisé pour scorer
+
         # Pour l'affichage de la progression de la requête
         self.label_progress_recherche.visible = False
-        #self.label_nb_offres_progress.visible = False
+        # self.label_nb_offres_progress.visible = False
         self.timer_recherche_progress.interval = 0
-        
+
         self.task_recherche = None
         self._ctx_recherche = {}
         self._recherche_en_cours = False
         self._annulation_recherche_demandee = False
-        
+
         self.base_app = ""
         self._last_progress_global = None
         self._last_progress_source = None
@@ -63,24 +68,42 @@ class search(searchTemplate):
         self.label_jauge_globale.visible = False
         self.label_jauge_source.visible = False
         self.text_param_summary.visible = False
-        
+
         # Evite les traitements indésirables quand on modifie la checkbox par code
         self._ignore_checkbox_on_off_change = False
-        
 
+        # Sert à savoir si text_box_mot a perdu le focus
+        # parce que l'utilisateur a cliqué sur dropdown_menu_valeur
+        self._dropdown_menu_valeur_clicked = False
+
+        self.dropdown_menu_valeur.items = [("*", 1), ("* *", 5), ("* * *", 10)]
+
+        # Détection du clic sur le DropDown AVANT le lost_focus du TextBox
+        try:
+            get_dom_node(self.dropdown_menu_valeur).addEventListener(
+                "mousedown", self._dropdown_menu_valeur_mouse_down
+            )
+        except Exception as e:
+            print("Impossible d'ajouter l'écouteur JS sur dropdown_menu_valeur :", e)
+        # =====================================================================
+        # Events du repeating panel des mots pour score
+        # =====================================================================
+        self.repeating_panel_mots_pour_score.set_event_handler(
+            "x-del-mot", self.del_mot_pour_score
+        )
+
+        self.repeating_panel_mots_pour_score.set_event_handler(
+            "x-modif", self.modif_mot_pour_score
+        )
 
         # =====================================================================
         # Events du repeating panel des offres
         # =====================================================================
         self.repeating_panel_1.set_event_handler(
-            "x-checkbox-vu-changee",
-            self.modifier_offre_vu
+            "x-checkbox-vu-changee", self.modifier_offre_vu
         )
 
-        self.repeating_panel_1.set_event_handler(
-            "x-del-offre",
-            self.del_offre_affichee
-        )
+        self.repeating_panel_1.set_event_handler("x-del-offre", self.del_offre_affichee)
 
         with anvil.server.no_loading_indicator:
             # =================================================================
@@ -102,7 +125,6 @@ class search(searchTemplate):
                 print("Impossible de récupérer code_app1 :", e)
                 self.base_app = ""
 
-            
             # =================================================================
             # Init de la drop down plateforme multi-sélectable
             # =================================================================
@@ -111,11 +133,12 @@ class search(searchTemplate):
             )
 
             self.multi_select_drop_down_platformes.items = [
-                {"key": r["id"], "value": r["id"]}
-                for r in rows_platformes
+                {"key": r["id"], "value": r["id"]} for r in rows_platformes
             ]
 
-            self.multi_select_drop_down_platformes.placeholder = "Sélectionnez au moins une plateforme"
+            self.multi_select_drop_down_platformes.placeholder = (
+                "Sélectionnez au moins une plateforme"
+            )
             self.multi_select_drop_down_platformes.multiple = True
             self.multi_select_drop_down_platformes.enable_filtering = False
             self.multi_select_drop_down_platformes.enable_select_all = True
@@ -127,7 +150,8 @@ class search(searchTemplate):
             # Lecture de la dernière ligne histo du user
             # =================================================================
             derniere_ligne = self.charger_derniere_ligne_histo(rows_platformes)
-            
+            self.display_mots_pour_score()
+
             # =================================================================
             # Ouverture normale : on affiche seulement les derniers paramètres
             # =================================================================
@@ -135,7 +159,7 @@ class search(searchTemplate):
                 self.column_panel_params.visible = True
 
                 self.maj_bouton_recherche_visible()
-                    
+
             # =================================================================
             # Réaffichage après traitement éventuel
             # Aujourd'hui, on évite open_form("search", "check") autant que possible.
@@ -152,15 +176,20 @@ class search(searchTemplate):
                 if bt_mail_visible is True:
                     self.button_selection_mailed.visible = True
 
-                if derniere_ligne : 
+                if dict_mots_score:
+                    self.dict_mots_score = dict(dict_mots_score)
+                    self.text_box_mots_pour_score.text = self.mots_score_to_text(
+                        self.dict_mots_score
+                    )
+
+                if derniere_ligne:
                     self.afficher_offres(self.list_offres)
                 else:
                     self.column_panel_select.visible = False
 
                 self.f.navigation_link_search_go.visible = False
-                #self.button_search.visible = False
-                
-                 
+                # self.button_search.visible = False
+
     # =========================================================================
     # Chargement de la dernière ligne histo
     # =========================================================================
@@ -174,15 +203,16 @@ class search(searchTemplate):
         """
 
         rows = app_tables.histo.search(
-            tables.order_by("date_heure", ascending=False),
-            email=self.user["email"]
+            tables.order_by("date_heure", ascending=False), email=self.user["email"]
         )
 
         if len(rows) == 0:
             # Pas encore d'historique pour un nouvel utilisateur
-            self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
+            self.multi_select_drop_down_platformes.selected = [
+                r["id"] for r in rows_platformes
+            ]
             self.text_box_mot_clef.text = "Football et Ballon"
-            self.text_box_mots_ou.text = ""
+            # self.text_box_mots_ou.text = ""
             self.text_box_mots_exclus.text = ""
             self.text_box_nb_jours.text = "30"
             self.text_box_departements.text = None
@@ -198,87 +228,40 @@ class search(searchTemplate):
         self.histo_id = row.get_id()
 
         self.text_box_mot_clef.text = row["mots_cles"]
-        try:
-            self.text_box_mot_ou.text = row["mots_ou"] or ""
-        except Exception:
-            self.text_box_mot_ou.text = self.mots_score_obj_to_mots_ou_texte(
-                row["mots_score_obj"]
-            )
 
-
-        
         try:
             self.text_box_mots_exclus.text = row["mots_exclus"] or ""
         except Exception:
             self.text_box_mots_exclus.text = ""
-            
+
         self.text_box_nb_jours.text = row["nb_jours"]
         self.text_box_departements.text = row["departements"]
-            
+
         src = row["sources"]
         if src is not None:
             self.multi_select_drop_down_platformes.selected = src
         else:
-            self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
+            self.multi_select_drop_down_platformes.selected = [
+                r["id"] for r in rows_platformes
+            ]
 
-        
+        try:
+            self.dict_mots_score = self.mots_score_obj_to_dict(row["mots_score_obj"])
+        except Exception:
+            self.dict_mots_score = {}
+
         self.list_offres = self.normaliser_liste_offres_vu(row["offres"] or [])
 
         return row
 
-
-
-    def mots_score_obj_to_mots_ou_texte(self, mots_score_obj):
-        """
-        Compatibilité avec les anciens historiques.
-        Transforme l'ancien champ mots_score_obj en simple texte de mots OU.
-        """
-    
-        if not mots_score_obj:
-            return ""
-    
-        mots = []
-    
-        if isinstance(mots_score_obj, dict):
-            source = mots_score_obj.keys()
-    
-        elif isinstance(mots_score_obj, list):
-            source = []
-            for item in mots_score_obj:
-                try:
-                    source.append(item.get("mot", ""))
-                except Exception:
-                    pass
-    
-        else:
-            return ""
-    
-        deja_vus = set()
-    
-        for mot in source:
-            mot = str(mot or "").strip().lower()
-    
-            mot = mot.replace("{", "")
-            mot = mot.replace("}", "")
-            mot = mot.replace('"', "")
-            mot = mot.replace("'", "")
-            mot = mot.strip()
-    
-            if mot and mot not in deja_vus:
-                deja_vus.add(mot)
-                mots.append(mot)
-    
-        return ", ".join(mots)
-
-    
     def verrouiller_recherche(self, message="Recherche en cours..."):
         """
         Verrouille l'interface pendant une recherche.
         Empêche un double clic ou un nouveau lancement.
         """
-    
+
         self._recherche_en_cours = True
-    
+
         try:
             self.f.navigation_link_search_go.visible = True
             self.f.navigation_link_search_go.enabled = False
@@ -286,26 +269,26 @@ class search(searchTemplate):
             # self.f.navigation_link_search_go.text = "Recherche en cours..."
         except Exception as e:
             print("Erreur verrouillage navigation_link_search_go :", e)
-    
+
         self.afficher_progression_recherche(
             ligne_1="🔎 Lancement de la recherche",
             ligne_2="Préparation des plateformes...",
             etat="running",
             progress_global=0,
-            progress_source=0
+            progress_source=0,
         )
-    
+
         try:
-            #self.text_box_mot_clef.enabled = False
-            #self.text_box_mots_exclus.enabled = False
-            #self.text_box_nb_jours.enabled = False
-            #self.text_box_departements.enabled = False
-            #self.multi_select_drop_down_platformes.enabled = False
+            # self.text_box_mot_clef.enabled = False
+            # self.text_box_mots_exclus.enabled = False
+            # self.text_box_nb_jours.enabled = False
+            # self.text_box_departements.enabled = False
+            # self.multi_select_drop_down_platformes.enabled = False
+            # self.button_add_mot.enabled = False
             pass
         except Exception as e:
             print("Erreur verrouillage UI :", e)
-    
-    
+
     def deverrouiller_recherche(self, cacher_bouton=False):
         """
         Déverrouille l'interface après fin, erreur ou interruption de recherche.
@@ -313,28 +296,28 @@ class search(searchTemplate):
         self._recherche_en_cours = False
         self.timer_recherche_progress.interval = 0
         self.task_recherche = None
-    
+
         try:
             self.f.navigation_link_search_go.visible = True
-    
+
             if cacher_bouton:
                 # On ne le cache pas : le masquer fait bouger le menu M3.
                 self.f.navigation_link_search_go.enabled = False
             else:
                 self.f.navigation_link_search_go.enabled = True
-    
+
             # Ne pas changer le texte à chaque fin de recherche.
             self.f.navigation_link_search_go.text = "Rechercher"
         except Exception as e:
             print("Erreur réactivation navigation_link_search_go :", e)
-    
+
         try:
             self.text_box_mot_clef.enabled = True
             self.text_box_mots_exclus.enabled = True
             self.text_box_nb_jours.enabled = True
             self.text_box_departements.enabled = True
             self.multi_select_drop_down_platformes.enabled = True
-            self.text_box_mot_ou.enabled = True
+            self.button_add_mot.enabled = True
         except Exception as e:
             print("Erreur déverrouillage UI :", e)
 
@@ -343,46 +326,40 @@ class search(searchTemplate):
         Appelée par la Form mère Menu avant de quitter la page search.
         Arrête le timer client et tue la background task si elle existe.
         """
-    
+
         print("Demande d'annulation de la recherche depuis Menu")
-    
+
         self._annulation_recherche_demandee = True
-    
+
         # 1. Arrêter immédiatement le timer côté client
         try:
             self.timer_recherche_progress.interval = 0
         except Exception as e:
             print("Erreur arrêt timer_recherche_progress :", e)
-    
+
         # 2. Récupérer la task avant de la remettre à None
         task = self.task_recherche
-    
+
         if task is None:
             print("Aucune task_recherche à tuer")
             self.deverrouiller_recherche(cacher_bouton=False)
-            return {
-                "ok": True,
-                "message": "Aucune recherche en cours"
-            }
-    
+            return {"ok": True, "message": "Aucune recherche en cours"}
+
         # 3. Tuer la task côté serveur
         try:
             with anvil.server.no_loading_indicator:
                 result = anvil.server.call("task_killer", task)
-    
+
             print("Résultat task_killer :", result)
-    
+
         except Exception as e:
             print("Erreur pendant task_killer :", e)
-            result = {
-                "ok": False,
-                "message": str(e)
-            }
-    
+            result = {"ok": False, "message": str(e)}
+
         # 4. Nettoyer l'état local de search
         self.task_recherche = None
         self._recherche_en_cours = False
-    
+
         try:
             self.afficher_progression_recherche(
                 ligne_1="⛔ Recherche annulée",
@@ -390,18 +367,18 @@ class search(searchTemplate):
                 etat="error",
                 progress_global=0,
                 progress_source=0,
-                afficher_jauges=False
+                afficher_jauges=False,
             )
         except Exception as e:
             print("Erreur affichage annulation :", e)
-    
+
         try:
             self.deverrouiller_recherche(cacher_bouton=False)
         except Exception as e:
             print("Erreur déverrouillage après annulation :", e)
-    
+
         return result
-    
+
     # =========================================================================
     # Recherche
     # =========================================================================
@@ -418,29 +395,29 @@ class search(searchTemplate):
         if self._recherche_en_cours:
             Notification("Recherche déjà en cours...", timeout=2).show()
             return
-            
+
         # --- Lecture des champs ---
         mots_obligatoires_texte = self.text_box_mot_clef.text or ""
-        mots_ou_texte = self.text_box_mot_ou.text or ""
         mots_exclus_texte = self.text_box_mots_exclus.text or ""
         deps_texte = self.text_box_departements.text or ""
-        
+
         # --- Conversion en listes propres ---
         mots_obligatoires = self.extraire_liste_mots_saisie(mots_obligatoires_texte)
-        
-        mots_ou = self.extraire_liste_mots_saisie(mots_ou_texte)
-        
+
+        # Les mots OU viennent de la liste avec importance
+        mots_ou = self.get_mots_ou_depuis_score()
+
         mots_exclus = self.extraire_liste_mots_saisie(mots_exclus_texte)
-        
+
         print("===== DEBUG CHAMPS BRUTS =====")
         print("text_box_mot_clef =", repr(self.text_box_mot_clef.text))
-        print("text_box_mot_ou =", repr(self.text_box_mot_ou.text))
-        print("mots_ou =", mots_ou)
+        print("mots_ou depuis dict_mots_score =", mots_ou)
         print("text_box_mots_exclus =", repr(self.text_box_mots_exclus.text))
+        print("dict_mots_score utilisateur =", self.dict_mots_score)
         print("==============================")
-    
+
         depts = [d.strip() for d in deps_texte.split(",") if d.strip()]
-    
+
         if not mots_obligatoires and not mots_ou:
             alert(
                 "Vous devez saisir au moins un mot-clé.\n\n"
@@ -450,7 +427,7 @@ class search(searchTemplate):
             )
             self.text_box_mot_clef.focus()
             return
-    
+
         try:
             periode = int(self.text_box_nb_jours.text)
         except Exception:
@@ -461,27 +438,25 @@ class search(searchTemplate):
         if periode < 1:
             periode = 1
             self.text_box_nb_jours.text = "1"
-        
+
         if periode > 365:
             periode = 365
             self.text_box_nb_jours.text = "365"
             Notification("La période a été limitée à 365 jours.", timeout=3).show()
 
-        
         selected_platformes = self.multi_select_drop_down_platformes.selected
-    
+
         if not selected_platformes:
             alert("Sélectionnez au moins une plateforme.")
             return
-    
+
         # --- Construction des requêtes envoyées aux sources ---
         # Important : cette fonction doit maintenant renvoyer large.
         # Exemple : formation + sst/mac/pse1/pse2 => ['formation']
         mots_clefs = self.construire_requetes_sources(
-            mots_obligatoires=mots_obligatoires,
-            mots_ou=mots_ou
+            mots_obligatoires=mots_obligatoires, mots_ou=mots_ou
         )
-    
+
         print(f"Recherche sur les {periode} derniers jours")
         print("🔍 Mots obligatoires :", mots_obligatoires)
         print("🔍 Mots OU :", mots_ou)
@@ -490,8 +465,20 @@ class search(searchTemplate):
         print("🗺️ Départements saisis :", depts)
         print(f"Sources: {selected_platformes}")
 
-        
-    
+        # --- Construction du dictionnaire final utilisé pour le scoring ---
+        dict_score = self.build_dict_mots_score()
+
+        if dict_score is None:
+            return
+
+        self.dict_score_recherche = dict_score
+
+        print("dict_mots_score utilisateur :", self.dict_mots_score)
+        print("dict_score_recherche utilisé pour scoring :", self.dict_score_recherche)
+
+        if dict_score is None:
+            return
+
         # --- Lancement de la recherche brute en tâche de fond ---
         self._ctx_recherche = {
             "mots_obligatoires": mots_obligatoires,
@@ -500,7 +487,7 @@ class search(searchTemplate):
             "periode": periode,
             "selected_platformes": selected_platformes,
         }
-        
+
         self._annulation_recherche_demandee = False
         self.verrouiller_recherche("Lancement de la recherche...")
 
@@ -516,35 +503,35 @@ class search(searchTemplate):
                     sources=selected_platformes,
                     operateur="ET",
                     mots_ou=mots_ou,
-                    mots_exclus=mots_exclus
+                    mots_exclus=mots_exclus,
                 )
-        
+
         except Exception as e:
             print(f"Erreur au lancement de la recherche background sur Pi5 : {e}")
             self.label_progress_recherche.text = "Erreur au lancement de la recherche."
-            #self.label_nb_offres_progress.text = ""
+            # self.label_nb_offres_progress.text = ""
             self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant le lancement de la recherche : {e}")
             return
 
-        # afficher les paramètres 
+        # afficher les paramètres
         self.display_param_summary()
-        
+
         self.afficher_progression_recherche(
             ligne_1="🔎 Recherche lancée",
             ligne_2="Lecture des offres en cours...",
             etat="running",
             progress_global=0,
-            progress_source=0
+            progress_source=0,
         )
-        
+
         self.data_grid_1.visible = False
         self.column_panel_select.visible = False
         self.text_nb_offres.visible = False
-        
+
         self.timer_recherche_progress.interval = 1
         return
-    
+
     def traiter_offres_recuperees_apres_background(self, offres):
         """
         Suite du traitement après récupération des offres par Background Task :
@@ -555,126 +542,144 @@ class search(searchTemplate):
         - sauvegarde histo
         - affichage
         """
-    
+
         ctx = self._ctx_recherche or {}
-    
+
         mots_obligatoires = ctx.get("mots_obligatoires", [])
         mots_ou = ctx.get("mots_ou", [])
         mots_exclus = ctx.get("mots_exclus", [])
         selected_platformes = ctx.get("selected_platformes", [])
-    
+
         if not offres:
             self.data_grid_1.visible = False
             self.column_panel_select.visible = False
             self.text_nb_offres.visible = False
-    
-            self.label_progress_recherche.text = "Recherche terminée : aucune offre trouvée."
-            #self.label_nb_offres_progress.text = "0 offre"
+
+            self.label_progress_recherche.text = (
+                "Recherche terminée : aucune offre trouvée."
+            )
+            # self.label_nb_offres_progress.text = "0 offre"
 
             self.deverrouiller_recherche(cacher_bouton=False)
-    
+
             alert("Désolé... pas d'offres trouvées !")
             return
-    
+
         nb_offres_brutes = len(offres)
         print(f"Offres brutes récupérées : {nb_offres_brutes}")
-    
+
         self.label_progress_recherche.text = "Filtrage des critères positifs..."
-        #self.label_nb_offres_progress.text = f"{nb_offres_brutes} offre(s) brutes récupérée(s)"
-    
+        # self.label_nb_offres_progress.text = f"{nb_offres_brutes} offre(s) brutes récupérée(s)"
+
         # =====================================================
         # 1. Filtrage positif local
         # =====================================================
         offres = self.filtrer_offres_criteres_positifs(
-            offres,
-            mots_obligatoires,
-            mots_ou
+            offres, mots_obligatoires, mots_ou
         )
-    
+
         nb_apres_filtre_positif = len(offres)
         print(f"Offres après filtre positif : {nb_apres_filtre_positif}")
-    
+
         if not offres:
             self.data_grid_1.visible = False
             self.column_panel_select.visible = False
             self.text_nb_offres.visible = False
-    
+
             self.label_progress_recherche.text = "Aucune offre après filtrage positif."
-            #self.label_nb_offres_progress.text = "0 offre conservée"
+            # self.label_nb_offres_progress.text = "0 offre conservée"
 
             self.deverrouiller_recherche(cacher_bouton=False)
-    
+
             alert(
                 "Des offres ont été récupérées, mais aucune ne respecte les critères :\n\n"
                 f"Obligatoires : {', '.join(mots_obligatoires) or '-'}\n"
                 f"Au moins un : {', '.join(mots_ou) or '-'}"
             )
             return
-    
+
         # =====================================================
         # 2. Filtrage local des mots exclus
         # =====================================================
         self.label_progress_recherche.text = "Application des mots exclus..."
-    
+
         offres = self.filtrer_offres_exclues(offres, mots_exclus)
-    
+
         nb_apres_exclusion = len(offres)
         nb_exclues = nb_apres_filtre_positif - nb_apres_exclusion
-    
+
         print(f"Offres exclues : {nb_exclues}")
         print(f"Offres conservées : {nb_apres_exclusion}")
-    
+
         if not offres:
             self.data_grid_1.visible = False
             self.column_panel_select.visible = False
             self.text_nb_offres.visible = False
-    
+
             self.label_progress_recherche.text = "Aucune offre après exclusion."
-            #self.label_nb_offres_progress.text = "0 offre conservée"
+            # self.label_nb_offres_progress.text = "0 offre conservée"
 
             self.deverrouiller_recherche(cacher_bouton=False)
-            alert("Des offres correspondaient aux critères, mais elles contenaient toutes au moins un mot exclu.")
+            alert(
+                "Des offres correspondaient aux critères, mais elles contenaient toutes au moins un mot exclu."
+            )
             return
-    
+
         # --- Génération de la liste des offres ---
         self.label_progress_recherche.text = "Préparation des offres..."
-    
+
         self.offres_preparees = self.build_offres_list(offres, dedoublonner=True)
-    
+
         print(
             "offres_preparees avant score:",
             type(self.offres_preparees),
-            len(self.offres_preparees)
+            len(self.offres_preparees),
         )
-    
-        # --- Calcul automatique de la correspondance des mots OU ---
-        self.label_progress_recherche.text = "Évaluation de la correspondance des offres..."
-        
-        offres_finales = self.ajouter_correspondance_mots_ou(
-            self.offres_preparees,
-            mots_ou
-        )
-        
-        offres_finales = self.normaliser_liste_offres_vu(offres_finales)
-        
-        print("===== DEBUG CORRESPONDANCE MOTS OU =====")
-        for o in offres_finales:
+
+        # --- Calcul du score / pertinence côté serveur ---
+        self.label_progress_recherche.text = "Calcul du score des offres..."
+        # self.label_nb_offres_progress.text = f"{len(self.offres_preparees)} offre(s) à scorer"
+
+        try:
+            with anvil.server.no_loading_indicator:
+                offres_scorees = anvil.server.call(
+                    "scorer_offres",
+                    self.offres_preparees,
+                    self.dict_score_recherche or {},
+                )
+
+        except Exception as e:
+            print(f"Erreur au module serveur 'scorer_offres': {e}")
+            alert(f"Erreur pendant le calcul du score : {e}")
+            offres_scorees = self.offres_preparees
+
+        if offres_scorees is None:
+            print("Attention : scorer_offres a renvoyé None")
+            offres_scorees = self.offres_preparees
+
+        # --- Ajout sécurité de la clé vu=False dans chaque offre ---
+        offres_scorees = self.normaliser_liste_offres_vu(offres_scorees)
+
+        print("===== DEBUG SCORES =====")
+        for o in offres_scorees:
             print(
-                "titre:", o.get("titre"),
-                "| niveau:", o.get("niveau_correspondance"),
-                "| taux:", o.get("taux_mots_ou"),
-                "| mots OU:", o.get("nb_mots_ou_trouves"), "/", o.get("nb_mots_ou_total")
+                "titre:",
+                o.get("titre"),
+                "| score:",
+                o.get("score"),
+                "| type:",
+                type(o.get("score")),
             )
-        print("=======================================")
-        
-        nb_offres = len(offres_finales)
-    
+        print("========================")
+
+        nb_offres = len(offres_scorees)
+
         # --- Backup de la requête avec les offres scorées ---
         self.label_progress_recherche.text = "Sauvegarde de la recherche..."
-        #self.label_nb_offres_progress.text = f"{nb_offres} offre(s) à sauvegarder"
-    
+        # self.label_nb_offres_progress.text = f"{nb_offres} offre(s) à sauvegarder"
+
         date_time = Time.french_zone_time()
-    
+
         try:
             with anvil.server.no_loading_indicator:
                 result = anvil.server.call(
@@ -686,18 +691,18 @@ class search(searchTemplate):
                     self.text_box_departements.text,
                     date_time,
                     nb_offres,
-                    offres_finales,
-                    {},
-                    False,
+                    offres_scorees,
+                    self.dict_mots_score,
+                    True,
                     self.get_mots_ou_texte(),
-                    self.get_mots_exclus_texte()
+                    self.get_mots_exclus_texte(),
                 )
-    
+
         except Exception as e:
             self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant la sauvegarde dans histo : {e}")
             return
-    
+
         if not result or not result.get("ok"):
             message = result.get("message") if result else "Erreur inconnue"
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -705,46 +710,42 @@ class search(searchTemplate):
                 f"La recherche a fonctionné, mais la sauvegarde dans histo a échoué.\n\n{message}"
             )
             return
-    
+
         self.histo_id = result.get("histo_id")
-    
+
         if not self.histo_id:
             self.deverrouiller_recherche(cacher_bouton=False)
             alert("Sauvegarde histo effectuée, mais histo_id manquant.")
             return
-    
+
         print(f"Ligne histo sauvegardée : {self.histo_id}")
         print(f"Nombre d'offres sauvegardées dans histo : {result.get('nb_offres')}")
-    
-        self.list_offres = offres_finales
-    
+
+        self.list_offres = offres_scorees
+
         self.afficher_offres(self.list_offres)
-    
-        #self.button_search.visible = False
+
+        # self.button_search.visible = False
         self.f.navigation_link_search_go.enabled = False
-        
+
         self.column_panel_params.visible = False
 
         # Affichage du résumé des paramètres de la requête
         self.display_param_summary()
-    
+
         self.column_panel_progress_recherche.visible = True
-    
+
         self.text_param_summary.visible = True
 
         self.afficher_progression_recherche(
             ligne_1="✅ Recherche terminée",
-            ligne_2=self.format_nb_offres(
-                nb_offres,
-                "retenue",
-                "retenues"
-            ),
+            ligne_2=self.format_nb_offres(nb_offres, "retenue", "retenues"),
             etat="success",
             progress_global=100,
             progress_source=100,
-            afficher_jauges=False
+            afficher_jauges=False,
         )
-        
+
         # Succès : on cache les boutons de recherche
         self.deverrouiller_recherche(cacher_bouton=True)
 
@@ -752,12 +753,12 @@ class search(searchTemplate):
         self.text_param_summary.text = (
             f"Plateformes : {self.multi_select_drop_down_platformes.selected} / "
             f"Obligatoires : {self.get_mots_obligatoires_texte() or '-'} / "
-            f"Au moins un : {self.get_mots_ou_texte() or '-'} / "
+            f"Au moins un : {self.get_mots_ou_depuis_score() or '-'} / "
             f"Exclus : {self.get_mots_exclus_texte() or '-'} / "
             f"sur les {self.text_box_nb_jours.text} derniers jours / "
             f"Départements : {self.text_box_departements.text or '-'}"
         )
-    
+
     # =========================================================================
     # Champs Enter
     # =========================================================================
@@ -766,7 +767,7 @@ class search(searchTemplate):
         if self._recherche_en_cours is True:
             Notification("Recherche déjà en cours...", timeout=2).show()
             return
-        
+
         self.lancer_recherche()
 
     def text_box_mot_clef_pressed_enter(self, **event_args):
@@ -851,7 +852,9 @@ class search(searchTemplate):
 
         self.afficher_offres(self.list_offres)
 
-        self.button_selection_mailed.visible = bool(checked) and len(self.list_offres) > 0
+        self.button_selection_mailed.visible = (
+            bool(checked) and len(self.list_offres) > 0
+        )
 
     def modifier_offre_vu(self, sender=None, checked=False, item=None, **event_args):
         """
@@ -886,9 +889,8 @@ class search(searchTemplate):
 
         self.recalculer_bouton_selection_mailed()
 
-        toutes_cochees = (
-            len(self.list_offres) > 0
-            and all(bool(o.get("vu", False)) for o in self.list_offres)
+        toutes_cochees = len(self.list_offres) > 0 and all(
+            bool(o.get("vu", False)) for o in self.list_offres
         )
 
         self.set_checkbox_on_off_sans_event(toutes_cochees)
@@ -903,7 +905,7 @@ class search(searchTemplate):
         r = alert(
             "Effacer toutes les offres affichées ?",
             dismissible=False,
-            buttons=[("oui", True), ("non", False)]
+            buttons=[("oui", True), ("non", False)],
         )
 
         if not r:
@@ -916,16 +918,16 @@ class search(searchTemplate):
 
         self.afficher_offres(self.list_offres)
         self.set_checkbox_on_off_sans_event(False)
-        
+
         # Affichage du résumé des paramètres de la requête
         self.display_param_summary()
-        
-        
-        #self.button_search.visible = True
+
+        self.column_panel_add_mot_pour_score.visible = False
+
+        # self.button_search.visible = True
         self.f.navigation_link_search_go.visible = True
         self.f.navigation_link_search_go.enabled = True
 
-        
     def button_del_before_modif_param(self, **event_args):
         """
         Anciennement : effacement de app_tables.appels_offres.
@@ -954,7 +956,7 @@ class search(searchTemplate):
         r = alert(
             "Effacer cette offre affichée ?",
             dismissible=False,
-            buttons=[("oui", True), ("non", False)]
+            buttons=[("oui", True), ("non", False)],
         )
 
         if not r:
@@ -965,7 +967,8 @@ class search(searchTemplate):
         ancienne_liste = self.list_offres or []
 
         self.list_offres = [
-            offre for offre in ancienne_liste
+            offre
+            for offre in ancienne_liste
             if self._make_offer_uid(offre) != uid_a_supprimer
         ]
 
@@ -974,9 +977,8 @@ class search(searchTemplate):
 
         self.afficher_offres(self.list_offres)
 
-        toutes_cochees = (
-            len(self.list_offres) > 0
-            and all(bool(o.get("vu", False)) for o in self.list_offres)
+        toutes_cochees = len(self.list_offres) > 0 and all(
+            bool(o.get("vu", False)) for o in self.list_offres
         )
 
         self.set_checkbox_on_off_sans_event(toutes_cochees)
@@ -998,9 +1000,7 @@ class search(searchTemplate):
         try:
             with anvil.server.no_loading_indicator:
                 result = anvil.server.call(
-                    "update_histo_offres",
-                    self.histo_id,
-                    self.list_offres
+                    "update_histo_offres", self.histo_id, self.list_offres
                 )
         except Exception as e:
             alert(f"Erreur pendant la sauvegarde des offres : {e}")
@@ -1018,20 +1018,22 @@ class search(searchTemplate):
         """
         Réaffiche le repeating panel à partir de self.list_offres.
         """
-    
+
         if offres is not None:
             self.list_offres = self.normaliser_liste_offres_vu(offres)
-    
+
         nb = len(self.list_offres)
-    
+
         # Important : remettre le tag après chaque réaffichage
-        self.repeating_panel_1.tag.mots_cles_saisis = self.get_texte_mots_positifs_pour_highlight()
-    
+        self.repeating_panel_1.tag.mots_cles_saisis = (
+            self.get_texte_mots_positifs_pour_highlight()
+        )
+
         # Important aussi : transmettre les mots de scoring aux rows
-        self.repeating_panel_1.tag.dict_mots_score = {}
-    
+        self.repeating_panel_1.tag.dict_mots_score = self.dict_mots_score or {}
+
         self.repeating_panel_1.items = list(self.list_offres)
-    
+
         if nb == 0:
             self.text_nb_offres.text = "0 offre"
             self.text_nb_offres.visible = False
@@ -1040,16 +1042,16 @@ class search(searchTemplate):
             self.button_selection_mailed.visible = False
             self.column_panel_params.visible = True
             return
-    
+
         if nb == 1:
             self.text_nb_offres.text = "1 offre"
         else:
             self.text_nb_offres.text = f"{nb} offres"
-    
+
         self.text_nb_offres.visible = False
         self.data_grid_1.visible = True
         self.column_panel_select.visible = True
-    
+
         self.recalculer_bouton_selection_mailed()
 
     def normaliser_liste_offres_vu(self, offres):
@@ -1082,8 +1084,6 @@ class search(searchTemplate):
     def button_selection_mailed_click(self, **event_args):
         """Envoi d'un mail contenant les offres cochées."""
         pass
-
-
 
     # =========================================================================
     # Recalcule visibilité du bouton mail
@@ -1124,109 +1124,103 @@ class search(searchTemplate):
     def extraire_liste_mots_saisie(self, texte):
         """
         Transforme une saisie utilisateur en liste propre.
-    
+
         Accepte :
         - virgules
         - points-virgules
         - retours ligne
         - et / ou / and / or
-    
+
         Exemple :
         'sst, pse1 ou pse2' devient ['sst', 'pse1', 'pse2']
         """
-    
+
         texte = (texte or "").strip().lower()
-    
+
         if not texte:
             return []
-    
+
         texte = texte.replace("\n", ",")
         texte = texte.replace(";", ",")
         texte = texte.replace("|", ",")
-    
+
         # Compatibilité avec anciennes saisies du type "formation et sst"
         texte = re.sub(r"\s+(et|ou|and|or)\s+", ",", texte, flags=re.IGNORECASE)
-    
+
         morceaux = []
-    
+
         for morceau in texte.split(","):
             mot = morceau.strip()
             mot = mot.strip("()[]{}")
             mot = mot.strip('"')
             mot = mot.strip("'")
             mot = mot.strip()
-    
+
             if mot:
                 morceaux.append(mot)
-    
+
         # Suppression des doublons en gardant l'ordre
         resultat = []
         deja_vus = set()
-    
+
         for mot in morceaux:
             if mot not in deja_vus:
                 deja_vus.add(mot)
                 resultat.append(mot)
-    
+
         return resultat
-    
-    
+
     def construire_requetes_sources(self, mots_obligatoires, mots_ou):
         """
         Construit une requête large pour les sources.
-    
+
         Important :
         On évite d'envoyer plusieurs requêtes du type :
         ['formation et sst', 'formation et mac']
-    
+
         On récupère large, puis on filtre localement.
         """
-    
+
         mots_obligatoires = mots_obligatoires or []
         mots_ou = mots_ou or []
-    
+
         # Cas normal : on envoie les mots obligatoires seulement
         if mots_obligatoires:
             return [" et ".join(mots_obligatoires)]
-    
+
         # Si aucun mot obligatoire, on envoie une requête OU large
         if mots_ou:
             return [" ou ".join(mots_ou)]
-    
+
         return []
-    
-    
+
     def get_texte_mots_positifs_pour_highlight(self):
         """
         Renvoie les mots à surligner dans les résultats.
-    
+
         On surligne :
         - les mots obligatoires
         - les mots OU issus de dict_mots_score
-    
+
         On ne surligne pas les mots exclus.
         """
-    
+
         mots = []
-    
-        mots.extend(
-            self.extraire_liste_mots_saisie(self.text_box_mot_clef.text or "")
-        )
-    
-        mots.extend(
-            self.get_mots_ou()
-        )
-    
+
+        mots.extend(self.extraire_liste_mots_saisie(self.text_box_mot_clef.text or ""))
+
+        mots.extend(self.get_mots_ou_depuis_score())
+
         resultat = []
         deja_vus = set()
-    
+
         for mot in mots:
             mot = str(mot or "").strip().lower()
-    
+
             if mot and mot not in deja_vus:
                 deja_vus.add(mot)
                 resultat.append(mot)
-    
+
         return ", ".join(resultat)
 
     def normaliser_texte_filtre(self, texte):
@@ -1236,271 +1230,184 @@ class search(searchTemplate):
         - suppression simple des accents
         - espaces multiples
         """
-    
+
         texte = str(texte or "").lower()
-    
+
         remplacements = {
-            "à": "a", "â": "a", "ä": "a", "á": "a", "ã": "a", "å": "a",
+            "à": "a",
+            "â": "a",
+            "ä": "a",
+            "á": "a",
+            "ã": "a",
+            "å": "a",
             "ç": "c",
-            "é": "e", "è": "e", "ê": "e", "ë": "e",
-            "î": "i", "ï": "i", "í": "i", "ì": "i",
-            "ô": "o", "ö": "o", "ó": "o", "ò": "o", "õ": "o",
-            "ù": "u", "û": "u", "ü": "u", "ú": "u",
+            "é": "e",
+            "è": "e",
+            "ê": "e",
+            "ë": "e",
+            "î": "i",
+            "ï": "i",
+            "í": "i",
+            "ì": "i",
+            "ô": "o",
+            "ö": "o",
+            "ó": "o",
+            "ò": "o",
+            "õ": "o",
+            "ù": "u",
+            "û": "u",
+            "ü": "u",
+            "ú": "u",
             "ÿ": "y",
             "ñ": "n",
             "œ": "oe",
             "æ": "ae",
         }
-    
+
         for accent, simple in remplacements.items():
             texte = texte.replace(accent, simple)
-    
+
         texte = re.sub(r"\s+", " ", texte)
-    
+
         return texte.strip()
 
     def texte_offre_normalise(self, offre):
         """
         Construit un texte complet normalisé pour filtrer localement une offre.
         """
-    
-        texte_offre = " ".join([
-            str(offre.get("titre", "") or ""),
-            str(offre.get("description", "") or ""),
-            str(offre.get("search_text", "") or ""),
-            str(offre.get("acheteur", "") or ""),
-            str(offre.get("lieu", "") or ""),
-            str(offre.get("nature", "") or ""),
-            str(offre.get("procedure", "") or "")
-        ])
-    
+
+        texte_offre = " ".join(
+            [
+                str(offre.get("titre", "") or ""),
+                str(offre.get("description", "") or ""),
+                str(offre.get("search_text", "") or ""),
+                str(offre.get("acheteur", "") or ""),
+                str(offre.get("lieu", "") or ""),
+                str(offre.get("nature", "") or ""),
+                str(offre.get("procedure", "") or ""),
+            ]
+        )
+
         return self.normaliser_texte_filtre(texte_offre)
-    
-    
+
     def texte_contient_mot_filtre(self, texte_norm, mot):
         """
         Vérifie si un texte normalisé contient un mot.
         Pour les mots longs, recherche partielle :
         renovation trouve rénovations.
         """
-    
+
         mot_norm = self.normaliser_texte_filtre(mot)
-    
+
         if not mot_norm:
             return False
-    
+
         if len(mot_norm) <= 3:
             pattern = r"(?<![a-z0-9])" + re.escape(mot_norm) + r"(?![a-z0-9])"
             return re.search(pattern, texte_norm) is not None
-    
+
         return mot_norm in texte_norm
-    
-    
+
     def offre_respecte_criteres_positifs(self, offre, mots_obligatoires, mots_ou):
         """
         Vérifie :
         - tous les mots obligatoires doivent être présents
         - si mots_ou existe, au moins un doit être présent
         """
-    
+
         texte_norm = self.texte_offre_normalise(offre)
-    
+
         # Tous les mots obligatoires doivent être présents
         for mot in mots_obligatoires or []:
             if not self.texte_contient_mot_filtre(texte_norm, mot):
                 return False
-    
+
         # Au moins un mot OU doit être présent
         if mots_ou:
             trouve_un_mot_ou = False
-    
+
             for mot in mots_ou:
                 if self.texte_contient_mot_filtre(texte_norm, mot):
                     trouve_un_mot_ou = True
                     break
-    
+
             if not trouve_un_mot_ou:
                 return False
-    
+
         return True
-    
-    
+
     def filtrer_offres_criteres_positifs(self, offres, mots_obligatoires, mots_ou):
         """
         Garde seulement les offres qui respectent :
         mots obligatoires ET au moins un mot OU.
         """
-    
+
         if not offres:
             return []
-    
+
         offres_filtrees = []
-    
+
         for offre in offres:
             if self.offre_respecte_criteres_positifs(offre, mots_obligatoires, mots_ou):
                 offres_filtrees.append(offre)
-    
+
         return offres_filtrees
 
-    def trouver_mots_ou_dans_offre(self, offre, mots_ou):
-        """
-        Retourne la liste des mots OU trouvés dans une offre.
-        Utilise la même logique de normalisation que le filtrage positif.
-        """
-    
-        texte_norm = self.texte_offre_normalise(offre)
-    
-        mots_trouves = []
-    
-        for mot in mots_ou or []:
-            if self.texte_contient_mot_filtre(texte_norm, mot):
-                mots_trouves.append(mot)
-    
-        return mots_trouves
-    
-    
-    def niveau_correspondance_mots_ou(self, nb_total, nb_trouves):
-        """
-        Détermine le niveau de correspondance selon le taux de mots OU trouvés.
-    
-        Règle :
-        - aucun mot OU : forte, car seuls les mots obligatoires comptent
-        - 1 mot OU : forte si trouvé
-        - >= 75 % : forte
-        - >= 50 % : moyenne
-        - < 50 % : faible
-        """
-    
-        nb_total = int(nb_total or 0)
-        nb_trouves = int(nb_trouves or 0)
-    
-        if nb_total == 0:
-            return "forte"
-    
-        if nb_total == 1:
-            if nb_trouves == 1:
-                return "forte"
-            return "faible"
-    
-        ratio = nb_trouves / nb_total
-    
-        if ratio >= 0.75:
-            return "forte"
-    
-        if ratio >= 0.50:
-            return "moyenne"
-    
-        return "faible"
-    
-    
-    def ajouter_correspondance_mots_ou(self, offres, mots_ou):
-        """
-        Ajoute dans chaque offre les informations de correspondance :
-        - mots_ou_trouves
-        - nb_mots_ou_total
-        - nb_mots_ou_trouves
-        - taux_mots_ou
-        - niveau_correspondance
-    
-        On garde aussi une clé 'score' provisoire pour compatibilité avec RowTemplate1.
-        """
-    
-        mots_ou = mots_ou or []
-        nb_total = len(mots_ou)
-    
-        offres_resultat = []
-    
-        for offre in offres or []:
-            nouvelle_offre = dict(offre)
-    
-            mots_trouves = self.trouver_mots_ou_dans_offre(nouvelle_offre, mots_ou)
-            nb_trouves = len(mots_trouves)
-    
-            if nb_total == 0:
-                taux = 100
-            else:
-                taux = round((nb_trouves / nb_total) * 100)
-    
-            niveau = self.niveau_correspondance_mots_ou(
-                nb_total,
-                nb_trouves
-            )
-    
-            nouvelle_offre["mots_ou_trouves"] = mots_trouves
-            nouvelle_offre["nb_mots_ou_total"] = nb_total
-            nouvelle_offre["nb_mots_ou_trouves"] = nb_trouves
-            nouvelle_offre["taux_mots_ou"] = taux
-            nouvelle_offre["niveau_correspondance"] = niveau
-    
-            # Compatibilité provisoire avec l'ancien RowTemplate1.
-            # À supprimer quand RowTemplate1 utilisera directement niveau_correspondance.
-            if niveau == "forte":
-                nouvelle_offre["score"] = 10
-            elif niveau == "moyenne":
-                nouvelle_offre["score"] = 5
-            else:
-                nouvelle_offre["score"] = 1
-    
-            nouvelle_offre["pertinence"] = niveau
-    
-            offres_resultat.append(nouvelle_offre)
-    
-        return offres_resultat    
-    
     def offre_contient_mot_exclu(self, offre, mot_exclu):
         """
         Vérifie si une offre contient un mot exclu.
-    
+
         Pour les mots courts, on évite les faux positifs avec des limites de mot.
         Pour les mots longs, on accepte une recherche partielle :
         - construction trouve constructions
         - renovation trouve renovations
         """
-    
+
         if not offre or not mot_exclu:
             return False
-    
-        texte_offre = " ".join([
-            str(offre.get("titre", "") or ""),
-            str(offre.get("description", "") or ""),
-            str(offre.get("search_text", "") or ""),
-            str(offre.get("acheteur", "") or ""),
-            str(offre.get("lieu", "") or ""),
-            str(offre.get("nature", "") or ""),
-            str(offre.get("procedure", "") or "")
-        ])
-    
+
+        texte_offre = " ".join(
+            [
+                str(offre.get("titre", "") or ""),
+                str(offre.get("description", "") or ""),
+                str(offre.get("search_text", "") or ""),
+                str(offre.get("acheteur", "") or ""),
+                str(offre.get("lieu", "") or ""),
+                str(offre.get("nature", "") or ""),
+                str(offre.get("procedure", "") or ""),
+            ]
+        )
+
         texte_norm = self.normaliser_texte_filtre(texte_offre)
         mot_norm = self.normaliser_texte_filtre(mot_exclu)
-    
+
         if not mot_norm:
             return False
-    
+
         # Mot court : recherche stricte
         if len(mot_norm) <= 3:
             pattern = r"(?<![a-z0-9])" + re.escape(mot_norm) + r"(?![a-z0-9])"
             return re.search(pattern, texte_norm) is not None
-    
+
         # Mot long : recherche partielle volontaire
         return mot_norm in texte_norm
-    
-    
+
     def filtrer_offres_exclues(self, offres, mots_exclus):
         """
         Supprime les offres contenant au moins un mot exclu.
         """
-    
+
         if not offres:
             return []
-    
+
         if not mots_exclus:
             return list(offres)
-    
+
         offres_filtrees = []
-    
+
         for offre in offres:
             exclure = False
-    
+
             for mot_exclu in mots_exclus:
                 if self.offre_contient_mot_exclu(offre, mot_exclu):
                     exclure = True
@@ -1508,15 +1415,15 @@ class search(searchTemplate):
                         "Offre exclue :",
                         offre.get("titre", ""),
                         "| mot exclu :",
-                        mot_exclu
+                        mot_exclu,
                     )
                     break
-    
+
             if not exclure:
                 offres_filtrees.append(offre)
-    
+
         return offres_filtrees
-        
+
     def _make_offer_uid(self, item):
         """
         Clé technique pour identifier une offre affichée et éviter les doublons.
@@ -1603,7 +1510,6 @@ class search(searchTemplate):
                 "pertinence": self._to_str(item.get("pertinence")),
                 "resume_court": self._to_str(item.get("resume_court")),
                 "score": self._to_str(item.get("score")),
-
                 # Nouvelle clé indispensable
                 "vu": False,
             }
@@ -1615,24 +1521,184 @@ class search(searchTemplate):
     # =========================================================================
     # Gestion du dictionnaire des mots pour scoring
     # =========================================================================
-    
-    def get_mots_ou(self):
+    @anvil.js.report_exceptions  # Détection du clicksur dropdown (initialisé ds l'init)
+    def _dropdown_menu_valeur_mouse_down(self, event):
         """
-        Retourne les mots OU depuis le nouveau champ text_box_mot_ou.
+        Se déclenche dès que l'utilisateur appuie sur le DropDown.
+        Important : mousedown arrive avant le lost_focus du TextBox.
         """
-    
-        return self.extraire_liste_mots_saisie(
-            self.text_box_mot_ou.text or ""
-        )
-    
-    
+        self._dropdown_menu_valeur_clicked = True
+
+    def text_box_mot_lost_focus(self, **event_args):
+        """This method is called when the component loses focus."""
+        """
+        Quand text_box_mot perd le focus, on vérifie si c'est parce que
+        l'utilisateur vient de cliquer sur dropdown_menu_valeur.
+        """
+
+        if self._dropdown_menu_valeur_clicked:
+            # ici, le TextBox a perdu le focus parce qu'on a cliqué sur le DropDown dropdown_menu_valeur
+            self._dropdown_menu_valeur_clicked = False
+
+            # Exemple : on ne cache pas la zone d'ajout, on ne valide pas encore.
+            return
+
+        # Ici, le TextBox a perdu le focus pour une autre raison.
+        # Tu peux mettre ton traitement normal ici si besoin.
+        self._dropdown_menu_valeur_clicked = False
+        self.icon_button_del_click()
+
+    def dropdown_menu_valeur_change(self, **event_args):
+        valeur = self.dropdown_menu_valeur.selected_value or 0
+        if valeur != 0:
+            cle = (self.text_box_mot.text or "").strip().lower()
+            # valeur = self.dropdown_menu_valeur.selected_value or 0
+
+            if cle == "":
+                alert("Entrez le mot à rechercher.")
+                self.text_box_mot.focus()
+                return
+
+            if valeur == 0:
+                alert("Sélectionnez l'importance du mot.")
+                return
+
+            try:
+                valeur = int(valeur)
+            except Exception:
+                alert("La valeur doit être *")
+                return
+
+            if valeur not in [1, 5, 10]:
+                alert("Valeurs autorisées : 1, 2 ou 3 étoiles.")
+                return
+
+            # Ajout ou remplacement du mot
+            self.dict_mots_score[cle] = valeur
+
+            self.display_mots_pour_score()
+
+            print("dict_mots_score utilisateur :", self.dict_mots_score)
+
+            self.text_box_mot.text = ""
+            self.dropdown_menu_valeur.selected_value = None
+            self.data_grid_mots_pour_score.visible = True
+
+    def icon_button_del_click(self, **event_args):
+        self.text_box_mot.text = ""
+        self.dropdown_menu_valeur.selected_value = None
+        self.column_panel_add_mot_pour_score.visible = False
+        self.button_add_mot.visible = True
+        self.data_grid_mots_pour_score.visible = True
+
+    def button_add_mot_click(self, **event_args):
+        self.maj_cadre_mots_ou_bleu()
+        self.column_panel_add_mot_pour_score.visible = True
+        self.button_add_mot.visible = False
+        self.text_box_mot.focus()
+
+    def del_mot_pour_score(self, sender, mot=None, **event_args):
+        mot = str(mot or "").strip().lower()
+        if mot in self.dict_mots_score:
+            del self.dict_mots_score[mot]
+
+        self.display_mots_pour_score()
+
+    def modif_mot_pour_score(
+        self, sender, item=None, cle=None, valeur=None, **event_args
+    ):
+        # Ancienne clé à supprimer
+        if item and item[0]:
+            ancienne_cle = str(item[0]).strip().lower()
+
+            if ancienne_cle in self.dict_mots_score:
+                del self.dict_mots_score[ancienne_cle]
+
+        cle = str(cle or "").strip().lower()
+
+        if not cle:
+            alert("Le mot ne peut pas être vide.")
+            return
+
+        try:
+            valeur = int(valeur)
+        except Exception:
+            alert("La valeur doit être un nombre entier.")
+            return
+
+        if valeur not in [1, 5, 10]:
+            alert("Valeurs autorisées : 1, 5 ou 10.")
+            return
+
+        self.dict_mots_score[cle] = valeur
+
+        # n = Notification("Modification effectuée", timeout=1.5)
+        # n.show()
+
+        self.display_mots_pour_score()
+
+    def display_mots_pour_score(self, **event_args):
+        """
+        Affiche les mots OU + importance dans le repeating panel.
+        """
+
+        list_keys = sorted(self.dict_mots_score.keys())
+
+        list_display = []
+
+        for mk in list_keys:
+            list_display.append((mk, self.dict_mots_score[mk]))
+
+        print("Nb mots OU avec importance :", len(list_display))
+
+        self.repeating_panel_mots_pour_score.items = list(list_display)
+
+        self.data_grid_mots_pour_score.visible = True
+        self.column_panel_add_mot_pour_score.visible = False
+        self.button_add_mot.visible = True
+
+        self.maj_bouton_recherche_visible()
+
+    def get_mots_ou_depuis_score(self):
+        """
+        Les mots OU viennent maintenant de self.dict_mots_score.
+
+        Exemple :
+        self.dict_mots_score = {"sst": 10, "mac": 10, "pse1": 5}
+
+        Retour :
+        ["sst", "mac", "pse1"]
+        """
+
+        mots = []
+
+        try:
+            items = self.dict_mots_score.items()
+        except Exception:
+            return mots
+
+        deja_vus = set()
+
+        for mot, valeur in items:
+            mot = str(mot or "").strip().lower()
+
+            if not mot:
+                continue
+
+            if mot not in deja_vus:
+                deja_vus.add(mot)
+                mots.append(mot)
+
+        return mots
+
     def get_mots_ou_texte(self):
         """
-        Retourne les mots OU sous forme texte pour affichage et sauvegarde.
+        Retourne les mots OU sous forme texte pour :
+        - affichage résumé
+        - sauvegarde histo['mots_ou']
         """
-    
-        return ", ".join(self.get_mots_ou())
 
+        return ", ".join(self.get_mots_ou_depuis_score())
 
     def get_mots_obligatoires_texte(self):
         """
@@ -1642,7 +1708,6 @@ class search(searchTemplate):
             self.extraire_liste_mots_saisie(self.text_box_mot_clef.text or "")
         )
 
-
     def get_mots_exclus_texte(self):
         """
         Retourne les mots exclus nettoyés pour sauvegarde/affichage.
@@ -1650,109 +1715,300 @@ class search(searchTemplate):
         return ", ".join(
             self.extraire_liste_mots_saisie(self.text_box_mots_exclus.text or "")
         )
-        
 
+    def build_dict_mots_score(self):
+        """
+        Construit le dictionnaire final utilisé pour le scoring.
 
+        Source principale :
+        - self.dict_mots_score : mots OU + importance choisis par l'utilisateur
+
+        Ajout automatique :
+        - les mots obligatoires sont ajoutés avec une valeur 1
+        sans apparaître dans la liste des mots OU.
+        """
+
+        dict_temp = {}
+
+        # =====================================================
+        # 1. Mots OU + importance
+        # =====================================================
+
+        try:
+            items = self.dict_mots_score.items()
+        except Exception:
+            items = []
+
+        for mot, valeur in items:
+            mot = str(mot or "").strip().lower()
+
+            if not mot:
+                continue
+
+            try:
+                valeur = int(valeur)
+            except Exception:
+                alert(f"Valeur incorrecte pour : {mot}")
+                return None
+
+            if valeur not in [1, 5, 10]:
+                alert(
+                    f"Valeur non autorisée pour : {mot}\n\n"
+                    "Valeurs autorisées : 1, 5 ou 10."
+                )
+                return None
+
+            dict_temp[mot] = valeur
+
+        # =====================================================
+        # 2. Ajout automatique des mots obligatoires au score
+        # =====================================================
+        # Ils ne servent pas à faire le OU.
+        # Ils ajoutent seulement un petit score de base.
+
+        mots_obligatoires = self.extraire_liste_mots_saisie(
+            self.text_box_mot_clef.text or ""
+        )
+
+        for mot in mots_obligatoires:
+            mot = str(mot or "").strip().lower()
+
+            if mot and mot not in dict_temp:
+                dict_temp[mot] = 1
+
+        return dict_temp
+
+    def extraire_mots_cles_pour_score(self):
+        """
+        Extrait les mots-clés positifs pour le scoring.
+
+        On prend :
+        - les mots obligatoires
+        - les mots OU
+
+        On ne prend pas les mots exclus.
+        """
+
+        mots = []
+
+        mots.extend(self.extraire_liste_mots_saisie(self.text_box_mot_clef.text or ""))
+
+        mots.extend(self.extraire_liste_mots_saisie(self.text_box_mots_ou.text or ""))
+
+        mots_uniques = []
+        deja_vus = set()
+
+        for mot in mots:
+            mot = mot.strip().lower()
+
+            if mot and mot not in deja_vus:
+                deja_vus.add(mot)
+                mots_uniques.append(mot)
+
+        return mots_uniques
 
     def text_box_mot_clef_change(self, **event_args):
         """This method is called when the text in this component is edited."""
         self.maj_bouton_recherche_visible()
 
-   
+    def text_box_mots_pour_score_focus(self, **event_args):
+        """This method is called when the component gets focus."""
+        return
+
+    def mots_score_to_text(self, mots_score):
+        """
+        Transforme le dictionnaire histo['mots_score'] en texte affichable.
+
+        Exemple :
+        {
+        "{'sst'": 1,
+        "'stage'": 5,
+        "'travail'": 10,
+        "'formation'": 1
+        }
+
+        devient :
+        sst:1, stage:5, travail:10, formation:1
+        """
+
+        if not mots_score:
+            return ""
+
+        morceaux = []
+
+        try:
+            items = mots_score.items()
+        except Exception:
+            return ""
+
+        for mot, valeur in items:
+            mot = str(mot).strip()
+
+            # Nettoyage des caractères parasites
+            mot = mot.replace("{", "")
+            mot = mot.replace("}", "")
+            mot = mot.replace('"', "")
+            mot = mot.replace("'", "")
+            mot = mot.strip()
+
+            if not mot:
+                continue
+
+            try:
+                valeur = int(valeur)
+            except Exception:
+                valeur = str(valeur).strip()
+
+            morceaux.append(f"{mot}:{valeur}")
+
+        return ", ".join(morceaux)
+
+    def mots_score_obj_to_dict(self, mots_score_obj):
+        """
+        Accepte :
+        - ancien format dict : {"sst": 1, "formation": 10}
+        - nouveau format liste : [{"mot": "sst", "valeur": 1}]
+        """
+
+        resultat = {}
+
+        if not mots_score_obj:
+            return resultat
+
+        # Ancien format : dict direct
+        if isinstance(mots_score_obj, dict):
+            for mot, valeur in mots_score_obj.items():
+                mot = str(mot).strip()
+
+                mot = mot.replace("{", "")
+                mot = mot.replace("}", "")
+                mot = mot.replace('"', "")
+                mot = mot.replace("'", "")
+                mot = mot.strip().lower()
+
+                if not mot:
+                    continue
+
+                try:
+                    valeur = int(valeur)
+                except Exception:
+                    continue
+
+                resultat[mot] = valeur
+
+            return resultat
+
+        # Nouveau format : liste de dicts
+        if isinstance(mots_score_obj, list):
+            for item in mots_score_obj:
+                try:
+                    mot = str(item.get("mot", "")).strip().lower()
+                    valeur = int(item.get("valeur", 0))
+                except Exception:
+                    continue
+
+                if mot:
+                    resultat[mot] = valeur
+
+        return resultat
 
 
-       
-
-    def text_box_mot_ou_pressed_enter(self, **event_args):
+    def text_box_mots_ou_pressed_enter(self, **event_args):
         if self._recherche_en_cours is True:
             Notification("Recherche déjà en cours...", timeout=2).show()
             return
-        self.lancer_recherche()
 
-    def text_box_mot_ou_change(self, **event_args):
-        self.maj_bouton_recherche_visible()
+        self.lancer_recherche()
 
     def text_box_mots_exclus_pressed_enter(self, **event_args):
         if self._recherche_en_cours is True:
             Notification("Recherche déjà en cours...", timeout=2).show()
             return
+
         self.lancer_recherche()
 
+    def text_box_mots_ou_change(self, **event_args):
+        self.maj_bouton_recherche_visible()
 
     def text_box_mots_exclus_change(self, **event_args):
         self.maj_bouton_recherche_visible()
-    
 
+    def maj_cadre_mots_ou_blanc(self, **event_args):
+        # mise en blanc du border quand un champ autre que les mots ou est saisi
+        self.column_panel_mots_pour_score.border = "1px solid #BFC8CA"  # Blanc
+
+    def maj_cadre_mots_ou_bleu(self, **event_args):
+        # mise en blanc du border quand un champ autre que les mots ou est saisi
+        self.column_panel_mots_pour_score.border = "1px solid #3CD9ED"  # Bleu
 
     def message_progression_source(self, source_en_cours):
         """
         Message simple affiché côté utilisateur pendant la lecture des plateformes.
         On évite les termes techniques : provisoire, brut, filtrage final, XML, etc.
         """
-    
+
         source = str(source_en_cours or "").strip().upper()
-    
+
         if source == "TED":
             return "Lecture des offres TED en cours..."
-    
+
         if source == "BOAMP":
             return "Lecture des offres BOAMP en cours..."
-    
+
         if source == "AWS":
             return "Lecture des offres AWS en cours..."
-    
+
         if source in ("FUSION", "TERMINÉ", "TRAITEMENT FINAL"):
             return "Préparation des résultats..."
-    
+
         return "Lecture des offres en cours..."
 
-    
     def timer_recherche_progress_tick(self, **event_args):
         """
         Suit la Background Task.
         Le bouton reste désactivé jusqu'à la fin complète :
         recherche + filtrage + scoring + sauvegarde.
         """
-        
+
         if self._annulation_recherche_demandee:
             self.timer_recherche_progress.interval = 0
             self.task_recherche = None
             self._recherche_en_cours = False
             return
-            
+
         if self.task_recherche is None:
             self.deverrouiller_recherche(cacher_bouton=False)
             return
-    
+
         try:
             with anvil.server.no_loading_indicator:
                 state = self.task_recherche.get_state() or {}
                 task_completed = self.task_recherche.is_completed()
         except Exception as e:
             print(f"Impossible de lire la progression : {e}")
-    
+
             self.afficher_progression_recherche(
                 ligne_1="⚠️ Erreur de lecture de la progression",
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
                 etat="error",
                 progress_global=0,
                 progress_source=0,
-                afficher_jauges=False
+                afficher_jauges=False,
             )
-    
+
             self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Impossible de lire la progression : {e}")
             return
-    
+
         progress = state.get("progress", 0)
         source_progress = state.get("source_progress", 0)
         source_en_cours = state.get("source_en_cours", "")
         source_current = state.get("source_current", None)
         source_total = state.get("source_total", None)
-    
+
         message = state.get("message", "Recherche en cours...")
         nb_offres = state.get("nb_offres", 0)
-    
+
         self.afficher_progression_recherche(
             ligne_1="🔎 Recherche en cours",
             ligne_2="",
@@ -1762,37 +2018,37 @@ class search(searchTemplate):
             source_nom=source_en_cours,
             source_current=source_current,
             source_total=None,
-            afficher_jauges=True
+            afficher_jauges=True,
         )
-    
+
         if not task_completed:
             return
-    
+
         # La tâche Uplink est terminée.
         # On arrête le timer, mais on NE réactive PAS encore le bouton.
         # Il reste le filtrage, le scoring et la sauvegarde.
         self.timer_recherche_progress.interval = 0
-    
+
         try:
             with anvil.server.no_loading_indicator:
                 result = self.task_recherche.get_return_value()
-    
+
         except Exception as e:
             print(f"Erreur pendant la tâche background : {e}")
-    
+
             self.afficher_progression_recherche(
                 ligne_1="⚠️ Erreur pendant la recherche",
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
                 etat="error",
                 progress_global=0,
                 progress_source=0,
-                afficher_jauges=False
+                afficher_jauges=False,
             )
-    
+
             self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant la recherche : {e}")
             return
-    
+
         if not result:
             self.afficher_progression_recherche(
                 ligne_1="⚠️ Recherche terminée, mais résultat vide",
@@ -1800,18 +2056,18 @@ class search(searchTemplate):
                 etat="error",
                 progress_global=0,
                 progress_source=0,
-                afficher_jauges=False
+                afficher_jauges=False,
             )
-    
+
             self.deverrouiller_recherche(cacher_bouton=False)
             alert("La recherche est terminée, mais aucun résultat n'a été retourné.")
             return
-    
+
         errors = result.get("errors", [])
-    
+
         if errors:
             print("Erreurs partielles pendant la recherche :", errors)
-    
+
         offres = result.get("offres", [])
 
         if result.get("recherche_limitee"):
@@ -1820,7 +2076,7 @@ class search(searchTemplate):
             )
             alert(message_limite)
             print("⚠️ Recherche limitée :", message_limite)
-    
+
         self.afficher_progression_recherche(
             ligne_1="🔎 Préparation des résultats",
             ligne_2="Analyse et classement des offres en cours...",
@@ -1830,34 +2086,34 @@ class search(searchTemplate):
             source_nom="Traitement final",
             source_current=None,
             source_total=None,
-            afficher_jauges=True
+            afficher_jauges=True,
         )
-    
+
         try:
             self.traiter_offres_recuperees_apres_background(offres)
-    
+
         except Exception as e:
             print(f"Erreur pendant le traitement final des offres : {e}")
-    
+
             self.afficher_progression_recherche(
                 ligne_1="⚠️ Erreur pendant le traitement final",
                 ligne_2="Le bouton Rechercher est à nouveau disponible",
                 etat="error",
                 progress_global=0,
                 progress_source=0,
-                afficher_jauges=False
+                afficher_jauges=False,
             )
-    
+
             self.deverrouiller_recherche(cacher_bouton=False)
             alert(f"Erreur pendant le traitement final des offres : {e}")
             return
 
     def texte_nb_offres(self, nb, mot_apres_singulier="", mot_apres_pluriel=""):
         nb = int(nb or 0)
-    
+
         if nb > 1:
             return f"{nb} offres {mot_apres_pluriel}".strip()
-    
+
         return f"{nb} offre {mot_apres_singulier}".strip()
 
     def maj_bouton_recherche_visible(self):
@@ -1866,58 +2122,58 @@ class search(searchTemplate):
         - mots obligatoires
         - ou mots OU avec importance
         """
-    
+
         has_mots_obligatoires = bool((self.text_box_mot_clef.text or "").strip())
-        has_mots_ou = bool((self.text_box_mot_ou.text or "").strip())
-    
+        has_mots_ou = len(self.dict_mots_score or {}) > 0
+
         actif = has_mots_obligatoires or has_mots_ou
-    
+
         try:
             self.f.navigation_link_search_go.visible = True
-            self.f.navigation_link_search_go.enabled = actif and not self._recherche_en_cours
+            self.f.navigation_link_search_go.enabled = (
+                actif and not self._recherche_en_cours
+            )
         except Exception as e:
             print("Erreur maj navigation_link_search_go :", e)
-
 
     def format_nb_offres(self, nb, suffixe_singulier="", suffixe_pluriel=""):
         nb = int(nb or 0)
 
         if nb > 1:
             return f"{nb} offres {suffixe_pluriel}".strip()
-    
-        return f"{nb} offre {suffixe_singulier}".strip()
 
+        return f"{nb} offre {suffixe_singulier}".strip()
 
     def libelle_jauge_source(self, source_nom):
         """
-            Texte affiché dans la jauge verte.
-            """
-        
+        Texte affiché dans la jauge verte.
+        """
+
         source = str(source_nom or "").strip().upper()
-        
+
         if source == "TED":
             return "Lecture des offres TED"
-        
+
             if source == "BOAMP":
                 return "Lecture des offres BOAMP"
-        
+
         if source == "AWS":
             return "Lecture des offres AWS"
-        
+
             if source == "FUSION":
                 return "Préparation des résultats"
-        
+
         if source == "TERMINÉ":
             return "Recherche terminée"
-        
+
             if source == "TRAITEMENT FINAL":
                 return "Analyse des offres"
-        
+
         if source:
             return f"Lecture des offres {source}"
-        
-            return "Lecture des offres"   
-    
+
+            return "Lecture des offres"
+
     def afficher_progression_recherche(
         self,
         ligne_1="",
@@ -1928,109 +2184,108 @@ class search(searchTemplate):
         source_nom="",
         source_current=None,
         source_total=None,
-        afficher_jauges=True
+        afficher_jauges=True,
     ):
         """
         Affiche la progression sur deux lignes
         + deux jauges.
         """
-    
+
         if etat == "success":
             role = "progress-search-box-success"
         elif etat == "error":
             role = "progress-search-box-error"
         else:
             role = "progress-search-box"
-    
+
         try:
             if not self.column_panel_progress_recherche.visible:
                 self.column_panel_progress_recherche.visible = True
-    
+
             if self._last_progress_role != role:
                 self.column_panel_progress_recherche.role = role
                 self._last_progress_role = role
         except Exception:
             pass
-    
+
         if not self.label_progress_recherche.visible:
             self.label_progress_recherche.visible = True
-    
+
         texte = ligne_1 or "Recherche en cours..."
-    
+
         if ligne_2:
             texte = f"{texte}\n{ligne_2}"
-    
+
         if self.label_progress_recherche.text != texte:
             self.label_progress_recherche.text = texte
-    
+
         if not afficher_jauges:
             if self.label_jauge_globale.visible:
                 self.label_jauge_globale.visible = False
             if self.label_jauge_source.visible:
                 self.label_jauge_source.visible = False
             return
-    
+
         if not self.label_jauge_globale.visible:
             self.label_jauge_globale.visible = True
         if not self.label_jauge_source.visible:
             self.label_jauge_source.visible = True
-    
+
         try:
             progress_global = int(progress_global or 0)
         except Exception:
             progress_global = 0
-    
+
         try:
             progress_source = int(progress_source or 0)
         except Exception:
             progress_source = 0
-    
+
         progress_global = max(0, min(100, progress_global))
         progress_source = max(0, min(100, progress_source))
-    
+
         texte_global = f"{progress_global} %"
-    
+
         source_nom = str(source_nom or "").strip()
         libelle_source = self.libelle_jauge_source(source_nom)
-        
+
         if source_current is not None and source_total:
             texte_source = f"{libelle_source} — {source_current}/{source_total}"
         else:
             texte_source = f"{libelle_source} — {progress_source} %"
-            
+
         if self.label_jauge_globale.text != texte_global:
             self.label_jauge_globale.text = texte_global
-    
+
         if self.label_jauge_source.text != texte_source:
             self.label_jauge_source.text = texte_source
-    
+
         self.regler_jauge(self.label_jauge_globale, progress_global, "global")
         self.regler_jauge(self.label_jauge_source, progress_source, "source")
-    
-    
+
     def regler_jauge(self, composant, pourcentage, nom=""):
         """
         Met à jour une jauge CSS via la variable --progress-value.
         La jauge se remplit de gauche à droite.
         """
-    
+
         try:
             p = int(pourcentage or 0)
         except Exception:
             p = 0
-    
+
         p = max(0, min(100, p))
-    
+
         if nom == "global":
             if self._last_progress_global == p:
                 return
             self._last_progress_global = p
-    
+
         elif nom == "source":
             if self._last_progress_source == p:
                 return
             self._last_progress_source = p
-    
+
         try:
             node = get_dom_node(composant)
             node.style.setProperty("--progress-value", f"{p}%")
