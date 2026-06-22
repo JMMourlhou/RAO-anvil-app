@@ -32,12 +32,12 @@ container:
           .zone-desc mark.kw-5 { background: #b2ebf2; } /* cyan pastel */
 
           /* =========================================================
-          Mots utilisés pour le scoring
-          Les mots de scoring seuls sont rouges.
+          Mots OU trouvés / anciens mots de scoring
+          Les mots OU seuls sont rouges.
           Les mots-clés gardent leur fond pastel + texte noir.
           ========================================================= */
 
-          /* Mot de scoring seul, qui n'est PAS aussi un mot-clé */
+          /* Mot OU trouvé seul, qui n'est PAS aussi un mot-clé */
           .zone-desc mark.score-hl:not(.kw-hl) {
               background: transparent !important;
               color: #c62828 !important;
@@ -58,7 +58,7 @@ container:
               border-radius: 4px !important;
           }
 
-          /* Mot qui est à la fois mot-clé ET mot de scoring :
+          /* Mot qui est à la fois mot-clé ET mot OU trouvé :
           on garde l'apparence mot-clé, pas le rouge */
           .zone-desc mark.kw-hl.score-hl {
               color: #111 !important;
@@ -71,15 +71,19 @@ container:
 
       <script>
           function escapeRegExp(s) {
-              return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              return String(s || "").replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           }
 
           function stripDiacritics(s) {
-              return (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+              return String(s || "")
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "");
           }
 
           function normalizeKey(s) {
-              return stripDiacritics(s).toLowerCase().trim();
+              return stripDiacritics(s)
+                  .toLowerCase()
+                  .trim();
           }
 
           function accentInsensitiveChar(ch) {
@@ -101,19 +105,18 @@ container:
 
           function accentInsensitivePattern(word) {
               const base = stripDiacritics(word || "").trim();
-              const pattern = [...base].map(accentInsensitiveChar).join('');
-
+              const pattern = [...base].map(accentInsensitiveChar).join("");
               const norm = normalizeKey(word);
 
               /*
-              Gestion simple du pluriel :
-              formation -> formations
-              stage -> stages
-              sécurité -> sécurités
+                  Gestion simple du pluriel :
+                  formation -> formations
+                  stage -> stages
+                  sécurité -> sécurités
 
-              On évite de l'appliquer aux mots courts/acronymes :
-              sst, mac, pse1, pse2, etc.
-          */
+                  On évite de l'appliquer aux mots très courts/acronymes :
+                  sst, mac, pse1, pse2, etc.
+              */
               if (
                   norm.length >= 4 &&
                   !/[sxz0-9]$/.test(norm)
@@ -128,8 +131,24 @@ container:
               return !!ch && /[A-Za-zÀ-ÖØ-öø-ÿ0-9_]/.test(ch);
           }
 
+          function allowPartialMatch(term) {
+              /*
+                  Règle métier :
+                  - mots courts <= 4 caractères : recherche stricte
+                    exemple : mac ne doit pas être trouvé dans machine
+                    exemple : port ne doit pas être trouvé dans transport
+
+                  - mots longs > 4 caractères : recherche partielle autorisée
+                    exemple : ciment doit être trouvé dans fibrociment
+                    exemple : rénovation doit être trouvé dans rénovations
+              */
+              const norm = normalizeKey(term && term.word ? term.word : "");
+              return norm.length > 4;
+          }
+
           function getTextNodes(root) {
               const nodes = [];
+
               const walker = document.createTreeWalker(
                   root,
                   NodeFilter.SHOW_TEXT,
@@ -140,9 +159,12 @@ container:
                           }
 
                           const p = node.parentNode;
-                          if (!p) return NodeFilter.FILTER_REJECT;
+                          if (!p) {
+                              return NodeFilter.FILTER_REJECT;
+                          }
 
                           const tag = p.nodeName;
+
                           if (["SCRIPT", "STYLE", "MARK", "NOSCRIPT", "TEXTAREA"].includes(tag)) {
                               return NodeFilter.FILTER_REJECT;
                           }
@@ -153,6 +175,7 @@ container:
               );
 
               let n;
+
               while ((n = walker.nextNode())) {
                   nodes.push(n);
               }
@@ -164,10 +187,11 @@ container:
               const seen = new Map();
 
               (values || [])
-                  .map(x => (x || "").trim())
+                  .map(x => String(x || "").trim())
                   .filter(Boolean)
                   .forEach(w => {
                       const k = normalizeKey(w);
+
                       if (!seen.has(k)) {
                           seen.set(k, w);
                       }
@@ -177,16 +201,25 @@ container:
           }
 
           function render_keywords(html, keywords, scoreWords) {
-              const root = this.find('[anvil-name="zone_desc"]')[0];
+              const foundRoot = this.find('[anvil-name="zone_desc"]');
+
+              if (!foundRoot || !foundRoot.length) {
+                  return;
+              }
+
+              const root = foundRoot[0];
+
               root.innerHTML = html || "";
 
               let kwWords = uniqueCleanList(keywords);
               let scoringWords = uniqueCleanList(scoreWords);
 
-              if (!kwWords.length && !scoringWords.length) return;
+              if (!kwWords.length && !scoringWords.length) {
+                  return;
+              }
 
               /*
-                  On fusionne les mots-clés et les mots de scoring.
+                  On fusionne les mots-clés et les mots OU trouvés.
                   Un même mot peut donc avoir :
                   - une classe kw-hl + kw-0/kw-1/etc.
                   - une classe score-hl
@@ -195,6 +228,7 @@ container:
 
               kwWords.forEach((w, i) => {
                   const k = normalizeKey(w);
+
                   termsMap.set(k, {
                       word: w,
                       isKeyword: true,
@@ -220,19 +254,33 @@ container:
 
               let terms = Array.from(termsMap.values());
 
+              if (!terms.length) {
+                  return;
+              }
+
               // Priorité aux expressions les plus longues
               terms.sort((a, b) => b.word.length - a.word.length);
 
-              const regexParts = terms.map(t => accentInsensitivePattern(t.word));
+              const regexParts = terms
+                  .map(t => accentInsensitivePattern(t.word))
+                  .filter(Boolean);
+
+              if (!regexParts.length) {
+                  return;
+              }
+
               const regex = new RegExp("(" + regexParts.join("|") + ")", "gi");
 
               getTextNodes(root).forEach(node => {
                   const text = node.nodeValue;
                   regex.lastIndex = 0;
 
-                  if (!regex.test(text)) return;
+                  if (!regex.test(text)) {
+                      return;
+                  }
 
                   regex.lastIndex = 0;
+
                   const frag = document.createDocumentFragment();
                   let last = 0;
                   let match;
@@ -242,26 +290,13 @@ container:
                       const start = match.index;
                       const end = start + found.length;
 
-                      /*
-                          Évite de trouver "mac" dans "machine".
-                          On accepte le mot seulement s'il n'est pas collé
-                          à une lettre, un chiffre ou un underscore.
-                      */
-                      const before = start > 0 ? text[start - 1] : "";
-                      const after = end < text.length ? text[end] : "";
-
-                      if (isWordChar(before) || isWordChar(after)) {
-                          continue;
-                      }
-
-                      if (start > last) {
-                          frag.appendChild(document.createTextNode(text.slice(last, start)));
-                      }
-
                       let matchedTerm = null;
 
                       for (const term of terms) {
-                          const testRe = new RegExp("^" + accentInsensitivePattern(term.word) + "$", "i");
+                          const testRe = new RegExp(
+                              "^" + accentInsensitivePattern(term.word) + "$",
+                              "i"
+                          );
 
                           if (testRe.test(found)) {
                               matchedTerm = term;
@@ -270,9 +305,28 @@ container:
                       }
 
                       if (!matchedTerm) {
-                          frag.appendChild(document.createTextNode(found));
-                          last = end;
                           continue;
+                      }
+
+                      /*
+                          Protection contre les faux positifs :
+                          - pour les mots courts, on exige que le mot ne soit pas collé
+                            à une lettre, un chiffre ou un underscore.
+                          - pour les mots longs, on accepte la recherche partielle.
+                      */
+                      const before = start > 0 ? text[start - 1] : "";
+                      const after = end < text.length ? text[end] : "";
+
+                      if (!allowPartialMatch(matchedTerm)) {
+                          if (isWordChar(before) || isWordChar(after)) {
+                              continue;
+                          }
+                      }
+
+                      if (start > last) {
+                          frag.appendChild(
+                              document.createTextNode(text.slice(last, start))
+                          );
                       }
 
                       const mark = document.createElement("mark");
@@ -289,13 +343,16 @@ container:
 
                       mark.className = classes.join(" ");
                       mark.textContent = found;
+
                       frag.appendChild(mark);
 
                       last = end;
                   }
 
                   if (last < text.length) {
-                      frag.appendChild(document.createTextNode(text.slice(last)));
+                      frag.appendChild(
+                          document.createTextNode(text.slice(last))
+                      );
                   }
 
                   node.parentNode.replaceChild(frag, node);

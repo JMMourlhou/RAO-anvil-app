@@ -182,7 +182,7 @@ class search(searchTemplate):
             # Pas encore d'historique pour un nouvel utilisateur
             self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
             self.text_box_mot_clef.text = "Football et Ballon"
-            self.text_box_mots_ou.text = ""
+            self.text_box_mot_ou.text = ""
             self.text_box_mots_exclus.text = ""
             self.text_box_nb_jours.text = "30"
             self.text_box_departements.text = None
@@ -1289,7 +1289,7 @@ class search(searchTemplate):
         if not mot_norm:
             return False
     
-        if len(mot_norm) <= 3:
+        if len(mot_norm) <= 4:
             pattern = r"(?<![a-z0-9])" + re.escape(mot_norm) + r"(?![a-z0-9])"
             return re.search(pattern, texte_norm) is not None
     
@@ -1477,7 +1477,7 @@ class search(searchTemplate):
             return False
     
         # Mot court : recherche stricte
-        if len(mot_norm) <= 3:
+        if len(mot_norm) <= 4:
             pattern = r"(?<![a-z0-9])" + re.escape(mot_norm) + r"(?![a-z0-9])"
             return re.search(pattern, texte_norm) is not None
     

@@ -246,16 +246,35 @@ class RowTemplate1(RowTemplate1Template):
             alert("Aucun texte disponible pour cette offre !")
             return
     
-        # Mots-clés de recherche
+  
+        # Mots-clés de recherche :
+        # obligatoires + mots OU saisis
         mots_cles = self.extraire_mots_cles()
-    
-    
-        mots_score = []
-    
+        
+        # Mots OU réellement trouvés dans cette offre
+        mots_ou_trouves = self.item_value("mots_ou_trouves", [])
+        
+        if mots_ou_trouves is None:
+            mots_ou_trouves = []
+        
+        if isinstance(mots_ou_trouves, str):
+            mots_ou_trouves = [mots_ou_trouves]
+        
+        # Ancien nom conservé pour compatibilité avec recherche_mk_html.
+        # Ici, mots_score ne signifie plus "score manuel".
+        # Il contient les mots OU réellement trouvés dans l'offre.
+        mots_score = list(mots_ou_trouves)
+        
         # Sécurité : si aucun mot à mettre en évidence
         if not mots_cles and not mots_score:
-            alert("Aucun mot-clé ni mot de scoring à mettre en évidence !")
+            alert("Aucun mot-clé à mettre en évidence !")
             return
+        
+        print("===== DEBUG VERIFICATION ROW =====")
+        print("mots_cles envoyés au HTML :", mots_cles)
+        print("mots_ou_trouves :", mots_ou_trouves)
+        print("mots_score envoyés au HTML :", mots_score)
+        print("==================================")
     
         # Mise en forme simple du texte avant envoi au composant HTML
         texte = self.format_search_text_for_display(texte_source)
@@ -520,17 +539,25 @@ class RowTemplate1(RowTemplate1Template):
     def mots_cles_presents(self, texte, mots_clefs):
         texte_norm = self._normalize_text(texte)
         trouves = []
-
+    
         for mot in mots_clefs:
             mot = (mot or "").strip()
-
+    
             if not mot:
                 continue
-
+    
             mot_norm = self._normalize_text(mot)
-            pattern = rf"(?<!\w){re.escape(mot_norm)}\w*"
-
-            if re.search(pattern, texte_norm):
+    
+            if not mot_norm:
+                continue
+    
+            if len(mot_norm) <= 4:
+                pattern = rf"(?<![a-z0-9]){re.escape(mot_norm)}(?![a-z0-9])"
+                present = re.search(pattern, texte_norm) is not None
+            else:
+                present = mot_norm in texte_norm
+    
+            if present:
                 trouves.append(mot)
-
+    
         return trouves
