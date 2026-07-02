@@ -219,12 +219,53 @@ class RowTemplate1(RowTemplate1Template):
     # -------------------------------------------------------------------------
     # Bouton Vérification
     # -------------------------------------------------------------------------
+    def extraire_liste_depuis_parent_tag(self, nom_tag):
+        """
+        Récupère une liste de mots depuis self.parent.tag.
+        Utilisé pour afficher séparément les mots ET et les mots OU.
+        """
+    
+        parent_tag = getattr(self.parent, "tag", None)
+        brut = (getattr(parent_tag, nom_tag, "") or "").strip().lower()
+    
+        if not brut:
+            return []
+    
+        texte = brut.replace(";", ",").replace("\n", ",")
+        texte = texte.replace(" et ", ",")
+        texte = texte.replace(" ou ", ",")
+    
+        morceaux = [m.strip() for m in texte.split(",") if m.strip()]
+    
+        mots_uniques = []
+        deja_vus = set()
+    
+        for mot in morceaux:
+            if mot not in deja_vus:
+                deja_vus.add(mot)
+                mots_uniques.append(mot)
+    
+        return mots_uniques
 
+    def extraire_mots_et(self):
+        """
+        Retourne les mots ET saisis dans search.
+        """
+    
+        return self.extraire_liste_depuis_parent_tag("mots_et_saisis")
+    
+    def extraire_mots_ou_saisis(self):
+        """
+        Retourne les mots OU saisis dans search.
+        """
+    
+        return self.extraire_liste_depuis_parent_tag("mots_ou_saisis")
+        
     def button_generer_html_click(self, **event_args):
         """
         Affiche le texte avec les mots-clés recherchés surlignés.
         """
-    
+        self.scroll_into_view(smooth=True, align="start")
         # Changement apparence du bouton
         if self.column_panel_detail.visible is False:
             self.button_generer_html.icon = "mi:keyboard_double_arrow_up"
@@ -426,69 +467,67 @@ class RowTemplate1(RowTemplate1Template):
 
     def maj_libelle_bouton_verification(self):
         """
-        Met à jour le texte et la couleur du bouton Vérification
-        selon le niveau d'intérêt calculé dans search.
-
-        Nouvelle logique :
-        - sans mots OU : pas de couleur d'intérêt, tri par date
-        - avec mots OU : couleur selon le taux de mots OU trouvés
+        Met à jour le texte et la couleur du bouton Vérification.
+    
+        Affichage simple :
+        Cliquez pour vérifier (mot_et_1, mot_et_2, mot_ou_trouvé_1, ...)
+    
+        - les mots ET sont affichés en premier
+        - les mots OU trouvés dans l'offre sont affichés ensuite
+        - on n'affiche pas les libellés ET / OU
+        - l'intérêt reste porté par la couleur et le tri
         """
-
+    
         self.button_generer_html.role = ""
-
+    
         nb_total = self.item_value("nb_mots_ou_total", 0)
-        nb_trouves = self.item_value("nb_mots_ou_trouves", 0)
         taux = self.item_value("taux_mots_ou", 0)
-
+    
         mots_ou_trouves = self.item_value("mots_ou_trouves", [])
-        libelle_interet = self.item_value("libelle_interet", "")
         role_interet = self.item_value("role_interet", "")
-
+    
         try:
             nb_total = int(nb_total or 0)
         except Exception:
             nb_total = 0
-
-        try:
-            nb_trouves = int(nb_trouves or 0)
-        except Exception:
-            nb_trouves = 0
-
+    
         try:
             taux = int(taux or 0)
         except Exception:
             taux = 0
-
+    
         if mots_ou_trouves is None:
             mots_ou_trouves = []
-
+    
         if isinstance(mots_ou_trouves, str):
             mots_ou_trouves = [mots_ou_trouves]
-
+    
         mots_ou_trouves = [
             str(m or "").strip()
             for m in mots_ou_trouves
             if str(m or "").strip()
         ]
-
+    
+        mots_et = self.extraire_mots_et()
+    
         # ------------------------------------------------------------
-        # Aucun mot OU : pas de niveau d'intérêt.
+        # Couleur du bouton
         # ------------------------------------------------------------
+        # Aucun mot OU saisi : bouton neutre
         if nb_total == 0:
             self.button_generer_html.role = ""
-            self.button_generer_html.text = "Vérification"
-            return
-
-        # ------------------------------------------------------------
-        # Avec mots OU : rôle CSS calculé dans search.
-        # ------------------------------------------------------------
-        if role_interet:
+    
+        # Mots OU saisis mais aucun trouvé : bouton neutre
+        elif taux == 0:
+            self.button_generer_html.role = ""
+    
+        # Mots OU trouvés : rôle calculé dans search
+        elif role_interet:
             self.button_generer_html.role = role_interet
+    
+        # Sécurité pour anciennes offres sauvegardées sans role_interet
         else:
-            # Sécurité si ancienne offre sans role_interet.
-            if taux == 0:
-                self.button_generer_html.role = "bt-interet-0"
-            elif taux <= 20:
+            if taux <= 20:
                 self.button_generer_html.role = "bt-interet-20"
             elif taux <= 39:
                 self.button_generer_html.role = "bt-interet-39"
@@ -500,30 +539,26 @@ class RowTemplate1(RowTemplate1Template):
                 self.button_generer_html.role = "bt-interet-99"
             else:
                 self.button_generer_html.role = "bt-interet-100"
-
+    
         # ------------------------------------------------------------
-        # Libellé utilisateur.
+        # Texte simple du bouton
         # ------------------------------------------------------------
-        if taux == 100 and nb_trouves == nb_total:
-            libelle = "Vérification · tous les mots trouvés"
-
-            # Pas besoin d'afficher le pourcentage à 100 %.
-            if mots_ou_trouves:
-                libelle += " : " + ", ".join(mots_ou_trouves)
-
-        elif taux == 0:
-            libelle = "Vérification · aucun mot additionel trouvé"
-
+        mots_affiches = []
+    
+        for mot in mots_et + mots_ou_trouves:
+            mot = str(mot or "").strip()
+    
+            if mot and mot not in mots_affiches:
+                mots_affiches.append(mot)
+    
+        if mots_affiches:
+            self.button_generer_html.text = (
+                "Cliquez pour vérifier ("
+                + ", ".join(mots_affiches)
+                + ")"
+            )
         else:
-            if not libelle_interet:
-                libelle_interet = ""
-
-            libelle = f"Vérification · {libelle_interet} ({taux} %) de mots trouvés"
-
-            if mots_ou_trouves:
-                libelle += " : " + ", ".join(mots_ou_trouves)
-
-        self.button_generer_html.text = libelle
+            self.button_generer_html.text = "Cliquez pour vérifier"
 
     def mots_cles_presents(self, texte, mots_clefs):
         texte_norm = self._normalize_text(texte)

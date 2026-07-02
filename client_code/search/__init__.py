@@ -839,7 +839,7 @@ class search(searchTemplate):
         """
         Met toutes les offres affichées à vu=True ou vu=False.
         """
-
+        
         if not self.list_offres:
             self.button_selection_mailed.visible = False
             return
@@ -859,6 +859,7 @@ class search(searchTemplate):
         self.afficher_offres(self.list_offres)
 
         self.button_selection_mailed.visible = bool(checked) and len(self.list_offres) > 0
+        self.button_inverser_selection.visible = True
 
     def modifier_offre_vu(self, sender=None, checked=False, item=None, **event_args):
         """
@@ -897,7 +898,7 @@ class search(searchTemplate):
             len(self.list_offres) > 0
             and all(bool(o.get("vu", False)) for o in self.list_offres)
         )
-
+        self.button_inverser_selection.visible = True
         self.set_checkbox_on_off_sans_event(toutes_cochees)
 
     # =========================================================================
@@ -1126,11 +1127,16 @@ class search(searchTemplate):
         nb = len(self.list_offres)
     
         # Important : remettre le tag après chaque réaffichage
+        # Mots positifs globaux pour le surlignage HTML
         self.repeating_panel_1.tag.mots_cles_saisis = self.get_texte_mots_positifs_pour_highlight()
-    
-        # Important aussi : transmettre les mots de scoring aux rows
+        
+        # Mots ET et mots OU séparés pour l'affichage simple du bouton
+        self.repeating_panel_1.tag.mots_et_saisis = self.get_mots_obligatoires_texte()
+        self.repeating_panel_1.tag.mots_ou_saisis = self.get_mots_ou_texte()
+        
+        # Ancien scoring manuel supprimé
         self.repeating_panel_1.tag.dict_mots_score = {}
-    
+        
         self.repeating_panel_1.items = list(self.list_offres)
     
         if nb == 0:

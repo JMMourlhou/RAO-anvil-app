@@ -190,6 +190,7 @@ components:
           margin: ['4', null, '4', null]
         text: Inverser
         text_color: ''
+        visible: false
       type: form:dep_lin1x4oec0ytd:_Components.Button
     - event_bindings: {click: button_del_all_click}
       layout_properties: {grid_position: 'IMZCHL,UZJELB'}
