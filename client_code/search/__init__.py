@@ -409,12 +409,12 @@ class search(searchTemplate):
         if self._recherche_en_cours is True:
             Notification("Recherche déjà en cours...", timeout=2).show()
             return
-
+        
         self.lancer_recherche()
 
     def lancer_recherche(self, **event_args):
         """Recherche les offres, applique les critères positifs/exclusions, score, puis sauvegarde dans histo['offres']."""
-
+        self.Titre_2.scroll_into_view(smooth=True, align="center")
         if self._recherche_en_cours:
             Notification("Recherche déjà en cours...", timeout=2).show()
             return
