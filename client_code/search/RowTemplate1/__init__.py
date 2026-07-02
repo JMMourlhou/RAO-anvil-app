@@ -505,20 +505,20 @@ class RowTemplate1(RowTemplate1Template):
         # Libellé utilisateur.
         # ------------------------------------------------------------
         if taux == 100 and nb_trouves == nb_total:
-            libelle = "Vérification · tous les mots OU trouvés"
+            libelle = "Vérification · tous les mots trouvés"
 
             # Pas besoin d'afficher le pourcentage à 100 %.
             if mots_ou_trouves:
                 libelle += " : " + ", ".join(mots_ou_trouves)
 
         elif taux == 0:
-            libelle = "Vérification · aucun mot OU trouvé"
+            libelle = "Vérification · aucun mot additionel trouvé"
 
         else:
             if not libelle_interet:
-                libelle_interet = "niveau d'intérêt"
+                libelle_interet = ""
 
-            libelle = f"Vérification · {libelle_interet} ({taux} %)"
+            libelle = f"Vérification · {libelle_interet} ({taux} %) de mots trouvés"
 
             if mots_ou_trouves:
                 libelle += " : " + ", ".join(mots_ou_trouves)

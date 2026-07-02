@@ -1497,7 +1497,7 @@ class search(searchTemplate):
                 "taux": 0,
                 "rang": 0,
                 "code": "sans_mots_ou",
-                "libelle": "sans mots OU",
+                "libelle": "pas de mots facultatifs",
                 "role": ""
             }
 
@@ -1508,7 +1508,7 @@ class search(searchTemplate):
                 "taux": taux,
                 "rang": 0,
                 "code": "interet_0",
-                "libelle": "aucun mot OU trouvé",
+                "libelle": "pas de mots facultatifs",
                 "role": "bt-interet-0"
             }
 
@@ -1517,7 +1517,7 @@ class search(searchTemplate):
                 "taux": taux,
                 "rang": 1,
                 "code": "interet_20",
-                "libelle": "intérêt très faible",
+                "libelle": "",
                 "role": "bt-interet-20"
             }
 
@@ -1526,7 +1526,7 @@ class search(searchTemplate):
                 "taux": taux,
                 "rang": 2,
                 "code": "interet_39",
-                "libelle": "intérêt faible",
+                "libelle": "",
                 "role": "bt-interet-39"
             }
 
@@ -1535,7 +1535,7 @@ class search(searchTemplate):
                 "taux": taux,
                 "rang": 3,
                 "code": "interet_59",
-                "libelle": "intérêt moyen",
+                "libelle": "",
                 "role": "bt-interet-59"
             }
 
@@ -1544,7 +1544,7 @@ class search(searchTemplate):
                 "taux": taux,
                 "rang": 4,
                 "code": "interet_79",
-                "libelle": "intérêt fort",
+                "libelle": "",
                 "role": "bt-interet-79"
             }
 
@@ -1553,7 +1553,7 @@ class search(searchTemplate):
                 "taux": taux,
                 "rang": 5,
                 "code": "interet_99",
-                "libelle": "intérêt très fort",
+                "libelle": "",
                 "role": "bt-interet-99"
             }
 
@@ -1561,7 +1561,7 @@ class search(searchTemplate):
             "taux": taux,
             "rang": 6,
             "code": "interet_100",
-            "libelle": "tous les mots OU trouvés",
+            "libelle": "",
             "role": "bt-interet-100"
         }
 
