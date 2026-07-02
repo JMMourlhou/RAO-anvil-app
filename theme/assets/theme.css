@@ -882,3 +882,49 @@ CORRECTIF TERMINAL JM - TextBox blanc / Dropdown transparent
     color: #000000 !important;
     font-weight: 700 !important;
 }
+
+/* =========================================================
+Bouton Vérification - niveau d'intérêt
+========================================================= */
+
+.anvil-role-bt-interet-20,
+.anvil-role-bt-interet-20 button {
+    background-color: #ffe0b2 !important; /* orange pastel */
+    color: #4a2a00 !important;
+    font-weight: 700 !important;
+}
+
+.anvil-role-bt-interet-39,
+.anvil-role-bt-interet-39 button {
+    background-color: #fff59d !important; /* jaune pastel */
+    color: #3a3300 !important;
+    font-weight: 700 !important;
+}
+
+.anvil-role-bt-interet-59,
+.anvil-role-bt-interet-59 button {
+    background-color: #dcedc8 !important; /* vert clair pastel */
+    color: #1b3a1b !important;
+    font-weight: 700 !important;
+}
+
+.anvil-role-bt-interet-79,
+.anvil-role-bt-interet-79 button {
+    background-color: #a5d6a7 !important; /* vert plus vif pastel */
+    color: #0b3510 !important;
+    font-weight: 800 !important;
+}
+
+.anvil-role-bt-interet-99,
+.anvil-role-bt-interet-99 button {
+    background-color: #66bb6a !important; /* vert vif */
+    color: #062a0a !important;
+    font-weight: 800 !important;
+}
+
+.anvil-role-bt-interet-100,
+.anvil-role-bt-interet-100 button {
+    background-color: #00c853 !important; /* vert très voyant */
+    color: #ffffff !important;
+    font-weight: 900 !important;
+}

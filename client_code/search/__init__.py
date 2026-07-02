@@ -23,7 +23,7 @@ class search(searchTemplate):
     ):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
-        
+
         self.f = get_open_form()
 
         # roles css des champs d'affichage du progrès de la requête
@@ -31,31 +31,31 @@ class search(searchTemplate):
         self.column_panel_progress_recherche.role = "progress-search-box"
         self.label_progress_recherche.role = "progress-search-main"
         #self.label_nb_offres_progress.role = "progress-search-sub"
-        
+
         self.label_jauge_globale.role = "progress-gauge-global"
         self.label_jauge_source.role = "progress-gauge-source"
-        
+
         self.column_panel_progress_recherche.visible = False
         # =====================================================================
         # Variables internes
         # =====================================================================
-        
+
         self.user = None
         self.histo_id = None
         self.list_offres = []
         self.offres_preparees = []
         self.mots_ou_recherche = []
-        
+
         # Pour l'affichage de la progression de la requête
         self.label_progress_recherche.visible = False
         #self.label_nb_offres_progress.visible = False
         self.timer_recherche_progress.interval = 0
-        
+
         self.task_recherche = None
         self._ctx_recherche = {}
         self._recherche_en_cours = False
         self._annulation_recherche_demandee = False
-        
+
         self.base_app = ""
         self._last_progress_global = None
         self._last_progress_source = None
@@ -63,10 +63,10 @@ class search(searchTemplate):
         self.label_jauge_globale.visible = False
         self.label_jauge_source.visible = False
         self.text_param_summary.visible = False
-        
+
         # Evite les traitements indésirables quand on modifie la checkbox par code
         self._ignore_checkbox_on_off_change = False
-        
+
 
 
         # =====================================================================
@@ -102,7 +102,7 @@ class search(searchTemplate):
                 print("Impossible de récupérer code_app1 :", e)
                 self.base_app = ""
 
-            
+
             # =================================================================
             # Init de la drop down plateforme multi-sélectable
             # =================================================================
@@ -127,7 +127,7 @@ class search(searchTemplate):
             # Lecture de la dernière ligne histo du user
             # =================================================================
             derniere_ligne = self.charger_derniere_ligne_histo(rows_platformes)
-            
+
             # =================================================================
             # Ouverture normale : on affiche seulement les derniers paramètres
             # =================================================================
@@ -135,7 +135,7 @@ class search(searchTemplate):
                 self.column_panel_params.visible = True
 
                 self.maj_bouton_recherche_visible()
-                    
+
             # =================================================================
             # Réaffichage après traitement éventuel
             # Aujourd'hui, on évite open_form("search", "check") autant que possible.
@@ -159,8 +159,8 @@ class search(searchTemplate):
 
                 self.f.navigation_link_search_go.visible = False
                 #self.button_search.visible = False
-                
-                 
+
+
     # =========================================================================
     # Chargement de la dernière ligne histo
     # =========================================================================
@@ -222,7 +222,9 @@ class search(searchTemplate):
             self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
 
         
-        self.list_offres = self.normaliser_liste_offres_vu(row["offres"] or [])
+        self.list_offres = self.trier_offres_par_interet(
+            self.normaliser_liste_offres_vu(row["offres"] or [])
+        )
 
         return row
 
@@ -656,12 +658,17 @@ class search(searchTemplate):
         )
         
         offres_finales = self.normaliser_liste_offres_vu(offres_finales)
+
+        # Tri final :
+        # - par date si aucun mot OU
+        # - par taux de mots OU trouvés puis date si mots OU présents
+        offres_finales = self.trier_offres_par_interet(offres_finales)
         
-        print("===== DEBUG CORRESPONDANCE MOTS OU =====")
+        print("===== DEBUG NIVEAU INTERET MOTS OU =====")
         for o in offres_finales:
             print(
                 "titre:", o.get("titre"),
-                "| niveau:", o.get("niveau_correspondance"),
+                "| intérêt:", o.get("libelle_interet"),
                 "| taux:", o.get("taux_mots_ou"),
                 "| mots OU:", o.get("nb_mots_ou_trouves"), "/", o.get("nb_mots_ou_total")
             )
@@ -1014,6 +1021,100 @@ class search(searchTemplate):
         self.list_offres = result.get("offres", self.list_offres)
         return True
 
+    def valeur_int_pour_tri(self, valeur, defaut=0):
+        """
+        Convertit une valeur en entier pour le tri.
+        """
+
+        try:
+            return int(valeur or defaut)
+        except Exception:
+            return defaut
+
+
+    def date_iso_pour_tri(self, valeur):
+        """
+        Retourne une date triable au format YYYY-MM-DD.
+        """
+
+        if not valeur:
+            return ""
+
+        try:
+            if isinstance(valeur, datetime):
+                return valeur.date().isoformat()
+
+            if isinstance(valeur, date):
+                return valeur.isoformat()
+        except Exception:
+            pass
+
+        try:
+            texte = str(valeur).strip()
+
+            if not texte:
+                return ""
+
+            texte = texte.split("T")[0]
+            texte = texte.split(" ")[0]
+
+            # Format ISO déjà correct
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", texte):
+                return texte
+
+            # Format français DD/MM/YYYY
+            if re.fullmatch(r"\d{2}/\d{2}/\d{4}", texte):
+                jour, mois, annee = texte.split("/")
+                return f"{annee}-{mois}-{jour}"
+
+        except Exception:
+            pass
+
+        return ""
+
+
+    def trier_offres_par_interet(self, offres):
+        """
+        Trie les offres selon les règles utilisateur :
+
+        - si aucun mot OU n'a été saisi :
+            tri par date de publication décroissante
+
+        - si au moins un mot OU a été saisi :
+            niveau 1 : taux de mots OU trouvés décroissant
+            niveau 2 : date de publication décroissante
+        """
+
+        offres = list(offres or [])
+
+        if not offres:
+            return []
+
+        avec_mots_ou = any(
+            self.valeur_int_pour_tri(o.get("nb_mots_ou_total"), 0) > 0
+            for o in offres
+        )
+
+        # Aucun mot OU : tri classique par date.
+        if not avec_mots_ou:
+            return sorted(
+                offres,
+                key=lambda o: self.date_iso_pour_tri(
+                    o.get("date_publication")
+                ),
+                reverse=True
+            )
+
+        # Au moins un mot OU : tri par taux puis date.
+        return sorted(
+            offres,
+            key=lambda o: (
+                self.valeur_int_pour_tri(o.get("taux_mots_ou"), 0),
+                self.date_iso_pour_tri(o.get("date_publication"))
+            ),
+            reverse=True
+        )
+
     def afficher_offres(self, offres=None):
         """
         Réaffiche le repeating panel à partir de self.list_offres.
@@ -1173,29 +1274,33 @@ class search(searchTemplate):
     
     def construire_requetes_sources(self, mots_obligatoires, mots_ou):
         """
-        Construit une requête large pour les sources.
-    
-        Important :
-        On évite d'envoyer plusieurs requêtes du type :
-        ['formation et sst', 'formation et mac']
-    
-        On récupère large, puis on filtre localement.
+        Construit une requête volontairement large pour les sources.
+
+        Principe :
+        - les plateformes servent seulement à récupérer un premier lot d'offres
+        - le vrai filtrage ET / OU / intérêt est fait ensuite localement
+        - on évite donc d'envoyer tous les mots ET aux plateformes, car cela peut
+          bloquer une offre pertinente si une plateforme ne trouve pas un mot
+          partiel comme ciment dans fibrociment.
         """
-    
+
         mots_obligatoires = mots_obligatoires or []
         mots_ou = mots_ou or []
-    
-        # Cas normal : on envoie les mots obligatoires seulement
+
+        # Cas normal : on envoie seulement les 3 premiers mots obligatoires.
+        # Exemple : rénovation, toiture, facade, ciment
+        # devient : rénovation et toiture et facade
+        # puis le filtre local vérifie ensuite ciment dans fibrociment.
         if mots_obligatoires:
-            return [" et ".join(mots_obligatoires)]
-    
-        # Si aucun mot obligatoire, on envoie une requête OU large
+            mots_sources = mots_obligatoires[:3]
+            return [" et ".join(mots_sources)]
+
+        # Si aucun mot obligatoire, on envoie une requête OU large.
         if mots_ou:
             return [" ou ".join(mots_ou)]
-    
+
         return []
-    
-    
+
     def get_texte_mots_positifs_pour_highlight(self):
         """
         Renvoie les mots à surligner dans les résultats.
@@ -1298,48 +1403,58 @@ class search(searchTemplate):
     
     def offre_respecte_criteres_positifs(self, offre, mots_obligatoires, mots_ou):
         """
-        Vérifie :
-        - tous les mots obligatoires doivent être présents
-        - si mots_ou existe, au moins un doit être présent
+        Vérifie les critères positifs.
+
+        Nouvelle logique :
+        - les mots obligatoires, s'ils existent, doivent tous être présents
+        - les mots OU servent au niveau d'intérêt, mais ne sont pas obligatoires
+          quand il existe des mots ET
+        - si l'utilisateur n'a saisi aucun mot ET mais seulement des mots OU,
+          alors au moins un mot OU doit être présent pour éviter une recherche vide
         """
-    
+
         texte_norm = self.texte_offre_normalise(offre)
-    
-        # Tous les mots obligatoires doivent être présents
-        for mot in mots_obligatoires or []:
-            if not self.texte_contient_mot_filtre(texte_norm, mot):
-                return False
-    
-        # Au moins un mot OU doit être présent
+
+        # Cas 1 : il existe des mots obligatoires.
+        # Tous doivent être présents. Les mots OU ne filtrent pas l'offre :
+        # ils serviront uniquement au calcul du niveau d'intérêt.
+        if mots_obligatoires:
+            for mot in mots_obligatoires:
+                if not self.texte_contient_mot_filtre(texte_norm, mot):
+                    return False
+
+            return True
+
+        # Cas 2 : aucun mot obligatoire, mais des mots OU.
+        # On exige alors au moins un mot OU.
         if mots_ou:
-            trouve_un_mot_ou = False
-    
             for mot in mots_ou:
                 if self.texte_contient_mot_filtre(texte_norm, mot):
-                    trouve_un_mot_ou = True
-                    break
-    
-            if not trouve_un_mot_ou:
-                return False
-    
-        return True
-    
-    
+                    return True
+
+            return False
+
+        return False
+
     def filtrer_offres_criteres_positifs(self, offres, mots_obligatoires, mots_ou):
         """
-        Garde seulement les offres qui respectent :
-        mots obligatoires ET au moins un mot OU.
+        Garde seulement les offres qui respectent les critères positifs.
+
+        Règle :
+        - avec mots ET : tous les mots ET doivent être présents ; les mots OU
+          servent ensuite au niveau d'intérêt, y compris 0 %
+        - sans mots ET : au moins un mot OU doit être présent
         """
-    
+
         if not offres:
             return []
-    
+
         offres_filtrees = []
-    
+
         for offre in offres:
             if self.offre_respecte_criteres_positifs(offre, mots_obligatoires, mots_ou):
                 offres_filtrees.append(offre)
-    
+
         return offres_filtrees
 
     def trouver_mots_ou_dans_offre(self, offre, mots_ou):
@@ -1359,94 +1474,155 @@ class search(searchTemplate):
         return mots_trouves
     
     
-    def niveau_correspondance_mots_ou(self, nb_total, nb_trouves):
+    def niveau_interet_mots_ou(self, nb_total, nb_trouves):
         """
-        Détermine le niveau de correspondance selon le taux de mots OU trouvés.
-    
-        Règle :
-        - aucun mot OU : forte, car seuls les mots obligatoires comptent
-        - 1 mot OU : forte si trouvé
-        - >= 75 % : forte
-        - >= 50 % : moyenne
-        - < 50 % : faible
+        Détermine le niveau d'intérêt selon le pourcentage de mots OU trouvés.
+
+        Règles :
+        - aucun mot OU saisi : pas de niveau d'intérêt, tri par date
+        - 0 %       : rouge pastel
+        - 1-20 %    : orange pastel
+        - 21-39 %   : jaune pastel
+        - 40-59 %   : vert clair pastel
+        - 60-79 %   : vert plus vif pastel
+        - 80-99 %   : vert vif
+        - 100 %     : vert très voyant
         """
-    
+
         nb_total = int(nb_total or 0)
         nb_trouves = int(nb_trouves or 0)
-    
+
         if nb_total == 0:
-            return "forte"
-    
-        if nb_total == 1:
-            if nb_trouves == 1:
-                return "forte"
-            return "faible"
-    
-        ratio = nb_trouves / nb_total
-    
-        if ratio >= 0.75:
-            return "forte"
-    
-        if ratio >= 0.50:
-            return "moyenne"
-    
-        return "faible"
-    
-    
+            return {
+                "taux": 0,
+                "rang": 0,
+                "code": "sans_mots_ou",
+                "libelle": "sans mots OU",
+                "role": ""
+            }
+
+        taux = round((nb_trouves / nb_total) * 100)
+
+        if taux == 0:
+            return {
+                "taux": taux,
+                "rang": 0,
+                "code": "interet_0",
+                "libelle": "aucun mot OU trouvé",
+                "role": "bt-interet-0"
+            }
+
+        if taux <= 20:
+            return {
+                "taux": taux,
+                "rang": 1,
+                "code": "interet_20",
+                "libelle": "intérêt très faible",
+                "role": "bt-interet-20"
+            }
+
+        if taux <= 39:
+            return {
+                "taux": taux,
+                "rang": 2,
+                "code": "interet_39",
+                "libelle": "intérêt faible",
+                "role": "bt-interet-39"
+            }
+
+        if taux <= 59:
+            return {
+                "taux": taux,
+                "rang": 3,
+                "code": "interet_59",
+                "libelle": "intérêt moyen",
+                "role": "bt-interet-59"
+            }
+
+        if taux <= 79:
+            return {
+                "taux": taux,
+                "rang": 4,
+                "code": "interet_79",
+                "libelle": "intérêt fort",
+                "role": "bt-interet-79"
+            }
+
+        if taux < 100:
+            return {
+                "taux": taux,
+                "rang": 5,
+                "code": "interet_99",
+                "libelle": "intérêt très fort",
+                "role": "bt-interet-99"
+            }
+
+        return {
+            "taux": taux,
+            "rang": 6,
+            "code": "interet_100",
+            "libelle": "tous les mots OU trouvés",
+            "role": "bt-interet-100"
+        }
+
     def ajouter_correspondance_mots_ou(self, offres, mots_ou):
         """
-        Ajoute dans chaque offre les informations de correspondance :
+        Ajoute dans chaque offre les informations de niveau d'intérêt :
+
         - mots_ou_trouves
         - nb_mots_ou_total
         - nb_mots_ou_trouves
         - taux_mots_ou
-        - niveau_correspondance
-    
-        On garde aussi une clé 'score' provisoire pour compatibilité avec RowTemplate1.
+        - niveau_interet
+        - libelle_interet
+        - rang_interet
+        - role_interet
+
+        Si aucun mot OU n'est saisi, il n'y a pas de niveau d'intérêt :
+        les offres seront triées par date.
         """
-    
+
         mots_ou = mots_ou or []
         nb_total = len(mots_ou)
-    
+
         offres_resultat = []
-    
+
         for offre in offres or []:
             nouvelle_offre = dict(offre)
-    
-            mots_trouves = self.trouver_mots_ou_dans_offre(nouvelle_offre, mots_ou)
+
+            mots_trouves = self.trouver_mots_ou_dans_offre(
+                nouvelle_offre,
+                mots_ou
+            )
+
             nb_trouves = len(mots_trouves)
-    
-            if nb_total == 0:
-                taux = 100
-            else:
-                taux = round((nb_trouves / nb_total) * 100)
-    
-            niveau = self.niveau_correspondance_mots_ou(
+
+            infos_interet = self.niveau_interet_mots_ou(
                 nb_total,
                 nb_trouves
             )
-    
+
+            taux = infos_interet["taux"]
+
             nouvelle_offre["mots_ou_trouves"] = mots_trouves
             nouvelle_offre["nb_mots_ou_total"] = nb_total
             nouvelle_offre["nb_mots_ou_trouves"] = nb_trouves
             nouvelle_offre["taux_mots_ou"] = taux
-            nouvelle_offre["niveau_correspondance"] = niveau
-    
-            # Compatibilité provisoire avec l'ancien RowTemplate1.
-            # À supprimer quand RowTemplate1 utilisera directement niveau_correspondance.
-            if niveau == "forte":
-                nouvelle_offre["score"] = 10
-            elif niveau == "moyenne":
-                nouvelle_offre["score"] = 5
-            else:
-                nouvelle_offre["score"] = 1
-    
-            nouvelle_offre["pertinence"] = niveau
-    
+
+            nouvelle_offre["niveau_interet"] = infos_interet["code"]
+            nouvelle_offre["libelle_interet"] = infos_interet["libelle"]
+            nouvelle_offre["rang_interet"] = infos_interet["rang"]
+            nouvelle_offre["role_interet"] = infos_interet["role"]
+
+            # Compatibilité temporaire avec les anciens noms.
+            nouvelle_offre["niveau_correspondance"] = infos_interet["code"]
+            nouvelle_offre["score"] = taux
+            nouvelle_offre["pertinence"] = infos_interet["libelle"]
+
             offres_resultat.append(nouvelle_offre)
-    
-        return offres_resultat    
-    
+
+        return offres_resultat
+
     def offre_contient_mot_exclu(self, offre, mot_exclu):
         """
         Vérifie si une offre contient un mot exclu.
