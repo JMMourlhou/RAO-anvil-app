@@ -247,9 +247,11 @@ def _build_html_body(offres, contexte, email_user):
 
         html += f"""
     <div style="background:#ffffff; border:1px solid #dddddd; border-radius:10px; padding:20px; margin-bottom:16px;">
-      <h3 style="margin:0 0 12px 0; color:#111;">
-        {idx}. {titre}
-      </h3>
+        <div style="background:#eef5df; border-left:6px solid #6b8e23; padding:12px 14px; border-radius:6px; margin-bottom:14px;">
+            <h3 style="margin:0; color:#334400; font-size:19px; line-height:1.3;">
+                {idx}. {titre}
+            </h3>
+        </div>
 
       <table style="border-collapse:collapse; width:100%; font-size:14px;">
         <tr>
