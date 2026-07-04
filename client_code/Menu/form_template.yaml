@@ -83,8 +83,8 @@ components_by_slot:
   - layout_properties: {}
     name: logo
     properties:
-      height: '200'
-      margin: ['30', null, null, null]
+      height: 198.91851806640625
+      margin: ['15', null, null, null]
       source: _/theme/Service Web small_transparent.png
     type: Image
   navigation:

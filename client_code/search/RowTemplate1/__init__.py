@@ -553,9 +553,8 @@ class RowTemplate1(RowTemplate1Template):
     
         if mots_affiches:
             self.button_generer_html.text = (
-                "Cliquez pour vérifier ("
+                "Cliquez pour vérifier \n "
                 + ", ".join(mots_affiches)
-                + ")"
             )
         else:
             self.button_generer_html.text = "Cliquez pour vérifier"

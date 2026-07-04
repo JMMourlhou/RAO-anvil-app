@@ -488,6 +488,7 @@ class RowTemplate1(RowTemplate1Template):
             # Sécurité si ancienne offre sans role_interet.
             if taux == 0:
                 self.button_generer_html.role = "bt-interet-0"
+                self.button_generer_html.icon.
             elif taux <= 20:
                 self.button_generer_html.role = "bt-interet-20"
             elif taux <= 39:
