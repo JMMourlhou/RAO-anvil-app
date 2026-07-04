@@ -68,6 +68,8 @@ def _build_text_body(offres, contexte, email_user):
         mots_trouves = _format_mots_trouves(offre.get("mots_trouves"))
         lien_source = _txt(offre.get("lien_source"), "")
         lien_app = _txt(offre.get("lien_app"), "")
+        correspondance = _calcul_correspondance(offre, contexte or {})
+        score_brut = offre.get("score")
 
         lignes.append("")
         lignes.append(f"{idx}. {titre}")
@@ -77,8 +79,11 @@ def _build_text_body(offres, contexte, email_user):
         lignes.append(f"Source : {source}")
         lignes.append(f"Date limite de réponse : {date_limite}")
 
-        if score:
-            lignes.append(f"Score : {score}")
+        if score_brut not in [None, ""]:
+            lignes.append(f"Score de pertinence : {score_brut}")
+
+        if correspondance.get("nb_total", 0) > 0:
+            lignes.append(f"Correspondance mots-clés : {correspondance['explication']}")
 
         if mots_trouves:
             lignes.append(f"Mots trouvés : {mots_trouves}")
@@ -130,7 +135,7 @@ def _build_html_body(offres, contexte, email_user):
   <div style="max-width:900px; margin:0 auto; padding:24px;">
 
     <div style="background:#ffffff; border:1px solid #dddddd; border-radius:10px; padding:22px; margin-bottom:18px;">
-      <h2 style="margin:0 0 10px 0; color:#111;">RAO — Offres sélectionnées</h2>
+      <h2 style="margin:0 0 10px 0; color:#6b8e23;">RAO — Offres sélectionnées</h2>
       <p style="margin:0 0 8px 0;">Bonjour,</p>
       <p style="margin:0 0 14px 0;">Voici les offres que vous avez sélectionnées dans RAO.</p>
 
@@ -184,7 +189,8 @@ def _build_html_body(offres, contexte, email_user):
         resume = _html(offre.get("resume_court"), "")
         score = _html(offre.get("score"), "")
         mots_trouves = _html(_format_mots_trouves(offre.get("mots_trouves")), "")
-
+        correspondance = _calcul_correspondance(offre, contexte or {})
+        score_brut = offre.get("score")
         lien_source = offre.get("lien_source") or ""
         lien_app = offre.get("lien_app") or ""
 
@@ -201,8 +207,8 @@ def _build_html_body(offres, contexte, email_user):
         if lien_app:
             bouton_app = f"""
             <a href="{escape(str(lien_app), quote=True)}"
-               style="display:inline-block; background:#444444; color:#ffffff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:bold;">
-               Revoir dans RAO
+            style="display:inline-block; background:#6b8e23; color:#ffffff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:bold;">
+            Revoir dans RAO
             </a>
             """
 
@@ -216,10 +222,18 @@ def _build_html_body(offres, contexte, email_user):
             """
 
         bloc_score = ""
-        if score:
-            bloc_score = f"""
+
+        if score_brut not in [None, ""]:
+            bloc_score += f"""
             <p style="margin:8px 0 0 0;">
-              <strong>Score :</strong> {score}
+            <strong>Score de pertinence :</strong> {_html(score_brut)}
+            </p>
+            """
+        
+        if correspondance.get("nb_total", 0) > 0:
+            bloc_score += f"""
+            <p style="margin:8px 0 0 0;">
+            <strong>Correspondance mots-clés :</strong> {_html(correspondance['explication'])}
             </p>
             """
 
@@ -372,3 +386,79 @@ def envoyer_mail_offres_selectionnees(offres_selectionnees, contexte=None):
         "ok": False,
         "error": result.get("error") if isinstance(result, dict) else str(result)
     }
+
+
+
+def _extraire_mots_depuis_texte(texte):
+    """
+    Transforme une chaîne en liste de mots simples.
+    Séparateurs gérés : virgule, point-virgule, espaces, retours ligne.
+    """
+    if not texte:
+        return []
+
+    texte = str(texte)
+    for sep in [",", ";", "\n", "\t"]:
+        texte = texte.replace(sep, " ")
+
+    mots = [x.strip() for x in texte.split(" ") if x.strip()]
+    return mots
+
+
+def _liste_mots_recherche(contexte):
+    """
+    Construit la liste des mots de recherche à partir du contexte.
+    Ici on prend mots_cles + mots_ou.
+    """
+    if not contexte:
+        return []
+
+    mots_et = _extraire_mots_depuis_texte(contexte.get("mots_cles", ""))
+    mots_ou = _extraire_mots_depuis_texte(contexte.get("mots_ou", ""))
+
+    # dédoublonnage simple en conservant l'ordre
+    resultat = []
+    for mot in mots_et + mots_ou:
+        mot_min = mot.lower()
+        if mot_min not in [x.lower() for x in resultat]:
+            resultat.append(mot)
+
+    return resultat
+
+
+def _calcul_correspondance(offre, contexte):
+    """
+    Retourne:
+    - nb_trouves
+    - nb_total
+    - pourcentage
+    - texte explicatif
+    """
+    mots_recherche = _liste_mots_recherche(contexte)
+
+    mots_trouves = offre.get("mots_trouves") or []
+    if not isinstance(mots_trouves, list):
+        mots_trouves = [str(mots_trouves)]
+
+    mots_trouves_norm = [str(x).strip().lower() for x in mots_trouves if str(x).strip()]
+
+    nb_total = len(mots_recherche)
+    nb_trouves = 0
+
+    for mot in mots_recherche:
+        if str(mot).strip().lower() in mots_trouves_norm:
+            nb_trouves += 1
+
+    if nb_total > 0:
+        pourcentage = round((nb_trouves / nb_total) * 100)
+        explication = f"{pourcentage}% ({nb_trouves} mot(s) trouvé(s) sur {nb_total})"
+    else:
+        pourcentage = 0
+        explication = "Non calculable"
+
+    return {
+        "nb_trouves": nb_trouves,
+        "nb_total": nb_total,
+        "pourcentage": pourcentage,
+        "explication": explication
+    }    
