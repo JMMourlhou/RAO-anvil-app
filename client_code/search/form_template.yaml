@@ -230,7 +230,7 @@ components:
       visible: false
     type: form:dep_lin1x4oec0ytd:_Components.Button
   - components:
-    - name: repeating_panel_1
+    - name: repeating_panel_offres
       properties: {item_template: search.RowTemplate1}
       type: RepeatingPanel
     layout_properties: {slot: card-content-slot}

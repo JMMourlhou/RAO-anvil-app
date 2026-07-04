@@ -72,12 +72,12 @@ class search(searchTemplate):
         # =====================================================================
         # Events du repeating panel des offres
         # =====================================================================
-        self.repeating_panel_1.set_event_handler(
+        self.repeating_panel_offres.set_event_handler(
             "x-checkbox-vu-changee",
             self.modifier_offre_vu
         )
 
-        self.repeating_panel_1.set_event_handler(
+        self.repeating_panel_offres.set_event_handler(
             "x-del-offre",
             self.del_offre_affichee
         )
@@ -1128,16 +1128,16 @@ class search(searchTemplate):
     
         # Important : remettre le tag après chaque réaffichage
         # Mots positifs globaux pour le surlignage HTML
-        self.repeating_panel_1.tag.mots_cles_saisis = self.get_texte_mots_positifs_pour_highlight()
+        self.repeating_panel_offres.tag.mots_cles_saisis = self.get_texte_mots_positifs_pour_highlight()
         
         # Mots ET et mots OU séparés pour l'affichage simple du bouton
-        self.repeating_panel_1.tag.mots_et_saisis = self.get_mots_obligatoires_texte()
-        self.repeating_panel_1.tag.mots_ou_saisis = self.get_mots_ou_texte()
+        self.repeating_panel_offres.tag.mots_et_saisis = self.get_mots_obligatoires_texte()
+        self.repeating_panel_offres.tag.mots_ou_saisis = self.get_mots_ou_texte()
         
         # Ancien scoring manuel supprimé
-        self.repeating_panel_1.tag.dict_mots_score = {}
+        self.repeating_panel_offres.tag.dict_mots_score = {}
         
-        self.repeating_panel_1.items = list(self.list_offres)
+        self.repeating_panel_offres.items = list(self.list_offres)
     
         if nb == 0:
             self.text_nb_offres.text = "0 offre"
@@ -1188,9 +1188,126 @@ class search(searchTemplate):
 
     def button_selection_mailed_click(self, **event_args):
         """Envoi d'un mail contenant les offres cochées."""
-        pass
 
+    
+        if not self.user:
+            alert("Vous devez être connecté pour recevoir les offres par mail.")
+            return
+    
+        email_user = self.user['email']
+    
+        offres_selectionnees = self._get_offres_selectionnees_pour_mail()
+    
+        if not offres_selectionnees:
+            alert("Aucune offre sélectionnée à envoyer par mail.")
+            return
+    
+        nb = len(offres_selectionnees)
+    
+        confirmation = confirm(
+            f"{nb} offre(s) sélectionnée(s) vont être envoyée(s) à :\n\n"
+            f"{email_user}\n\n"
+            "Confirmer l'envoi ?"
+        )
+    
+        if not confirmation:
+            return
+    
+        self.button_selection_mailed.enabled = False
+        self.button_selection_mailed.text = "Envoi en cours..."
+    
+        try:
+            result = anvil.server.call(
+                "envoyer_mail_offres_selectionnees",
+                offres_selectionnees,
+                self._get_contexte_recherche_pour_mail()
+            )
+    
+            if result and result.get("ok"):
+                alert(
+                    f"Mail envoyé avec succès à {email_user}.\n\n"
+                    f"{result.get('nb_offres', nb)} offre(s) envoyée(s)."
+                )
+            else:
+                erreur = result.get("error") if isinstance(result, dict) else str(result)
+                alert(f"Erreur pendant l'envoi du mail :\n{erreur}")
+    
+        except Exception as e:
+            alert(f"Erreur pendant l'envoi du mail :\n{str(e)}")
+    
+        finally:
+            self.button_selection_mailed.enabled = True
+            self.button_selection_mailed.text = "Envoyer les offres sélectionnées"
 
+    def _get_contexte_recherche_pour_mail(self):
+        """Prépare quelques infos de contexte pour le haut du mail."""
+
+        try:
+            sources = self.multi_select_drop_down_platformes.selected
+        except Exception:
+            sources = []
+    
+        return {
+            "mots_cles": self.text_box_mot_clef.text or "",
+            "mots_ou": getattr(self, "text_box_mots_ou", None).text if getattr(self, "text_box_mots_ou", None) else "",
+            "mots_exclus": getattr(self, "text_box_mots_exclus", None).text if getattr(self, "text_box_mots_exclus", None) else "",
+            "departements": getattr(self, "text_box_departements", None).text if getattr(self, "text_box_departements", None) else "",
+            "nb_jours": getattr(self, "text_box_nb_jours", None).text if getattr(self, "text_box_nb_jours", None) else "",
+            "sources": sources,
+        }
+
+    def _get_offres_selectionnees_pour_mail(self):
+        """
+        Retourne une liste simple de dictionnaires sérialisables
+        correspondant aux offres cliquées / vues.
+        """
+    
+        champs_a_garder = [
+            "titre",
+            "acheteur",
+            "nature",
+            "procedure",
+            "type_avis",
+            "departement",
+            "lieu",
+            "date_publication",
+            "date_limite_rep",
+            "source",
+            "reference",
+            "resume_court",
+            "score",
+            "pertinence",
+            "mots_trouves",
+            "lien_source",
+            "lien_app",
+            "idweb",
+            "vu",
+        ]
+    
+        offres_selectionnees = []
+    
+        items = self.repeating_panel_offres.items or []
+    
+        for offre in items:
+            # Ici on considère qu'une offre cliquée a vu == True
+            if offre.get("vu") is True:
+    
+                offre_mail = {}
+    
+                for champ in champs_a_garder:
+                    valeur = offre.get(champ)
+    
+                    # Sécurisation simple pour éviter d'envoyer des objets non sérialisables
+                    if isinstance(valeur, (str, int, float, bool)) or valeur is None:
+                        offre_mail[champ] = valeur
+                    elif isinstance(valeur, list):
+                        offre_mail[champ] = [str(x) for x in valeur]
+                    else:
+                        offre_mail[champ] = str(valeur)
+    
+                offres_selectionnees.append(offre_mail)
+    
+        return offres_selectionnees
 
     # =========================================================================
     # Recalcule visibilité du bouton mail
@@ -1199,7 +1316,7 @@ class search(searchTemplate):
     def recalculer_bouton_selection_mailed(self, sender=None, **event_args):
         au_moins_un_coche = any(
             bool(row.checkbox_vu.checked)
-            for row in self.repeating_panel_1.get_components()
+            for row in self.repeating_panel_offres.get_components()
         )
 
         self.button_selection_mailed.visible = au_moins_un_coche
