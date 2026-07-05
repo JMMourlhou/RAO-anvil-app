@@ -241,57 +241,57 @@ def _contient_terme(texte_normalise, terme_normalise):
     return terme_prepare in texte_prepare
 
 
-def _calcul_correspondance(offre, contexte):
+def _mots_trouves_pour_mail(offre, contexte):
     """
-    Calcule le pourcentage de correspondance des termes recherchés
-    dans le contenu réel de l'offre.
+    Retourne une liste simple de mots/termes trouvés dans l'offre.
 
-    Exemple :
-    Obligatoires : secourisme
-    Au moins un : sst, mac sst, psc1
-
-    Titre :
-    Initiation secourisme SST – PSC1 et MAC SST
-
-    Résultat :
-    100% (4 terme(s) trouvé(s) sur 4)
+    Priorité :
+    1. on cherche les mots du contexte dans le texte réel de l'offre ;
+    2. si aucun contexte exploitable, on utilise les champs déjà présents :
+       - mots_trouves
+       - mots_score_trouves
     """
 
     mots_recherche = _liste_mots_recherche(contexte)
-    nb_total = len(mots_recherche)
-
-    if nb_total == 0:
-        return {
-            "nb_trouves": 0,
-            "nb_total": 0,
-            "pourcentage": 0,
-            "explication": "Non calculable",
-            "mots_trouves": [],
-        }
-
     texte_offre = _texte_offre_pour_correspondance(offre)
     texte_normalise = normaliser_texte(texte_offre)
 
-    mots_trouves = []
+    trouves = []
+    deja_vus = set()
 
     for mot in mots_recherche:
         mot_norm = normaliser_texte(mot)
 
+        if not mot_norm:
+            continue
+
         if _contient_terme(texte_normalise, mot_norm):
-            mots_trouves.append(mot)
+            if mot_norm not in deja_vus:
+                trouves.append(mot)
+                deja_vus.add(mot_norm)
 
-    nb_trouves = len(mots_trouves)
-    pourcentage = round((nb_trouves / nb_total) * 100)
+    # Fallback si le contexte est vide ou incomplet
+    if not trouves:
+        for champ in ["mots_trouves", "mots_score_trouves"]:
+            valeur = _get_valeur(offre, champ)
 
-    explication = f"{pourcentage}% ({nb_trouves} terme(s) trouvé(s) sur {nb_total})"
+            if not valeur:
+                continue
 
-    return {
-        "nb_trouves": nb_trouves,
-        "nb_total": nb_total,
-        "pourcentage": pourcentage,
-        "explication": explication,
-        "mots_trouves": mots_trouves,
-    }
+            if isinstance(valeur, list):
+                candidats = valeur
+            else:
+                candidats = [valeur]
+
+            for mot in candidats:
+                mot_txt = str(mot).strip()
+                mot_norm = normaliser_texte(mot_txt)
+
+                if mot_txt and mot_norm not in deja_vus:
+                    trouves.append(mot_txt)
+                    deja_vus.add(mot_norm)
+
+    return trouves
 
 
 # ---------------------------------------------------------------------
@@ -576,16 +576,8 @@ def _build_html_body(offres, contexte, email_user):
         score_brut = _get_valeur(offre, "score")
         lien_source = _get_valeur(offre, "lien_source") or ""
         lien_app = _get_valeur(offre, "lien_app") or ""
-
-        try:
-            correspondance = _calcul_correspondance(offre, contexte or {})
-        except Exception as e:
-            print(f"Erreur calcul correspondance HTML offre {idx}: {e}")
-            correspondance = {
-                "nb_total": 0,
-                "explication": "",
-                "mots_trouves": [],
-            }
+        mots_trouves_liste = _mots_trouves_pour_mail(offre, contexte or {})
+        mots_trouves = _html(_format_mots_trouves(mots_trouves_liste), "")
 
         mots_trouves = _html(
             _format_mots_trouves(

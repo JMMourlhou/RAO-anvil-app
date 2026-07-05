@@ -68,8 +68,6 @@ def _build_text_body(offres, contexte, email_user):
         mots_trouves = _format_mots_trouves(offre.get("mots_trouves"))
         lien_source = _txt(offre.get("lien_source"), "")
         lien_app = _txt(offre.get("lien_app"), "")
-        correspondance = _calcul_correspondance(offre, contexte or {})
-        score_brut = offre.get("score")
 
         lignes.append("")
         lignes.append(f"{idx}. {titre}")
@@ -79,11 +77,6 @@ def _build_text_body(offres, contexte, email_user):
         lignes.append(f"Source : {source}")
         lignes.append(f"Date limite de réponse : {date_limite}")
 
-        if score_brut not in [None, ""]:
-            lignes.append(f"Score de pertinence : {score_brut}")
-
-        if correspondance.get("nb_total", 0) > 0:
-            lignes.append(f"Correspondance mots-clés : {correspondance['explication']}")
 
         if mots_trouves:
             lignes.append(f"Mots trouvés : {mots_trouves}")
@@ -189,7 +182,6 @@ def _build_html_body(offres, contexte, email_user):
         resume = _html(offre.get("resume_court"), "")
         mots_trouves = _html(_format_mots_trouves(offre.get("mots_trouves")), "")
         correspondance = _calcul_correspondance(offre, contexte or {})
-        score_brut = offre.get("score")
         lien_source = offre.get("lien_source") or ""
         lien_app = offre.get("lien_app") or ""
 
@@ -222,19 +214,6 @@ def _build_html_body(offres, contexte, email_user):
 
         bloc_score = ""
 
-        if score_brut not in [None, ""]:
-            bloc_score += f"""
-            <p style="margin:8px 0 0 0;">
-            <strong>Score de pertinence :</strong> {_html(score_brut)}
-            </p>
-            """
-
-        if correspondance.get("nb_total", 0) > 0:
-            bloc_score += f"""
-            <p style="margin:8px 0 0 0;">
-            <strong>Correspondance mots-clés :</strong> {_html(correspondance['explication'])}
-            </p>
-            """
 
         bloc_mots = ""
         if mots_trouves:
@@ -271,7 +250,6 @@ def _build_html_body(offres, contexte, email_user):
         </tr>
       </table>
 
-      {bloc_score}
       {bloc_mots}
       {bloc_resume}
 

@@ -1240,8 +1240,8 @@ class search(searchTemplate):
             self.button_selection_mailed.text = "Envoyer les offres sélectionnées"
 
     def _get_contexte_recherche_pour_mail(self):
-        """Prépare quelques infos de contexte pour le haut du mail."""
-
+        """Prépare les infos de contexte pour le mail."""
+    
         try:
             sources = self.multi_select_drop_down_platformes.selected
         except Exception:
@@ -1249,10 +1249,10 @@ class search(searchTemplate):
     
         return {
             "mots_cles": self.text_box_mot_clef.text or "",
-            "mots_ou": getattr(self, "text_box_mots_ou", None).text if getattr(self, "text_box_mots_ou", None) else "",
-            "mots_exclus": getattr(self, "text_box_mots_exclus", None).text if getattr(self, "text_box_mots_exclus", None) else "",
-            "departements": getattr(self, "text_box_departements", None).text if getattr(self, "text_box_departements", None) else "",
-            "nb_jours": getattr(self, "text_box_nb_jours", None).text if getattr(self, "text_box_nb_jours", None) else "",
+            "mots_ou": self.text_box_mot_ou.text or "",
+            "mots_exclus": self.text_box_mots_exclus.text or "",
+            "departements": self.text_box_departements.text or "",
+            "nb_jours": self.text_box_nb_jours.text or "",
             "sources": sources,
         }
 
