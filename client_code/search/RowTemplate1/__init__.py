@@ -5,13 +5,19 @@ import anvil.server
 import re
 from ...recherche_mk_html import recherche_mk_html
 import m3.components as m3
-
+from .. import Context_ecran
 
 class RowTemplate1(RowTemplate1Template):
 
     def __init__(self, **properties):
         self.init_components(**properties)
-
+        # écran tel ?
+        context = Context_ecran.context_screen()
+        if context['screen_type']=="phone":
+            self.icon_button_retour.text = ''
+        else:
+            self.icon_button_retour.text = 'Retour'
+            
         self.comp_html = None
 
         # Evite qu'une modification par code déclenche une sauvegarde inutile
@@ -455,15 +461,53 @@ class RowTemplate1(RowTemplate1Template):
         return s
 
     def get_texte_source_verification(self):
-        texte_source = self.item_value("search_text", "")
-
-        if not texte_source:
-            texte_source = self.item_value("description", "")
-
-        if not texte_source:
-            texte_source = self.item_value("titre", "")
-
-        return texte_source or ""
+        """
+        Retourne le texte réellement utile pour la vérification visuelle.
+    
+        Important :
+        le scoring des mots OU est calculé dans search sur plusieurs champs :
+        titre, description, search_text, acheteur, lieu, nature, procedure.
+    
+        Donc l'affichage de vérification doit aussi reprendre ces champs,
+        sinon un mot peut être considéré comme trouvé mais invisible au clic.
+        """
+    
+        champs = [
+            ("Titre", self.item_value("titre", "")),
+            ("Acheteur", self.item_value("acheteur", "")),
+            ("Lieu", self.item_value("lieu", "")),
+            ("Département", self.item_value("departement", "")),
+            ("Nature", self.item_value("nature", "")),
+            ("Procédure", self.item_value("procedure", "")),
+            ("Référence", self.item_value("reference", "")),
+            ("Description", self.item_value("description", "")),
+            ("Texte source", self.item_value("search_text", "")),
+        ]
+    
+        blocs = []
+        deja_vus = set()
+    
+        for libelle, valeur in champs:
+            texte = str(valeur or "").strip()
+    
+            if not texte:
+                continue
+    
+            if texte in ("-", "Non renseigné", "None"):
+                continue
+    
+            # Evite d'afficher deux fois exactement le même bloc
+            cle = self._normalize_text(
+                re.sub(r"\s+", " ", texte)
+            ).strip()
+    
+            if cle in deja_vus:
+                continue
+    
+            deja_vus.add(cle)
+            blocs.append(f"{libelle} : {texte}")
+    
+        return "\n\n".join(blocs)
 
     def maj_libelle_bouton_verification(self):
         """
@@ -582,5 +626,10 @@ class RowTemplate1(RowTemplate1Template):
     
             if present:
                 trouves.append(mot)
-    
         return trouves
+
+    def icon_button_retour_click(self, **event_args):
+        self.parent.raise_event(
+            "x-icon_button_retour_go_up",
+        )
+        #self.scroll_into_view(smooth=True, align="start")

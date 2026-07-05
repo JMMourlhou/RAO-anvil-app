@@ -10,9 +10,9 @@ from .. import Time
 from datetime import date, datetime
 import re
 from anvil.js import get_dom_node    # pour écouteur JS sur le DropDown
+from .. import Context_ecran
 
 class search(searchTemplate):
-
     def __init__(
         self,
         origine="",
@@ -23,7 +23,14 @@ class search(searchTemplate):
     ):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
-
+        
+        # écran tel ?
+        context = Context_ecran.context_screen()
+        if context['screen_type']=="phone":
+            self.button_selection_mailed.text = 'Mail'
+        else:
+            self.button_selection_mailed.text = 'Envoi de la sélection'
+            
         self.f = get_open_form()
 
         # roles css des champs d'affichage du progrès de la requête
@@ -81,7 +88,11 @@ class search(searchTemplate):
             "x-del-offre",
             self.del_offre_affichee
         )
-
+        
+        self.repeating_panel_offres.set_event_handler(
+            "x-icon_button_retour_go_up",
+            self.go_up
+        )
         with anvil.server.no_loading_indicator:
             # =================================================================
             # Utilisateur connecté
@@ -1156,7 +1167,7 @@ class search(searchTemplate):
         self.text_nb_offres.visible = False
         self.data_grid_1.visible = True
         self.column_panel_select.visible = True
-    
+        self.checkbox_on_off.visible = True
         self.recalculer_bouton_selection_mailed()
 
     def normaliser_liste_offres_vu(self, offres):
@@ -2353,3 +2364,6 @@ class search(searchTemplate):
             node.style.setProperty("--progress-value", f"{p}%")
         except Exception as e:
             print("Erreur réglage jauge :", e)
+
+    def go_up(self, **event_args):
+        self.scroll_into_view(smooth=True, align="start")

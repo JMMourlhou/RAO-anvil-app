@@ -168,16 +168,6 @@ components:
       wrap_on: mobile
     type: ColumnPanel
   - components:
-    - components:
-      - event_bindings: {change: checkbox_on_off_change}
-        layout_properties: {grid_position: 'WNLKWE,NHMMQM'}
-        name: checkbox_on_off
-        properties: {align: left, text: ''}
-        type: form:dep_lin1x4oec0ytd:_Components.Checkbox
-      layout_properties: {grid_position: 'IMZCHL,QHXGTK'}
-      name: column_panel_2
-      properties: {}
-      type: ColumnPanel
     - event_bindings: {click: button_inverser_selection_click}
       layout_properties: {grid_position: 'IMZCHL,NCVBQV'}
       name: button_inverser_selection
@@ -190,6 +180,23 @@ components:
           margin: ['4', null, '4', null]
         text: Inverser
         text_color: ''
+        visible: false
+      type: form:dep_lin1x4oec0ytd:_Components.Button
+    - event_bindings: {click: button_selection_mailed_click}
+      layout_properties: {grid_position: 'IMZCHL,TUMSDJ'}
+      name: button_selection_mailed
+      properties:
+        align: full
+        appearance: elevated
+        background_color: ''
+        icon: mi:send
+        icon_color: theme:Yellow
+        icon_size: 33
+        spacing:
+          margin: ['4', null, '4', null]
+          padding: [null, null, null, null]
+        text: Envoi  de la sélection
+        text_color: theme:Yellow
         visible: false
       type: form:dep_lin1x4oec0ytd:_Components.Button
     - event_bindings: {click: button_del_all_click}
@@ -212,23 +219,11 @@ components:
     name: column_panel_select
     properties: {background: '', col_spacing: none, visible: false, wrap_on: never}
     type: ColumnPanel
-  - event_bindings: {click: button_selection_mailed_click}
+  - event_bindings: {change: checkbox_on_off_change}
     layout_properties: {slot: card-content-slot}
-    name: button_selection_mailed
-    properties:
-      align: full
-      appearance: elevated
-      background_color: ''
-      icon: mi:send
-      icon_color: ''
-      icon_size: 33
-      spacing:
-        margin: ['4', null, '4', null]
-        padding: [null, null, null, null]
-      text: Envoi  offres sélectionnées
-      text_color: ''
-      visible: false
-    type: form:dep_lin1x4oec0ytd:_Components.Button
+    name: checkbox_on_off
+    properties: {align: center, background_color: 'theme:Secondary', checkbox_color: 'theme:Primary', text: 'Sélectionner toutes les offres ', text_color: 'theme:Primary', visible: false}
+    type: form:dep_lin1x4oec0ytd:_Components.Checkbox
   - components:
     - name: repeating_panel_offres
       properties: {item_template: search.RowTemplate1}

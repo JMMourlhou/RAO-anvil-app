@@ -23,6 +23,6 @@ def context_screen():
         "screen_type": screen_type,
         "is_wide": w >= 768,
     }
-    print(f"Ecran {ctx['screen_type']}, ({ctx['width']} x {ctx['height']})")
+    #print(f"Ecran {ctx['screen_type']}, ({ctx['width']} x {ctx['height']})")
 
     return ctx
