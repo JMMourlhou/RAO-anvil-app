@@ -1,431 +1,817 @@
-# Score_pertinence.py
 import anvil.server
-import re
+import anvil.users
 
-"""
-Module de calcul du score de pertinence des offres.
-
-Principe :
-- l'utilisateur fournit un dictionnaire de mots_score :
-    {
-        "rénovation": 10,
-        "agrandissement": 10,
-        "restructuration": 5,
-        "finition": 1
-    }
-
-- si un mot_score est trouvé dans le texte de l'offre, son poids est ajouté au score.
-- par défaut, un mot_score ne compte qu'une seule fois par offre.
-"""
-
-# ---------------------------------------------------------------------
-# Normalisation texte
-# ---------------------------------------------------------------------
-
-_ACCENTS = {
-    "à": "a", "â": "a", "ä": "a",
-    "á": "a", "ã": "a", "å": "a",
-
-    "ç": "c",
-
-    "é": "e", "è": "e", "ê": "e", "ë": "e",
-
-    "î": "i", "ï": "i", "í": "i", "ì": "i",
-
-    "ô": "o", "ö": "o", "ó": "o", "ò": "o", "õ": "o",
-
-    "ù": "u", "û": "u", "ü": "u", "ú": "u",
-
-    "ÿ": "y",
-    "ñ": "n",
-
-    "œ": "oe",
-    "æ": "ae",
-}
-
-# appelé par le module search après le retour des offres 
-@anvil.server.callable
-def scorer_offres(offres, dict_mots_score=None):
-    """
-    Reçoit une liste d'offres préparées côté client,
-    ajoute score / pertinence / mots_score_trouves,
-    puis trie par score décroissant.
-    """
-
-    if dict_mots_score is None:
-        dict_mots_score = {}
-
-    return scorer_et_trier_offres(
-        offres=offres,
-        dict_mots_score=dict_mots_score,
-        compter_occurrences=False,
-        accepter_pluriel=True,
-    )
-
-    
-def sans_accents(texte):
-    """Remplace les accents courants sans dépendre de unicodedata."""
-    if texte is None:
-        return ""
-
-    texte = str(texte).lower()
-
-    for accent, simple in _ACCENTS.items():
-        texte = texte.replace(accent, simple)
-
-    return texte
-
-
-def normaliser_texte(texte):
-    """
-    Normalise un texte pour permettre une recherche fiable :
-    - minuscules
-    - suppression/remplacement des accents
-    - ponctuation remplacée par des espaces
-    - espaces multiples supprimés
-
-    Exemple :
-    "Travaux de rénovation-extension" devient :
-    "travaux de renovation extension"
-    """
-    if texte is None:
-        return ""
-
-    texte = sans_accents(texte)
-
-    caracteres = []
-    for c in texte:
-        if c.isalnum():
-            caracteres.append(c)
-        else:
-            caracteres.append(" ")
-
-    texte = "".join(caracteres)
-    texte = " ".join(texte.split())
-
-    return texte
+from datetime import datetime, date
+from html import escape
 
 
 # ---------------------------------------------------------------------
-# Récupération du texte de l'offre
+# Import normalisation
 # ---------------------------------------------------------------------
+# Si Score_pertinence est un module serveur Anvil dans la même app,
+# cet import devrait fonctionner dans beaucoup de cas.
+# Si Anvil refuse, essaie la variante :
+# from .Score_pertinence import normaliser_texte
 
-def get_valeur(item, cle, defaut=None):
-    """
-    Récupère une valeur dans un dictionnaire ou objet compatible.
-    Utile si tes offres sont des dicts classiques.
-    """
+try:
+    from Score_pertinence import normaliser_texte
+except Exception:
     try:
-        return item.get(cle, defaut)
+        from .Score_pertinence import normaliser_texte
     except Exception:
-        try:
-            return item[cle]
-        except Exception:
-            return defaut
+        # Fallback local minimal si l'import Anvil pose problème.
+        # Normalement tu n'en auras pas besoin puisque normaliser_texte existe déjà.
+        _ACCENTS = {
+            "à": "a", "â": "a", "ä": "a", "á": "a", "ã": "a", "å": "a",
+            "ç": "c",
+            "é": "e", "è": "e", "ê": "e", "ë": "e",
+            "î": "i", "ï": "i", "í": "i", "ì": "i",
+            "ô": "o", "ö": "o", "ó": "o", "ò": "o", "õ": "o",
+            "ù": "u", "û": "u", "ü": "u", "ú": "u",
+            "ÿ": "y",
+            "ñ": "n",
+            "œ": "oe",
+            "æ": "ae",
+        }
+
+        def normaliser_texte(texte):
+            if texte is None:
+                return ""
+
+            texte = str(texte).lower()
+
+            for accent, simple in _ACCENTS.items():
+                texte = texte.replace(accent, simple)
+
+            caracteres = []
+            for c in texte:
+                if c.isalnum():
+                    caracteres.append(c)
+                else:
+                    caracteres.append(" ")
+
+            texte = "".join(caracteres)
+            texte = " ".join(texte.split())
+
+            return texte
 
 
-def texte_offre(offre, champs=None):
+# ---------------------------------------------------------------------
+# Outils généraux
+# ---------------------------------------------------------------------
+
+def _get_valeur(item, cle, defaut=None):
     """
-    Construit le texte dans lequel chercher les mots_score.
-
-    On privilégie search_text, mais on ajoute aussi quelques champs utiles
-    si search_text est absent ou incomplet.
+    Récupère une valeur dans un dictionnaire ou dans une ligne Anvil.
     """
-    if champs is None:
-        champs = (
-            "search_text",
-            "titre",
-            "description",
-            "acheteur",
-            "nature",
-            "procedure",
-            "lieu",
-            "departement",
-        )
+    if item is None:
+        return defaut
+
+    try:
+        if isinstance(item, dict):
+            return item.get(cle, defaut)
+    except Exception:
+        pass
+
+    try:
+        return item[cle]
+    except Exception:
+        return defaut
+
+
+def _txt(value, default="Non renseigné"):
+    """Retourne une chaîne propre pour le texte brut."""
+    if value is None:
+        return default
+
+    value = str(value).strip()
+    return value if value else default
+
+
+def _html(value, default="Non renseigné"):
+    """Retourne une chaîne échappée pour le HTML."""
+    return escape(_txt(value, default))
+
+
+def _format_liste(value):
+    """
+    Transforme une liste ou une chaîne en texte lisible.
+    """
+    if not value:
+        return ""
+
+    if isinstance(value, list):
+        return ", ".join(str(x).strip() for x in value if str(x).strip())
+
+    return str(value).strip()
+
+
+def _format_mots_trouves(value):
+    return _format_liste(value)
+
+
+# ---------------------------------------------------------------------
+# Extraction des termes de recherche
+# ---------------------------------------------------------------------
+
+def _extraire_termes_depuis_valeur(value):
+    """
+    Transforme une saisie en liste de termes.
+
+    Important :
+    - on découpe sur virgule, point-virgule, retour ligne ;
+    - on ne découpe PAS sur les espaces ;
+    - cela permet de conserver les expressions comme "mac sst".
+    """
+
+    if not value:
+        return []
+
+    if isinstance(value, list):
+        termes = []
+        for item in value:
+            termes.extend(_extraire_termes_depuis_valeur(item))
+        return termes
+
+    texte = str(value)
+
+    for sep in [";", "\n", "\t", "\r"]:
+        texte = texte.replace(sep, ",")
+
+    return [x.strip() for x in texte.split(",") if x.strip()]
+
+
+def _liste_mots_recherche(contexte):
+    """
+    Construit la liste des termes recherchés.
+
+    On accepte plusieurs clés possibles pour être robuste :
+    - mots_cles
+    - mots_obligatoires
+    - obligatoires
+    - mots_ou
+    - au_moins_un
+    - mots_au_moins_un
+    """
+
+    if not contexte:
+        return []
+
+    sources_termes = []
+
+    for cle in [
+        "mots_cles",
+        "mots_obligatoires",
+        "obligatoires",
+        "mots_ou",
+        "au_moins_un",
+        "mots_au_moins_un",
+    ]:
+        valeur = contexte.get(cle)
+        if valeur:
+            sources_termes.extend(_extraire_termes_depuis_valeur(valeur))
+
+    resultat = []
+    deja_vus = set()
+
+    for terme in sources_termes:
+        terme_clean = str(terme).strip()
+        terme_norm = normaliser_texte(terme_clean)
+
+        if terme_norm and terme_norm not in deja_vus:
+            resultat.append(terme_clean)
+            deja_vus.add(terme_norm)
+
+    return resultat
+
+
+def _texte_offre_pour_correspondance(offre):
+    """
+    Construit le texte dans lequel vérifier la présence des mots-clés.
+    """
+
+    champs = [
+        "titre",
+        "resume_court",
+        "description",
+        "objet",
+        "acheteur",
+        "nature",
+        "procedure",
+        "type_avis",
+        "departement",
+        "lieu",
+        "source",
+        "reference",
+        "search_text",
+        "mots_score_trouves",
+        "mots_trouves",
+    ]
 
     morceaux = []
 
     for champ in champs:
-        valeur = get_valeur(offre, champ, "")
-        if valeur:
+        valeur = _get_valeur(offre, champ)
+
+        if not valeur:
+            continue
+
+        if isinstance(valeur, list):
+            morceaux.extend(str(x) for x in valeur if str(x).strip())
+        else:
             morceaux.append(str(valeur))
 
-    return "\n".join(morceaux)
+    return " ".join(morceaux)
 
 
-# ---------------------------------------------------------------------
-# Recherche des mots_score
-# ---------------------------------------------------------------------
-
-def variantes_mot_score(mot_normalise, accepter_pluriel=True):
+def _contient_terme(texte_normalise, terme_normalise):
     """
-    Retourne les variantes simples d'un mot_score.
+    Vérifie qu'un terme ou une expression est présent dans le texte normalisé.
 
-    Exemple :
-    "renovation" cherchera aussi "renovations".
-
-    Pour une expression comme "maitrise oeuvre", on ne génère pas de pluriel.
+    On ajoute des espaces autour pour éviter les faux positifs :
+    - "sst" ne doit pas être trouvé dans un mot plus long.
     """
-    if not mot_normalise:
-        return []
 
-    variantes = [mot_normalise]
-
-    if accepter_pluriel and " " not in mot_normalise:
-        if len(mot_normalise) > 3 and not mot_normalise.endswith("s"):
-            variantes.append(mot_normalise + "s")
-
-    return variantes
-
-
-def contient_expression(texte_normalise, expression_normalisee):
-    """
-    Vérifie qu'une expression est présente comme mot ou groupe de mots complet.
-
-    Cela évite par exemple que "finition" soit trouvé dans "définition".
-    """
-    if not texte_normalise or not expression_normalisee:
+    if not texte_normalise or not terme_normalise:
         return False
 
     texte_prepare = " " + texte_normalise + " "
-    expression_preparee = " " + expression_normalisee + " "
+    terme_prepare = " " + terme_normalise + " "
 
-    return expression_preparee in texte_prepare
+    return terme_prepare in texte_prepare
 
 
-def compter_expression(texte_normalise, expression_normalisee):
+def _calcul_correspondance(offre, contexte):
     """
-    Compte le nombre d'apparitions exactes d'une expression normalisée.
-    Fonction disponible si tu veux un jour compter les occurrences.
-    """
-    if not texte_normalise or not expression_normalisee:
-        return 0
+    Calcule le pourcentage de correspondance des termes recherchés
+    dans le contenu réel de l'offre.
 
-    texte_prepare = " " + texte_normalise + " "
-    expression_preparee = " " + expression_normalisee + " "
+    Exemple :
+    Obligatoires : secourisme
+    Au moins un : sst, mac sst, psc1
 
-    return texte_prepare.count(expression_preparee)
+    Titre :
+    Initiation secourisme SST – PSC1 et MAC SST
 
-
-# ---------------------------------------------------------------------
-# Calcul du score
-# ---------------------------------------------------------------------
-
-def calculer_score_offre(
-    offre,
-    dict_mots_score,
-    champs=None,
-    compter_occurrences=False,
-    max_occurrences_par_mot=3,
-    accepter_pluriel=True,
-):
-    """
-    Calcule le score d'une offre.
-
-    Paramètres :
-    - offre : dictionnaire de l'offre
-    - dict_mots_score : {"rénovation": 10, "aménagement": 1, ...}
-    - champs : champs de l'offre à analyser
-    - compter_occurrences :
-        False = un mot_score compte une seule fois par offre
-        True  = chaque apparition compte, avec plafond
-    - max_occurrences_par_mot :
-        utilisé seulement si compter_occurrences=True
-    - accepter_pluriel :
-        "rénovation" trouve aussi "rénovations"
-
-    Retour :
-    {
-        "score": 25,
-        "mots_score_trouves": ["rénovation", "restructuration"],
-        "details_score": {
-            "rénovation": {
-                "valeur": 10,
-                "occurrences": 1,
-                "points": 10
-            }
-        }
-    }
+    Résultat :
+    100% (4 terme(s) trouvé(s) sur 4)
     """
 
-    if not dict_mots_score:
+    mots_recherche = _liste_mots_recherche(contexte)
+    nb_total = len(mots_recherche)
+
+    if nb_total == 0:
         return {
-            "score": 0,
-            "mots_score_trouves": [],
-            "details_score": {},
+            "nb_trouves": 0,
+            "nb_total": 0,
+            "pourcentage": 0,
+            "explication": "Non calculable",
+            "mots_trouves": [],
         }
 
-    texte = texte_offre(offre, champs=champs)
-    texte_normalise = normaliser_texte(texte)
+    texte_offre = _texte_offre_pour_correspondance(offre)
+    texte_normalise = normaliser_texte(texte_offre)
 
-    score = 0
-    mots_score_trouves = []
-    details_score = {}
+    mots_trouves = []
 
-    for mot_score, valeur in dict_mots_score.items():
+    for mot in mots_recherche:
+        mot_norm = normaliser_texte(mot)
 
-        mot_normalise = normaliser_texte(mot_score)
+        if _contient_terme(texte_normalise, mot_norm):
+            mots_trouves.append(mot)
 
-        try:
-            poids = int(valeur)
-        except Exception:
-            poids = 0
+    nb_trouves = len(mots_trouves)
+    pourcentage = round((nb_trouves / nb_total) * 100)
 
-        if not mot_normalise or poids == 0:
-            continue
-
-        variantes = variantes_mot_score(
-            mot_normalise,
-            accepter_pluriel=accepter_pluriel
-        )
-
-        nb_occurrences = 0
-
-        for variante in variantes:
-            if compter_occurrences:
-                nb_occurrences += compter_expression(texte_normalise, variante)
-            else:
-                if contient_expression(texte_normalise, variante):
-                    nb_occurrences = 1
-                    break
-
-        if nb_occurrences > 0:
-            if compter_occurrences:
-                nb_occurrences = min(nb_occurrences, max_occurrences_par_mot)
-                points = nb_occurrences * poids
-            else:
-                points = poids
-
-            score += points
-            mots_score_trouves.append(mot_score)
-
-            details_score[mot_score] = {
-                "valeur": poids,
-                "occurrences": nb_occurrences,
-                "points": points,
-            }
+    explication = f"{pourcentage}% ({nb_trouves} terme(s) trouvé(s) sur {nb_total})"
 
     return {
-        "score": score,
-        "mots_score_trouves": mots_score_trouves,
-        "details_score": details_score,
+        "nb_trouves": nb_trouves,
+        "nb_total": nb_total,
+        "pourcentage": pourcentage,
+        "explication": explication,
+        "mots_trouves": mots_trouves,
     }
 
 
 # ---------------------------------------------------------------------
-# Libellé de pertinence
+# Tri des offres par date limite puis score
 # ---------------------------------------------------------------------
 
-def libelle_pertinence(score):
+def _parse_date_limite(value):
     """
-    Convertit un score numérique en libellé simple.
+    Convertit date_limite_rep en objet date pour permettre un tri fiable.
 
-    Tu pourras ajuster ces seuils après quelques tests réels.
+    Formats acceptés :
+    - date Python
+    - datetime Python
+    - YYYY-MM-DD
+    - YYYY-MM-DDTHH:MM:SS
+    - DD/MM/YYYY
+    - DD-MM-YYYY
+    - DD.MM.YYYY
+    - DD/MM/YYYY HH:MM
+    - DD/MM/YYYY à HH:MM
     """
+
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        return value.date()
+
+    if isinstance(value, date):
+        return value
+
+    txt = str(value).strip()
+
+    if not txt:
+        return None
+
+    txt = txt.replace(" à ", " ")
+    txt = txt.replace("T", " ")
+
+    if "+" in txt:
+        txt = txt.split("+")[0].strip()
+
+    if txt.endswith("Z"):
+        txt = txt[:-1].strip()
+
+    formats = [
+        "%Y-%m-%d",
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%d/%m/%Y",
+        "%d/%m/%Y %H:%M",
+        "%d/%m/%Y %H:%M:%S",
+        "%d-%m-%Y",
+        "%d-%m-%Y %H:%M",
+        "%d-%m-%Y %H:%M:%S",
+        "%d.%m.%Y",
+        "%d.%m.%Y %H:%M",
+        "%d.%m.%Y %H:%M:%S",
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(txt, fmt).date()
+        except ValueError:
+            pass
+
+    return None
+
+
+def _score_int(offre):
+    """
+    Retourne le score sous forme d'entier.
+    """
+
+    score = _get_valeur(offre, "score", 0)
+
     try:
-        score = int(score)
+        return int(score)
     except Exception:
-        score = 0
-
-    if score >= 30:
-        return "Très pertinente"
-    elif score >= 15:
-        return "Pertinente"
-    elif score >= 5:
-        return "Peu pertinente"
-    else:
-        return ""
+        try:
+            return int(float(str(score).replace(",", ".")))
+        except Exception:
+            return 0
 
 
-# ---------------------------------------------------------------------
-# Enrichissement et tri des offres
-# ---------------------------------------------------------------------
-
-def ajouter_score_aux_offres(
-    offres,
-    dict_mots_score,
-    champs=None,
-    compter_occurrences=False,
-    max_occurrences_par_mot=3,
-    accepter_pluriel=True,
-):
+def _cle_tri_offre(offre):
     """
-    Ajoute directement dans chaque offre :
-    - score
-    - pertinence
-    - mots_score_trouves
-    - details_score
-
-    Retourne la liste modifiée.
+    Tri :
+    1. offres avec date connue en premier ;
+    2. date limite la plus proche en premier ;
+    3. score décroissant.
     """
 
-    if offres is None:
-        return []
+    date_limite = _parse_date_limite(_get_valeur(offre, "date_limite_rep"))
 
-    for offre in offres:
-        resultat = calculer_score_offre(
-            offre=offre,
-            dict_mots_score=dict_mots_score,
-            champs=champs,
-            compter_occurrences=compter_occurrences,
-            max_occurrences_par_mot=max_occurrences_par_mot,
-            accepter_pluriel=accepter_pluriel,
-        )
-
-        offre["score"] = resultat["score"]
-        offre["pertinence"] = libelle_pertinence(resultat["score"])
-        offre["mots_score_trouves"] = resultat["mots_score_trouves"]
-        offre["details_score"] = resultat["details_score"]
-
-    return offres
-
-
-def trier_offres_par_score(offres):
-    """
-    Trie les offres par score décroissant.
-    En cas d'égalité, on garde les offres les plus récentes en premier
-    si date_publication existe.
-    """
-
-    if offres is None:
-        return []
-
-    def cle_tri(offre):
-        score = get_valeur(offre, "score", 0) or 0
-        date_publication = get_valeur(offre, "date_publication", "") or ""
-
-        return (
-            int(score),
-            str(date_publication),
-        )
-
-    return sorted(offres, key=cle_tri, reverse=True)
-
-
-def scorer_et_trier_offres(
-    offres,
-    dict_mots_score,
-    champs=None,
-    compter_occurrences=False,
-    max_occurrences_par_mot=3,
-    accepter_pluriel=True,
-):
-    """
-    Fonction principale à utiliser dans ton app.
-
-    Elle :
-    1. calcule les scores
-    2. ajoute les détails dans chaque offre
-    3. trie les offres par score décroissant
-    """
-
-    offres = ajouter_score_aux_offres(
-        offres=offres,
-        dict_mots_score=dict_mots_score,
-        champs=champs,
-        compter_occurrences=compter_occurrences,
-        max_occurrences_par_mot=max_occurrences_par_mot,
-        accepter_pluriel=accepter_pluriel,
+    return (
+        date_limite is None,
+        date_limite or date.max,
+        -_score_int(offre),
     )
 
-    return trier_offres_par_score(offres)
+
+# ---------------------------------------------------------------------
+# Construction du mail texte
+# ---------------------------------------------------------------------
+
+def _build_text_body(offres, contexte, email_user):
+    date_envoi = datetime.now().strftime("%d/%m/%Y à %H:%M")
+
+    lignes = []
+    lignes.append("Bonjour,")
+    lignes.append("")
+    lignes.append("Voici les offres que vous avez sélectionnées dans RAO.")
+    lignes.append("")
+    lignes.append(f"Date d'envoi : {date_envoi}")
+    lignes.append(f"Destinataire : {email_user}")
+    lignes.append(f"Nombre d'offres : {len(offres)}")
+
+    if contexte:
+        lignes.append("")
+        lignes.append("Contexte de recherche :")
+        lignes.append(f"- Mots clés : {_txt(contexte.get('mots_cles'), '')}")
+        lignes.append(f"- Mots OU : {_txt(contexte.get('mots_ou'), '')}")
+        lignes.append(f"- Mots exclus : {_txt(contexte.get('mots_exclus'), '')}")
+        lignes.append(f"- Départements : {_txt(contexte.get('departements'), '')}")
+        lignes.append(f"- Nombre de jours : {_txt(contexte.get('nb_jours'), '')}")
+
+        sources = contexte.get("sources") or []
+        if isinstance(sources, list):
+            sources = ", ".join(str(x) for x in sources)
+        lignes.append(f"- Sources : {_txt(sources, '')}")
+
+    lignes.append("")
+    lignes.append("------------------------------------------------------------")
+
+    for idx, offre in enumerate(offres, start=1):
+        titre = _txt(_get_valeur(offre, "titre"), "Offre sans titre")
+        acheteur = _txt(_get_valeur(offre, "acheteur"))
+        lieu = _txt(_get_valeur(offre, "lieu") or _get_valeur(offre, "departement"))
+        source = _txt(_get_valeur(offre, "source"))
+        date_limite = _txt(_get_valeur(offre, "date_limite_rep"))
+        resume = _txt(_get_valeur(offre, "resume_court"), "")
+        lien_source = _txt(_get_valeur(offre, "lien_source"), "")
+        lien_app = _txt(_get_valeur(offre, "lien_app"), "")
+        score_brut = _get_valeur(offre, "score")
+
+        try:
+            correspondance = _calcul_correspondance(offre, contexte or {})
+        except Exception as e:
+            print(f"Erreur calcul correspondance texte offre {idx}: {e}")
+            correspondance = {
+                "nb_total": 0,
+                "explication": "",
+                "mots_trouves": [],
+            }
+
+        mots_trouves = _format_mots_trouves(
+            _get_valeur(offre, "mots_trouves")
+            or correspondance.get("mots_trouves")
+        )
+
+        lignes.append("")
+        lignes.append(f"{idx}. {titre}")
+        lignes.append("")
+        lignes.append(f"Acheteur : {acheteur}")
+        lignes.append(f"Lieu / département : {lieu}")
+        lignes.append(f"Source : {source}")
+        lignes.append(f"Date limite de réponse : {date_limite}")
+
+        if score_brut not in [None, ""]:
+            lignes.append(f"Score de pertinence : {score_brut}")
+
+        if correspondance.get("nb_total", 0) > 0:
+            lignes.append(f"Correspondance mots-clés : {correspondance['explication']}")
+
+        if mots_trouves:
+            lignes.append(f"Mots trouvés : {mots_trouves}")
+
+        if resume:
+            lignes.append("")
+            lignes.append("Résumé :")
+            lignes.append(resume)
+
+        if lien_source:
+            lignes.append("")
+            lignes.append(f"Lien vers l'annonce source : {lien_source}")
+
+        if lien_app:
+            lignes.append(f"Lien vers l'analyse RAO : {lien_app}")
+
+        lignes.append("")
+        lignes.append("------------------------------------------------------------")
+
+    lignes.append("")
+    lignes.append("Conseil : vérifiez toujours la date limite et le dossier de consultation directement sur la plateforme source avant toute réponse.")
+    lignes.append("")
+    lignes.append("Cordialement,")
+    lignes.append("RAO — Recherche d'appels d'offres")
+
+    return "\n".join(lignes)
+
+
+# ---------------------------------------------------------------------
+# Construction du mail HTML
+# ---------------------------------------------------------------------
+
+def _build_html_body(offres, contexte, email_user):
+    date_envoi = datetime.now().strftime("%d/%m/%Y à %H:%M")
+
+    mots_cles = _html(contexte.get("mots_cles"), "") if contexte else ""
+    mots_ou = _html(contexte.get("mots_ou"), "") if contexte else ""
+    mots_exclus = _html(contexte.get("mots_exclus"), "") if contexte else ""
+    departements = _html(contexte.get("departements"), "") if contexte else ""
+    nb_jours = _html(contexte.get("nb_jours"), "") if contexte else ""
+
+    sources = ""
+    if contexte:
+        sources = contexte.get("sources") or ""
+        if isinstance(sources, list):
+            sources = ", ".join(str(x) for x in sources)
+        sources = _html(sources, "")
+
+    html = f"""
+<!doctype html>
+<html>
+<body style="margin:0; padding:0; background:#f5f5f5; font-family:Arial, Helvetica, sans-serif; color:#222;">
+  <div style="max-width:900px; margin:0 auto; padding:12px;">
+
+    <div style="background:#ffffff; border:1px solid #dddddd; border-radius:10px; padding:22px; margin-bottom:18px;">
+      <h2 style="margin:0 0 10px 0; color:#6b8e23;">RAO — Offres sélectionnées</h2>
+      <p style="margin:0 0 8px 0;">Bonjour,</p>
+      <p style="margin:0 0 14px 0;">Voici les offres que vous avez sélectionnées dans RAO.</p>
+
+      <table style="border-collapse:collapse; width:100%; font-size:14px;">
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Date d'envoi</td>
+          <td style="padding:4px 0;">{escape(date_envoi)}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Destinataire</td>
+          <td style="padding:4px 0;">{_html(email_user)}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Nombre d'offres</td>
+          <td style="padding:4px 0;">{len(offres)}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Mots clés</td>
+          <td style="padding:4px 0;">{mots_cles}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Mots OU</td>
+          <td style="padding:4px 0;">{mots_ou}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Mots exclus</td>
+          <td style="padding:4px 0;">{mots_exclus}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Départements</td>
+          <td style="padding:4px 0;">{departements}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Période</td>
+          <td style="padding:4px 0;">{nb_jours} jour(s)</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Sources</td>
+          <td style="padding:4px 0;">{sources}</td>
+        </tr>
+      </table>
+    </div>
+"""
+
+    for idx, offre in enumerate(offres, start=1):
+        titre = _html(_get_valeur(offre, "titre"), "Offre sans titre")
+        acheteur = _html(_get_valeur(offre, "acheteur"))
+        lieu = _html(_get_valeur(offre, "lieu") or _get_valeur(offre, "departement"))
+        source = _html(_get_valeur(offre, "source"))
+        date_limite = _html(_get_valeur(offre, "date_limite_rep"))
+        resume = _html(_get_valeur(offre, "resume_court"), "")
+        score_brut = _get_valeur(offre, "score")
+        lien_source = _get_valeur(offre, "lien_source") or ""
+        lien_app = _get_valeur(offre, "lien_app") or ""
+
+        try:
+            correspondance = _calcul_correspondance(offre, contexte or {})
+        except Exception as e:
+            print(f"Erreur calcul correspondance HTML offre {idx}: {e}")
+            correspondance = {
+                "nb_total": 0,
+                "explication": "",
+                "mots_trouves": [],
+            }
+
+        mots_trouves = _html(
+            _format_mots_trouves(
+                _get_valeur(offre, "mots_trouves")
+                or correspondance.get("mots_trouves")
+            ),
+            ""
+        )
+
+        bouton_source = ""
+        if lien_source:
+            bouton_source = f"""
+            <a href="{escape(str(lien_source), quote=True)}"
+               style="display:inline-block; background:#1a73e8; color:#ffffff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:bold; margin-right:8px; margin-top:6px;">
+               Voir l'annonce source
+            </a>
+            """
+
+        bouton_app = ""
+        if lien_app:
+            bouton_app = f"""
+            <a href="{escape(str(lien_app), quote=True)}"
+               style="display:inline-block; background:#6b8e23; color:#ffffff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:bold; margin-top:6px;">
+               Revoir dans RAO
+            </a>
+            """
+
+        bloc_score = ""
+
+        if score_brut not in [None, ""]:
+            bloc_score += f"""
+            <p style="margin:8px 0 0 0;">
+              <strong>Score de pertinence :</strong> {_html(score_brut)}
+            </p>
+            """
+
+        if correspondance.get("nb_total", 0) > 0:
+            bloc_score += f"""
+            <p style="margin:8px 0 0 0;">
+              <strong>Correspondance mots-clés :</strong> {_html(correspondance['explication'])}
+            </p>
+            """
+
+        bloc_mots = ""
+        if mots_trouves:
+            bloc_mots = f"""
+            <p style="margin:8px 0 0 0;">
+              <strong>Mots trouvés :</strong> {mots_trouves}
+            </p>
+            """
+
+        bloc_resume = ""
+        if resume:
+            bloc_resume = f"""
+            <p style="margin:12px 0 0 0;">
+              <strong>Résumé :</strong><br>
+              {resume}
+            </p>
+            """
+
+        html += f"""
+    <div style="background:#ffffff; border:1px solid #dddddd; border-radius:8px; padding:14px; margin-bottom:12px;">
+
+      <div style="background:#eef5df; border-left:5px solid #6b8e23; padding:10px 12px; border-radius:5px; margin-bottom:12px;">
+        <h3 style="margin:0; color:#334400; font-size:18px; line-height:1.3;">
+          {idx}. {titre}
+        </h3>
+      </div>
+
+      <table style="border-collapse:collapse; width:100%; font-size:14px;">
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold; width:120px;">Acheteur</td>
+          <td style="padding:4px 0;">{acheteur}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Lieu / département</td>
+          <td style="padding:4px 0;">{lieu}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Source</td>
+          <td style="padding:4px 0;">{source}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 8px 4px 0; font-weight:bold;">Date limite</td>
+          <td style="padding:4px 0; color:#b00020; font-weight:bold;">{date_limite}</td>
+        </tr>
+      </table>
+
+      {bloc_score}
+      {bloc_mots}
+      {bloc_resume}
+
+      <div style="margin-top:16px;">
+        {bouton_source}
+        {bouton_app}
+      </div>
+
+    </div>
+"""
+
+    html += """
+    <div style="background:#fff8e1; border:1px solid #e0c36a; border-radius:10px; padding:16px; font-size:14px;">
+      <strong>Important :</strong>
+      vérifiez toujours la date limite et le dossier de consultation directement sur la plateforme source avant toute réponse.
+    </div>
+
+    <p style="font-size:13px; color:#666; margin-top:18px;">
+      Cordialement,<br>
+      RAO — Recherche d'appels d'offres
+    </p>
+
+  </div>
+</body>
+</html>
+"""
+
+    return html
+
+
+# ---------------------------------------------------------------------
+# Fonction callable depuis le client Anvil
+# ---------------------------------------------------------------------
+
+@anvil.server.callable(require_user=True)
+def envoyer_mail_offres_selectionnees(offres_selectionnees, contexte=None):
+    """
+    Fonction appelée par le bouton client.
+    Elle récupère l'utilisateur connecté, construit le mail,
+    puis appelle l'uplink send_mail_general().
+    """
+
+    user = anvil.users.get_user()
+
+    if not user:
+        return {
+            "ok": False,
+            "error": "Utilisateur non connecté."
+        }
+
+    try:
+        email_user = user["email"]
+    except Exception:
+        email_user = None
+
+    if not email_user:
+        return {
+            "ok": False,
+            "error": "Adresse email utilisateur introuvable."
+        }
+
+    if not offres_selectionnees:
+        return {
+            "ok": False,
+            "error": "Aucune offre sélectionnée."
+        }
+
+    if len(offres_selectionnees) > 50:
+        return {
+            "ok": False,
+            "error": "Trop d'offres sélectionnées. Limite actuelle : 50 offres par mail."
+        }
+
+    offres = sorted(
+        offres_selectionnees,
+        key=_cle_tri_offre
+    )
+
+    nb = len(offres)
+    date_sujet = datetime.now().strftime("%d/%m/%Y")
+
+    mots_cles = ""
+    if contexte:
+        mots_cles = str(contexte.get("mots_cles") or "").strip()
+
+    if mots_cles:
+        subject = f"RAO — {nb} offre(s) sélectionnée(s) pour « {mots_cles} » — {date_sujet}"
+    else:
+        subject = f"RAO — {nb} offre(s) sélectionnée(s) — {date_sujet}"
+
+    # Diagnostic temporaire utile.
+    # Tu peux supprimer ces print une fois validé.
+    print("------------------------------------------------")
+    print("CONTEXTE MAIL =", contexte)
+    print(f"Nombre offres_selectionnees reçues : {len(offres_selectionnees)}")
+    print(f"Nombre offres après tri : {len(offres)}")
+
+    for i, offre in enumerate(offres, start=1):
+        print(
+            f"Offre {i} : "
+            f"{_get_valeur(offre, 'titre')} / "
+            f"date_limite={_get_valeur(offre, 'date_limite_rep')} / "
+            f"score={_get_valeur(offre, 'score')}"
+        )
+
+    print("------------------------------------------------")
+
+    text_body = _build_text_body(offres, contexte or {}, email_user)
+    html_body = _build_html_body(offres, contexte or {}, email_user)
+
+    try:
+        result = anvil.server.call(
+            "send_mail_general",
+            to_address=email_user,
+            subject=subject,
+            text_body=text_body,
+            html_body=html_body,
+            from_address="jmarc@jmm-formation-et-services.fr",
+            from_name="RAO - JM-Web34",
+            reply_to="jmarc@jmm-formation-et-services.fr"
+        )
+    except Exception as e:
+        return {
+            "ok": False,
+            "error": f"Erreur pendant l'appel à l'uplink mail : {str(e)}"
+        }
+
+    if result and result.get("ok"):
+        return {
+            "ok": True,
+            "message": "Mail envoyé.",
+            "email": email_user,
+            "nb_offres": nb,
+            "subject": subject
+        }
+
+    return {
+        "ok": False,
+        "error": result.get("error") if isinstance(result, dict) else str(result)
+    }

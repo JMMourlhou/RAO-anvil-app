@@ -1,5 +1,6 @@
 import anvil.server
 import anvil.users
+import unicodedata
 
 from datetime import datetime, date
 from html import escape
