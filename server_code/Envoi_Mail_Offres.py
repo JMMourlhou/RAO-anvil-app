@@ -132,7 +132,7 @@ def _build_html_body(offres, contexte, email_user):
 <!doctype html>
 <html>
 <body style="margin:0; padding:0; background:#f5f5f5; font-family:Arial, Helvetica, sans-serif; color:#222;">
-  <div style="max-width:900px; margin:0 auto; padding:24px;">
+  <div style="max-width:900px; margin:0 auto; padding:12px;">
 
     <div style="background:#ffffff; border:1px solid #dddddd; border-radius:10px; padding:22px; margin-bottom:18px;">
       <h2 style="margin:0 0 10px 0; color:#6b8e23;">RAO — Offres sélectionnées</h2>
@@ -207,7 +207,7 @@ def _build_html_body(offres, contexte, email_user):
         if lien_app:
             bouton_app = f"""
             <a href="{escape(str(lien_app), quote=True)}"
-            style="display:inline-block; background:#6b8e23; color:#ffffff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:bold;">
+            style="display:inline-block; background:#6b8e23; color:#ffffff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:bold; margin-top:6px;">
             Revoir dans RAO
             </a>
             """
@@ -246,7 +246,7 @@ def _build_html_body(offres, contexte, email_user):
             """
 
         html += f"""
-    <div style="background:#ffffff; border:1px solid #dddddd; border-radius:10px; padding:20px; margin-bottom:16px;">
+    <div style="background:#ffffff; border:1px solid #dddddd; border-radius:8px; padding:14px; margin-bottom:12px;">
         <div style="background:#eef5df; border-left:6px solid #6b8e23; padding:12px 14px; border-radius:6px; margin-bottom:14px;">
             <h3 style="margin:0; color:#334400; font-size:19px; line-height:1.3;">
                 {idx}. {titre}
