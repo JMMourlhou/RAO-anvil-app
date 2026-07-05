@@ -1275,9 +1275,27 @@ class search(searchTemplate):
             "source",
             "reference",
             "resume_court",
+
+            # Champs utiles pour le mail
+            "description",
+            "objet",
+            "search_text",
+
+            # Mots trouvés / intérêt déjà calculés dans search
+            "mots_trouves",
+            "mots_ou_trouves",
+            "nb_mots_ou_total",
+            "nb_mots_ou_trouves",
+            "taux_mots_ou",
+            "role_interet",
+
+            # Compatibilité éventuelle
+            "mots_score_trouves",
+            "details_score",
             "score",
             "pertinence",
-            "mots_trouves",
+
+            # Liens
             "lien_source",
             "lien_app",
             "idweb",

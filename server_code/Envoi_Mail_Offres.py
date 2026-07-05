@@ -5,6 +5,92 @@ import unicodedata
 from datetime import datetime, date
 from html import escape
 
+# ---------------------------------------------------------------------
+# Normalisation texte
+# ---------------------------------------------------------------------
+
+_ACCENTS = {
+    "à": "a", "â": "a", "ä": "a",
+    "á": "a", "ã": "a", "å": "a",
+
+    "ç": "c",
+
+    "é": "e", "è": "e", "ê": "e", "ë": "e",
+
+    "î": "i", "ï": "i", "í": "i", "ì": "i",
+
+    "ô": "o", "ö": "o", "ó": "o", "ò": "o", "õ": "o",
+
+    "ù": "u", "û": "u", "ü": "u", "ú": "u",
+
+    "ÿ": "y",
+    "ñ": "n",
+
+    "œ": "oe",
+    "æ": "ae",
+}
+
+
+def sans_accents(texte):
+    """Remplace les accents courants."""
+    if texte is None:
+        return ""
+
+    texte = str(texte).lower()
+
+    for accent, simple in _ACCENTS.items():
+        texte = texte.replace(accent, simple)
+
+    return texte
+
+
+def normaliser_texte(texte):
+    """
+    Normalise un texte :
+    - minuscules
+    - accents supprimés
+    - ponctuation remplacée par espaces
+    - espaces multiples supprimés
+    """
+    if texte is None:
+        return ""
+
+    texte = sans_accents(texte)
+
+    caracteres = []
+
+    for c in texte:
+        if c.isalnum():
+            caracteres.append(c)
+        else:
+            caracteres.append(" ")
+
+    texte = "".join(caracteres)
+    texte = " ".join(texte.split())
+
+    return texte
+
+def _get_valeur(item, cle, defaut=None):
+    """
+    Récupère une valeur dans un dictionnaire ou dans une ligne Anvil.
+    """
+
+    if item is None:
+        return defaut
+
+    try:
+        if isinstance(item, dict):
+            return item.get(cle, defaut)
+    except Exception:
+        pass
+
+    try:
+        valeur = item[cle]
+        if valeur is None:
+            return defaut
+        return valeur
+    except Exception:
+        return defaut
 
 def _txt(value, default="Non renseigné"):
     """Retourne une chaîne propre pour le texte brut."""
@@ -59,16 +145,18 @@ def _build_text_body(offres, contexte, email_user):
     lignes.append("------------------------------------------------------------")
 
     for idx, offre in enumerate(offres, start=1):
-        titre = _txt(offre.get("titre"), "Offre sans titre")
-        acheteur = _txt(offre.get("acheteur"))
-        lieu = _txt(offre.get("lieu") or offre.get("departement"))
-        source = _txt(offre.get("source"))
-        date_limite = _txt(offre.get("date_limite_rep"))
-        resume = _txt(offre.get("resume_court"), "")
-        mots_trouves = _format_mots_trouves(offre.get("mots_trouves"))
-        lien_source = _txt(offre.get("lien_source"), "")
-        lien_app = _txt(offre.get("lien_app"), "")
-
+        titre = _txt(_get_valeur(offre, "titre"), "Offre sans titre")
+        acheteur = _txt(_get_valeur(offre, "acheteur"))
+        lieu = _txt(_get_valeur(offre, "lieu") or _get_valeur(offre, "departement"))
+        source = _txt(_get_valeur(offre, "source"))
+        date_limite = _txt(_get_valeur(offre, "date_limite_rep"))
+        resume = _txt(_get_valeur(offre, "resume_court"), "")
+        lien_source = _txt(_get_valeur(offre, "lien_source"), "")
+        lien_app = _txt(_get_valeur(offre, "lien_app"), "")
+    
+        mots_trouves_liste = _mots_trouves_affichage_mail(offre, contexte or {})
+        mots_trouves = _format_mots_trouves(mots_trouves_liste)
+    
         lignes.append("")
         lignes.append(f"{idx}. {titre}")
         lignes.append("")
@@ -76,23 +164,22 @@ def _build_text_body(offres, contexte, email_user):
         lignes.append(f"Lieu / département : {lieu}")
         lignes.append(f"Source : {source}")
         lignes.append(f"Date limite de réponse : {date_limite}")
-
-
+    
         if mots_trouves:
             lignes.append(f"Mots trouvés : {mots_trouves}")
-
+    
         if resume:
             lignes.append("")
             lignes.append("Résumé :")
             lignes.append(resume)
-
+    
         if lien_source:
             lignes.append("")
             lignes.append(f"Lien vers l'annonce source : {lien_source}")
-
+    
         if lien_app:
             lignes.append(f"Lien vers l'analyse RAO : {lien_app}")
-
+    
         lignes.append("")
         lignes.append("------------------------------------------------------------")
 
@@ -113,7 +200,7 @@ def _build_html_body(offres, contexte, email_user):
     mots_exclus = _html(contexte.get("mots_exclus"), "") if contexte else ""
     departements = _html(contexte.get("departements"), "") if contexte else ""
     nb_jours = _html(contexte.get("nb_jours"), "") if contexte else ""
-
+    
     sources = ""
     if contexte:
         sources = contexte.get("sources") or ""
@@ -174,26 +261,46 @@ def _build_html_body(offres, contexte, email_user):
 """
 
     for idx, offre in enumerate(offres, start=1):
-        titre = _html(offre.get("titre"), "Offre sans titre")
-        acheteur = _html(offre.get("acheteur"))
-        lieu = _html(offre.get("lieu") or offre.get("departement"))
-        source = _html(offre.get("source"))
-        date_limite = _html(offre.get("date_limite_rep"))
-        resume = _html(offre.get("resume_court"), "")
-        mots_trouves = _html(_format_mots_trouves(offre.get("mots_trouves")), "")
-        correspondance = _calcul_correspondance(offre, contexte or {})
-        lien_source = offre.get("lien_source") or ""
-        lien_app = offre.get("lien_app") or ""
+        titre = _html(_get_valeur(offre, "titre"), "Offre sans titre")
+        acheteur = _html(_get_valeur(offre, "acheteur"))
+        lieu = _html(_get_valeur(offre, "lieu") or _get_valeur(offre, "departement"))
+        source = _html(_get_valeur(offre, "source"))
+        date_limite = _html(_get_valeur(offre, "date_limite_rep"))
+        resume = _html(_get_valeur(offre, "resume_court"), "")
+        lien_source = _get_valeur(offre, "lien_source") or ""
+        lien_app = _get_valeur(offre, "lien_app") or ""
+    
+        mots_trouves_liste = _mots_trouves_affichage_mail(offre, contexte or {})
+        mots_trouves = _html(_format_mots_trouves(mots_trouves_liste), "")
+    
+        ligne_mots = ""
 
+        if mots_trouves:
+            ligne_mots = f"""
+                <tr>
+                <td style="padding:4px 8px 4px 0; font-weight:bold;">Mots trouvés</td>
+                <td style="padding:4px 0;">{mots_trouves}</td>
+                </tr>
+            """
+    
+        bloc_resume = ""
+        if resume:
+            bloc_resume = f"""
+            <p style="margin:12px 0 0 0;">
+            <strong>Résumé :</strong><br>
+            {resume}
+            </p>
+            """
+    
         bouton_source = ""
         if lien_source:
             bouton_source = f"""
             <a href="{escape(str(lien_source), quote=True)}"
-               style="display:inline-block; background:#1a73e8; color:#ffffff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:bold; margin-right:8px;  margin-top:6px;">
-               Voir l'annonce source
+            style="display:inline-block; background:#1a73e8; color:#ffffff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:bold; margin-right:8px; margin-top:6px;">
+            Voir l'annonce source
             </a>
             """
-
+    
         bouton_app = ""
         if lien_app:
             bouton_app = f"""
@@ -202,63 +309,45 @@ def _build_html_body(offres, contexte, email_user):
             Revoir dans RAO
             </a>
             """
-
-        bloc_resume = ""
-        if resume:
-            bloc_resume = f"""
-            <p style="margin:12px 0 0 0;">
-              <strong>Résumé :</strong><br>
-              {resume}
-            </p>
-            """
-
-        bloc_score = ""
-
-
-        bloc_mots = ""
-        if mots_trouves:
-            bloc_mots = f"""
-            <p style="margin:8px 0 0 0;">
-              <strong>Mots trouvés :</strong> {mots_trouves}
-            </p>
-            """
-
+    
         html += f"""
-    <div style="background:#ffffff; border:1px solid #dddddd; border-radius:8px; padding:14px; margin-bottom:12px;">
-        <div style="background:#eef5df; border-left:6px solid #6b8e23; padding:12px 14px; border-radius:6px; margin-bottom:14px;">
-            <h3 style="margin:0; color:#334400; font-size:19px; line-height:1.3;">
-                {idx}. {titre}
+        <div style="background:#ffffff; border:1px solid #dddddd; border-radius:8px; padding:14px; margin-bottom:12px;">
+    
+        <div style="background:#eef5df; border-left:5px solid #6b8e23; padding:10px 12px; border-radius:5px; margin-bottom:12px;">
+            <h3 style="margin:0; color:#334400; font-size:18px; line-height:1.3;">
+            {idx}. {titre}
             </h3>
         </div>
-
-      <table style="border-collapse:collapse; width:100%; font-size:14px;">
-        <tr>
-          <td style="padding:4px 8px 4px 0; font-weight:bold; width:120px;">Acheteur</td>
-          <td style="padding:4px 0;">{acheteur}</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 8px 4px 0; font-weight:bold;">Lieu / département</td>
-          <td style="padding:4px 0;">{lieu}</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 8px 4px 0; font-weight:bold;">Source</td>
-          <td style="padding:4px 0;">{source}</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 8px 4px 0; font-weight:bold;">Date limite</td>
-          <td style="padding:4px 0; color:#b00020; font-weight:bold;">{date_limite}</td>
-        </tr>
-      </table>
-
-      {bloc_mots}
-      {bloc_resume}
-
-      <div style="margin-top:16px;">
-        {bouton_source}
-        {bouton_app}
-      </div>
-    </div>
-"""
+    
+        <table style="border-collapse:collapse; width:100%; font-size:14px;">
+            <tr>
+            <td style="padding:4px 8px 4px 0; font-weight:bold; width:120px;">Acheteur</td>
+            <td style="padding:4px 0;">{acheteur}</td>
+            </tr>
+            <tr>
+            <td style="padding:4px 8px 4px 0; font-weight:bold;">Lieu / département</td>
+            <td style="padding:4px 0;">{lieu}</td>
+            </tr>
+            <tr>
+            <td style="padding:4px 8px 4px 0; font-weight:bold;">Source</td>
+            <td style="padding:4px 0;">{source}</td>
+            </tr>
+            <tr>
+            <td style="padding:4px 8px 4px 0; font-weight:bold;">Date limite</td>
+            <td style="padding:4px 0; color:#b00020; font-weight:bold;">{date_limite}</td>
+            </tr>
+            {ligne_mots}
+        </table>
+    
+        {bloc_resume}
+    
+        <div style="margin-top:16px;">
+            {bouton_source}
+            {bouton_app}
+        </div>
+    
+        </div>
+        """
 
     html += """
     <div style="background:#fff8e1; border:1px solid #e0c36a; border-radius:10px; padding:16px; font-size:14px;">
@@ -408,42 +497,107 @@ def _liste_mots_recherche(contexte):
     return resultat
 
 
-def _calcul_correspondance(offre, contexte):
+def _mots_trouves_affichage_mail(offre, contexte):
     """
-    Retourne:
-    - nb_trouves
-    - nb_total
-    - pourcentage
-    - texte explicatif
+    Retourne les mots à afficher dans le mail.
+
+    Logique :
+    - les mots obligatoires sont considérés comme trouvés,
+      car l'offre a déjà passé le filtre positif ;
+    - les mots OU trouvés viennent du champ mots_ou_trouves,
+      déjà calculé dans search ;
+    - on ne calcule pas de score ni de pourcentage.
     """
-    mots_recherche = _liste_mots_recherche(contexte)
 
-    mots_trouves = offre.get("mots_trouves") or []
-    if not isinstance(mots_trouves, list):
-        mots_trouves = [str(mots_trouves)]
+    mots_affiches = []
+    deja_vus = set()
 
-    mots_trouves_norm = [str(x).strip().lower() for x in mots_trouves if str(x).strip()]
+    # 1. Mots obligatoires de la requête
+    mots_obligatoires = _extraire_termes_depuis_valeur(
+        contexte.get("mots_cles", "")
+    )
 
-    nb_total = len(mots_recherche)
-    nb_trouves = 0
+    for mot in mots_obligatoires:
+        mot_txt = str(mot or "").strip()
+        mot_norm = normaliser_texte(mot_txt)
 
-    for mot in mots_recherche:
-        if str(mot).strip().lower() in mots_trouves_norm:
-            nb_trouves += 1
+        if mot_txt and mot_norm not in deja_vus:
+            mots_affiches.append(mot_txt)
+            deja_vus.add(mot_norm)
 
-    if nb_total > 0:
-        pourcentage = round((nb_trouves / nb_total) * 100)
-        explication = f"{pourcentage}% ({nb_trouves} mot(s) trouvé(s) sur {nb_total})"
-    else:
-        pourcentage = 0
-        explication = "Non calculable"
+    # 2. Mots OU réellement trouvés dans l'offre
+    mots_ou_trouves = _get_valeur(offre, "mots_ou_trouves", [])
 
-    return {
-        "nb_trouves": nb_trouves,
-        "nb_total": nb_total,
-        "pourcentage": pourcentage,
-        "explication": explication
-    }    
+    if mots_ou_trouves is None:
+        mots_ou_trouves = []
+
+    if isinstance(mots_ou_trouves, str):
+        mots_ou_trouves = [mots_ou_trouves]
+
+    for mot in mots_ou_trouves:
+        mot_txt = str(mot or "").strip()
+        mot_norm = normaliser_texte(mot_txt)
+
+        if mot_txt and mot_norm not in deja_vus:
+            mots_affiches.append(mot_txt)
+            deja_vus.add(mot_norm)
+
+    return mots_affiches
+
+def _extraire_termes_depuis_valeur(value):
+    """
+    Transforme une valeur en liste de termes.
+
+    Accepte :
+    - une chaîne : "sst, mac sst, psc1"
+    - une liste : ["sst", "mac sst", "psc1"]
+
+    Important :
+    - on découpe sur virgule, point-virgule, retour ligne ;
+    - on ne découpe pas sur les espaces ;
+    - donc "mac sst" reste un seul terme.
+    """
+
+    if not value:
+        return []
+
+    if isinstance(value, list):
+        termes = []
+
+        for item in value:
+            termes.extend(_extraire_termes_depuis_valeur(item))
+
+        return termes
+
+    texte = str(value)
+
+    for sep in [";", "\n", "\t", "\r", "|"]:
+        texte = texte.replace(sep, ",")
+
+    termes = []
+
+    for morceau in texte.split(","):
+        mot = morceau.strip()
+        mot = mot.strip("()[]{}")
+        mot = mot.strip('"')
+        mot = mot.strip("'")
+        mot = mot.strip()
+
+        if mot:
+            termes.append(mot)
+
+    # Suppression des doublons en conservant l'ordre
+    resultat = []
+    deja_vus = set()
+
+    for mot in termes:
+        mot_norm = normaliser_texte(mot)
+
+        if mot_norm and mot_norm not in deja_vus:
+            resultat.append(mot)
+            deja_vus.add(mot_norm)
+
+    return resultat
 
 def _parse_date_limite(value):
     """
