@@ -1,7 +1,7 @@
 import anvil.server
 import anvil.users
 
-from datetime import datetime
+from datetime import datetime, date
 from html import escape
 
 
@@ -64,7 +64,6 @@ def _build_text_body(offres, contexte, email_user):
         source = _txt(offre.get("source"))
         date_limite = _txt(offre.get("date_limite_rep"))
         resume = _txt(offre.get("resume_court"), "")
-        score = _txt(offre.get("score"), "")
         mots_trouves = _format_mots_trouves(offre.get("mots_trouves"))
         lien_source = _txt(offre.get("lien_source"), "")
         lien_app = _txt(offre.get("lien_app"), "")
@@ -187,7 +186,6 @@ def _build_html_body(offres, contexte, email_user):
         source = _html(offre.get("source"))
         date_limite = _html(offre.get("date_limite_rep"))
         resume = _html(offre.get("resume_court"), "")
-        score = _html(offre.get("score"), "")
         mots_trouves = _html(_format_mots_trouves(offre.get("mots_trouves")), "")
         correspondance = _calcul_correspondance(offre, contexte or {})
         score_brut = offre.get("score")
@@ -198,7 +196,7 @@ def _build_html_body(offres, contexte, email_user):
         if lien_source:
             bouton_source = f"""
             <a href="{escape(str(lien_source), quote=True)}"
-               style="display:inline-block; background:#1a73e8; color:#ffffff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:bold; margin-right:8px;">
+               style="display:inline-block; background:#1a73e8; color:#ffffff; text-decoration:none; padding:10px 14px; border-radius:6px; font-weight:bold; margin-right:8px;  margin-top:6px;">
                Voir l'annonce source
             </a>
             """
@@ -229,7 +227,7 @@ def _build_html_body(offres, contexte, email_user):
             <strong>Score de pertinence :</strong> {_html(score_brut)}
             </p>
             """
-        
+
         if correspondance.get("nb_total", 0) > 0:
             bloc_score += f"""
             <p style="margin:8px 0 0 0;">
@@ -255,7 +253,7 @@ def _build_html_body(offres, contexte, email_user):
 
       <table style="border-collapse:collapse; width:100%; font-size:14px;">
         <tr>
-          <td style="padding:4px 8px 4px 0; font-weight:bold; width:180px;">Acheteur</td>
+          <td style="padding:4px 8px 4px 0; font-weight:bold; width:120px;">Acheteur</td>
           <td style="padding:4px 0;">{acheteur}</td>
         </tr>
         <tr>
@@ -343,10 +341,7 @@ def envoyer_mail_offres_selectionnees(offres_selectionnees, contexte=None):
     # Ici on fait simple car les dates peuvent être de formats différents.
     offres = sorted(
         offres_selectionnees,
-        key=lambda o: (
-            str(o.get("date_limite_rep") or "9999-99-99"),
-            -int(o.get("score") or 0) if str(o.get("score") or "0").isdigit() else 0
-        )
+        key=_cle_tri_offre
     )
 
     nb = len(offres)
@@ -364,7 +359,8 @@ def envoyer_mail_offres_selectionnees(offres_selectionnees, contexte=None):
     text_body = _build_text_body(offres, contexte or {}, email_user)
     html_body = _build_html_body(offres, contexte or {}, email_user)
 
-    result = anvil.server.call(
+    try:
+        result = anvil.server.call(
         "send_mail_general",
         to_address=email_user,
         subject=subject,
@@ -374,6 +370,11 @@ def envoyer_mail_offres_selectionnees(offres_selectionnees, contexte=None):
         from_name="RAO - JM-Web34",
         reply_to="jmarc@jmm-formation-et-services.fr"
     )
+    except Exception as e:
+        return {
+            "ok": False,
+            "error": f"Erreur pendant l'appel à l'uplink mail : {str(e)}"
+        }
 
     if result and result.get("ok"):
         return {
@@ -464,3 +465,89 @@ def _calcul_correspondance(offre, contexte):
         "pourcentage": pourcentage,
         "explication": explication
     }    
+
+def _parse_date_limite(value):
+    """
+    Convertit date_limite_rep en objet date pour permettre un tri fiable.
+
+    Formats acceptés :
+    - date Python
+    - datetime Python
+    - YYYY-MM-DD
+    - YYYY-MM-DDTHH:MM:SS
+    - DD/MM/YYYY
+    - DD-MM-YYYY
+    - DD.MM.YYYY
+    - DD/MM/YYYY HH:MM
+    - DD/MM/YYYY à HH:MM
+
+    Retourne None si la date est vide ou non reconnue.
+    """
+
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        return value.date()
+
+    if isinstance(value, date):
+        return value
+
+    txt = str(value).strip()
+
+    if not txt:
+        return None
+
+    # Nettoyage léger
+    txt = txt.replace(" à ", " ")
+    txt = txt.replace("T", " ")
+
+    # On enlève une éventuelle timezone simple en fin de chaîne
+    # Exemple : 2026-07-15 12:00:00+02:00 -> 2026-07-15 12:00:00
+    if "+" in txt:
+        txt = txt.split("+")[0].strip()
+    if txt.endswith("Z"):
+        txt = txt[:-1].strip()
+
+    formats = [
+        "%Y-%m-%d",
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%d/%m/%Y",
+        "%d/%m/%Y %H:%M",
+        "%d/%m/%Y %H:%M:%S",
+        "%d-%m-%Y",
+        "%d-%m-%Y %H:%M",
+        "%d-%m-%Y %H:%M:%S",
+        "%d.%m.%Y",
+        "%d.%m.%Y %H:%M",
+        "%d.%m.%Y %H:%M:%S",
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(txt, fmt).date()
+        except ValueError:
+            pass
+
+    return None
+
+def _score_int(offre):
+    """
+    Retourne le score sous forme d'entier.
+    Si le score est vide, invalide ou non numérique, retourne 0.
+    """
+
+    try:
+        return int(offre.get("score") or 0)
+    except Exception:
+        return 0
+
+def _cle_tri_offre(offre):
+    date_limite = _parse_date_limite(offre.get("date_limite_rep"))
+
+    return (
+        date_limite is None,
+        date_limite or date.max,
+        -_score_int(offre)
+    )
