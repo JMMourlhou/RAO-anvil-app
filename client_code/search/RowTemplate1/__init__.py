@@ -557,14 +557,11 @@ class RowTemplate1(RowTemplate1Template):
         # ------------------------------------------------------------
         # Couleur du bouton
         # ------------------------------------------------------------
-        # Aucun mot OU saisi : bouton neutre
-        if nb_total == 0:
-            self.button_generer_html.role = ""
-    
-        # Mots OU saisis mais aucun trouvé : bouton neutre
-        elif taux == 0:
-            self.button_generer_html.role = ""
-    
+        # Aucun mot OU saisi OU aucun mot OU trouvé :
+        # bouton gris pour signaler "critère ET seulement"
+        if nb_total == 0 or taux == 0:
+            self.button_generer_html.role = "bt-interet-0"
+        
         # Mots OU trouvés : rôle calculé dans search
         elif role_interet:
             self.button_generer_html.role = role_interet
