@@ -233,10 +233,47 @@ class search(searchTemplate):
             self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
 
         
-        self.list_offres = self.trier_offres_par_interet(
-            self.normaliser_liste_offres_vu(row["offres"] or [])
+        # Refiltrage des offres chargées depuis l'historique
+        offres_chargees = self.normaliser_liste_offres_vu(
+            row["offres"] or []
         )
-
+        
+        mots_obligatoires = self.extraire_liste_mots_saisie(
+            self.text_box_mot_clef.text or ""
+        )
+        
+        mots_ou = self.extraire_liste_mots_saisie(
+            self.text_box_mot_ou.text or ""
+        )
+        
+        mots_exclus = self.extraire_liste_mots_saisie(
+            self.text_box_mots_exclus.text or ""
+        )
+        
+        # Tous les mots ET et au moins un mot OU
+        offres_chargees = self.filtrer_offres_criteres_positifs(
+            offres_chargees,
+            mots_obligatoires,
+            mots_ou
+        )
+        
+        # Suppression des offres contenant un mot exclu
+        offres_chargees = self.filtrer_offres_exclues(
+            offres_chargees,
+            mots_exclus
+        )
+        
+        # Recalcul des mots OU trouvés et du taux
+        offres_chargees = self.ajouter_correspondance_mots_ou(
+            offres_chargees,
+            mots_ou
+        )
+        
+        # Tri des offres restantes
+        self.list_offres = self.trier_offres_par_interet(
+            offres_chargees
+        )
+        
         return row
 
 
@@ -1563,40 +1600,35 @@ class search(searchTemplate):
         return mot_norm in texte_norm
     
     
-    def offre_respecte_criteres_positifs(self, offre, mots_obligatoires, mots_ou):
+    def offre_respecte_criteres_positifs(
+        self,
+        offre,
+        mots_obligatoires,
+        mots_ou
+    ):
         """
-        Vérifie les critères positifs.
-
-        Nouvelle logique :
-        - les mots obligatoires, s'ils existent, doivent tous être présents
-        - les mots OU servent au niveau d'intérêt, mais ne sont pas obligatoires
-          quand il existe des mots ET
-        - si l'utilisateur n'a saisi aucun mot ET mais seulement des mots OU,
-          alors au moins un mot OU doit être présent pour éviter une recherche vide
+        Règle :
+        - tous les mots ET doivent être présents ;
+        - si des mots OU sont saisis, au moins un doit être présent.
         """
-
+    
         texte_norm = self.texte_offre_normalise(offre)
-
-        # Cas 1 : il existe des mots obligatoires.
-        # Tous doivent être présents. Les mots OU ne filtrent pas l'offre :
-        # ils serviront uniquement au calcul du niveau d'intérêt.
+    
         if mots_obligatoires:
-            for mot in mots_obligatoires:
-                if not self.texte_contient_mot_filtre(texte_norm, mot):
-                    return False
-
-            return True
-
-        # Cas 2 : aucun mot obligatoire, mais des mots OU.
-        # On exige alors au moins un mot OU.
+            if not all(
+                self.texte_contient_mot_filtre(texte_norm, mot)
+                for mot in mots_obligatoires
+            ):
+                return False
+    
         if mots_ou:
-            for mot in mots_ou:
-                if self.texte_contient_mot_filtre(texte_norm, mot):
-                    return True
-
-            return False
-
-        return False
+            if not any(
+                self.texte_contient_mot_filtre(texte_norm, mot)
+                for mot in mots_ou
+            ):
+                return False
+    
+        return bool(mots_obligatoires or mots_ou)
 
     def filtrer_offres_criteres_positifs(self, offres, mots_obligatoires, mots_ou):
         """
