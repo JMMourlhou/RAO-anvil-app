@@ -522,7 +522,7 @@ class RowTemplate1(RowTemplate1Template):
         - l'intérêt reste porté par la couleur et le tri
         """
     
-        self.button_generer_html.role = ""
+        self.button_generer_html.role = "bt-verification-base"
     
         nb_total = self.item_value("nb_mots_ou_total", 0)
         taux = self.item_value("taux_mots_ou", 0)
@@ -591,14 +591,32 @@ class RowTemplate1(RowTemplate1Template):
     
             if mot and mot not in mots_affiches:
                 mots_affiches.append(mot)
-    
+
+        numero = self.item_value("numero_offre", "")
+        total = self.item_value("nb_offres_total", "")
+        
+        numero_texte = ""
+        
+        if numero and total:
+            numero_texte = f"{numero}/{total}"        
+
+      
         if mots_affiches:
-            self.button_generer_html.text = (
-                "Cliquez pour vérifier \n "
-                + ", ".join(mots_affiches)
-            )
+            if numero_texte:
+                self.button_generer_html.text = (
+                    f"{numero_texte} - Cliquez pour vérifier; "
+                    + ", ".join(mots_affiches)
+                )
+            else:
+                self.button_generer_html.text = (
+                    "Cliquez pour vérifier; "
+                    + ", ".join(mots_affiches)
+                )
         else:
-            self.button_generer_html.text = "Cliquez pour vérifier"
+            if numero_texte:
+                self.button_generer_html.text = f"{numero_texte} - Cliquez pour vérifier"
+            else:
+                self.button_generer_html.text = "Cliquez pour vérifier"
 
     def mots_cles_presents(self, texte, mots_clefs):
         texte_norm = self._normalize_text(texte)

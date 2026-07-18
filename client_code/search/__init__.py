@@ -554,6 +554,7 @@ class search(searchTemplate):
         self.data_grid_1.visible = False
         self.column_panel_select.visible = False
         self.text_nb_offres.visible = False
+        self.checkbox_on_off.visible = False
         
         self.timer_recherche_progress.interval = 1
         return
@@ -1149,7 +1150,15 @@ class search(searchTemplate):
         # Ancien scoring manuel supprimé
         self.repeating_panel_offres.tag.dict_mots_score = {}
         
-        self.repeating_panel_offres.items = list(self.list_offres)
+        items_affiches = []
+
+        for index, offre in enumerate(self.list_offres, start=1):
+            nouvelle_offre = dict(offre)
+            nouvelle_offre["numero_offre"] = index
+            nouvelle_offre["nb_offres_total"] = nb
+            items_affiches.append(nouvelle_offre)
+        
+        self.repeating_panel_offres.items = items_affiches
     
         if nb == 0:
             self.text_nb_offres.text = "0 offre"
