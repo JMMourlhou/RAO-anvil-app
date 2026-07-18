@@ -941,6 +941,7 @@ class search(searchTemplate):
         
         
         #self.button_search.visible = True
+        self.checkbox_on_off.visible = False
         self.f.navigation_link_search_go.visible = True
         self.f.navigation_link_search_go.enabled = True
 
