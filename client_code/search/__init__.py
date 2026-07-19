@@ -9,7 +9,7 @@ import m3.components as m3
 from .. import Time
 from datetime import date, datetime
 import re
-from anvil.js import get_dom_node    # pour écouteur JS sur le DropDown
+from anvil.js import get_dom_node, window    # pour écouteur JS sur le DropDown et conter tps d'éxéction
 from .. import Context_ecran
 
 class search(searchTemplate):
@@ -21,31 +21,83 @@ class search(searchTemplate):
         bt_mail_visible=False,
         **properties
     ):
-        # Set Form properties and Data Bindings.
+        t_total = window.performance.now()
+
+        def afficher_temps(libelle, debut):
+            duree = (window.performance.now() - debut) / 1000
+            print(f"[PERF search] {libelle} : {duree:.3f} s")
+
+        # ================================================================
+        # Création des composants
+        # ================================================================
+
+        t = window.performance.now()
+
         self.init_components(**properties)
-        
-        # écran tel ?
+
+        afficher_temps("init_components", t)
+
+        # ================================================================
+        # Détection du type d'écran
+        # ================================================================
+
+        t = window.performance.now()
+
         context = Context_ecran.context_screen()
-        if context['screen_type']=="phone":
-            self.button_selection_mailed.text = 'Mail'
+
+        if context["screen_type"] == "phone":
+            self.button_selection_mailed.text = "Mail"
         else:
-            self.button_selection_mailed.text = 'Envoi de la sélection'
-            
+            self.button_selection_mailed.text = (
+                "Envoi de la sélection"
+            )
+
+        afficher_temps(
+            "Context_ecran et adaptation affichage",
+            t
+        )
+
+        # ================================================================
+        # Form principale
+        # ================================================================
+
+        t = window.performance.now()
+
         self.f = get_open_form()
 
-        # roles css des champs d'affichage du progrès de la requête
+        afficher_temps("get_open_form", t)
 
-        self.column_panel_progress_recherche.role = "progress-search-box"
-        self.label_progress_recherche.role = "progress-search-main"
-        #self.label_nb_offres_progress.role = "progress-search-sub"
+        # ================================================================
+        # Affichage de la progression
+        # ================================================================
 
-        self.label_jauge_globale.role = "progress-gauge-global"
-        self.label_jauge_source.role = "progress-gauge-source"
+        t = window.performance.now()
+
+        self.column_panel_progress_recherche.role = (
+            "progress-search-box"
+        )
+        self.label_progress_recherche.role = (
+            "progress-search-main"
+        )
+        self.label_jauge_globale.role = (
+            "progress-gauge-global"
+        )
+        self.label_jauge_source.role = (
+            "progress-gauge-source"
+        )
 
         self.column_panel_progress_recherche.visible = False
-        # =====================================================================
+
+        afficher_temps(
+            "initialisation affichage progression",
+            t
+        )
+
+        # ================================================================
         # Variables internes
-        # =====================================================================
+        # ================================================================
+
+        t = window.performance.now()
 
         self.user = None
         self.histo_id = None
@@ -53,9 +105,7 @@ class search(searchTemplate):
         self.offres_preparees = []
         self.mots_ou_recherche = []
 
-        # Pour l'affichage de la progression de la requête
         self.label_progress_recherche.visible = False
-        #self.label_nb_offres_progress.visible = False
         self.timer_recherche_progress.interval = 0
 
         self.task_recherche = None
@@ -64,21 +114,29 @@ class search(searchTemplate):
         self._annulation_recherche_demandee = False
 
         self.base_app = ""
+
         self._last_progress_global = None
         self._last_progress_source = None
         self._last_progress_role = None
+
         self.label_jauge_globale.visible = False
         self.label_jauge_source.visible = False
         self.text_param_summary.visible = False
 
-        # Evite les traitements indésirables quand on modifie la checkbox par code
+        # Évite les événements indésirables lors d'une modification par code
         self._ignore_checkbox_on_off_change = False
 
+        afficher_temps(
+            "initialisation variables internes",
+            t
+        )
 
+        # ================================================================
+        # Événements du RepeatingPanel
+        # ================================================================
 
-        # =====================================================================
-        # Events du repeating panel des offres
-        # =====================================================================
+        t = window.performance.now()
+
         self.repeating_panel_offres.set_event_handler(
             "x-checkbox-vu-changee",
             self.modifier_offre_vu
@@ -88,194 +146,301 @@ class search(searchTemplate):
             "x-del-offre",
             self.del_offre_affichee
         )
-        
+
         self.repeating_panel_offres.set_event_handler(
-            "x-icon_button_retour_go_up",
+            "x-icon_button_go_up",
             self.go_up
         )
-        with anvil.server.no_loading_indicator:
-            # =================================================================
-            # Utilisateur connecté
-            # =================================================================
-            try:
-                self.user = anvil.users.get_user()
-            except Exception as e:
-                alert(f"Vous n'êtes pas enregistré ! {e}")
-                return
 
-            if not self.user:
-                alert("Vous n'êtes pas connecté.")
-                return
-
-            try:
-                self.base_app = anvil.server.call("get_variable_value", "code_app1")
-            except Exception as e:
-                print("Impossible de récupérer code_app1 :", e)
-                self.base_app = ""
-
-
-            # =================================================================
-            # Init de la drop down plateforme multi-sélectable
-            # =================================================================
-            rows_platformes = app_tables.platformes.search(
-                tables.order_by("id", ascending=True)
-            )
-
-            self.multi_select_drop_down_platformes.items = [
-                {"key": r["id"], "value": r["id"]}
-                for r in rows_platformes
-            ]
-
-            self.multi_select_drop_down_platformes.placeholder = "Sélectionnez au moins une plateforme"
-            self.multi_select_drop_down_platformes.multiple = True
-            self.multi_select_drop_down_platformes.enable_filtering = False
-            self.multi_select_drop_down_platformes.enable_select_all = True
-            self.multi_select_drop_down_platformes.width = "100%"
-            self.multi_select_drop_down_platformes.background = "#3CD9ED"
-            self.multi_select_drop_down_platformes.spacing_above = "1"
-
-            # =================================================================
-            # Lecture de la dernière ligne histo du user
-            # =================================================================
-            derniere_ligne = self.charger_derniere_ligne_histo(rows_platformes)
-
-            # =================================================================
-            # Ouverture normale : on affiche seulement les derniers paramètres
-            # =================================================================
-            if origine == "":
-                self.column_panel_params.visible = True
-
-                self.maj_bouton_recherche_visible()
-
-            # =================================================================
-            # Réaffichage après traitement éventuel
-            # Aujourd'hui, on évite open_form("search", "check") autant que possible.
-            # Mais on garde ce cas pour compatibilité.
-            # =================================================================
-            if origine == "check":
-                self.column_panel_params.visible = False
-
-                if mk != "":
-                    self.text_box_mot_clef.text = mk
-
-                self.set_checkbox_on_off_sans_event(bool(checkbox_on_off))
-
-                if bt_mail_visible is True:
-                    self.button_selection_mailed.visible = True
-
-                if derniere_ligne : 
-                    self.afficher_offres(self.list_offres)
-                else:
-                    self.column_panel_select.visible = False
-
-                self.f.navigation_link_search_go.visible = False
-                #self.button_search.visible = False
-
-
-    # =========================================================================
-    # Chargement de la dernière ligne histo
-    # =========================================================================
-
-    def charger_derniere_ligne_histo(self, rows_platformes):
-        """
-        Charge la dernière ligne histo de l'utilisateur :
-        - paramètres de recherche
-        - histo_id
-        - liste d'offres sauvegardée dans histo['offres']
-        """
-
-        rows = app_tables.histo.search(
-            tables.order_by("date_heure", ascending=False),
-            email=self.user["email"]
+        self.repeating_panel_offres.set_event_handler(
+            "x-icon_button_go_down",
+            self.go_down
+        )
+        
+        afficher_temps(
+            "installation handlers repeating_panel_offres",
+            t
         )
 
-        if len(rows) == 0:
-            # Pas encore d'historique pour un nouvel utilisateur
-            self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
-            self.text_box_mot_clef.text = "Football et Ballon"
+        # ================================================================
+        # Appel serveur unique
+        # ================================================================
+
+        inclure_offres = origine == "check"
+
+        t = window.performance.now()
+
+        try:
+            with anvil.server.no_loading_indicator:
+                donnees_initiales = anvil.server.call(
+                    "initialiser_form_search",
+                    inclure_offres
+                )
+
+        except Exception as e:
+            print(
+                "Erreur pendant l'initialisation de search :",
+                e
+            )
+
+            alert(
+                "Impossible d'initialiser la recherche.\n\n"
+                f"{e}"
+            )
+            return
+
+        afficher_temps(
+            "appel initialiser_form_search",
+            t
+        )
+
+        if not isinstance(donnees_initiales, dict):
+            alert(
+                "Le serveur n'a pas renvoyé les données "
+                "d'initialisation attendues."
+            )
+            return
+
+        # ================================================================
+        # Utilisateur et base_app
+        # ================================================================
+
+        self.user = donnees_initiales.get("user")
+
+        self.base_app = (
+            donnees_initiales.get("base_app") or ""
+        )
+
+        if not self.user:
+            alert("Vous n'êtes pas connecté.")
+            return
+
+        # ================================================================
+        # Configuration des plateformes
+        # ================================================================
+
+        t = window.performance.now()
+
+        plateformes = (
+            donnees_initiales.get("plateformes") or []
+        )
+
+        self.multi_select_drop_down_platformes.items = [
+            {
+                "key": plateforme_id,
+                "value": plateforme_id
+            }
+            for plateforme_id in plateformes
+        ]
+
+        self.multi_select_drop_down_platformes.placeholder = (
+            "Sélectionnez les plateformes"
+        )
+        self.multi_select_drop_down_platformes.multiple = True
+        self.multi_select_drop_down_platformes.enable_filtering = False
+        self.multi_select_drop_down_platformes.enable_select_all = True
+        self.multi_select_drop_down_platformes.width = "100%"
+        self.multi_select_drop_down_platformes.background = "#3CD9ED"
+        self.multi_select_drop_down_platformes.spacing_above = "1"
+
+        afficher_temps(
+            "configuration plateformes",
+            t
+        )
+
+        # ================================================================
+        # Dernière recherche
+        # ================================================================
+
+        t = window.performance.now()
+
+        derniere_ligne = donnees_initiales.get("histo")
+
+        if derniere_ligne is None:
+            # Nouvel utilisateur sans historique
+            self.multi_select_drop_down_platformes.selected = (
+                plateformes
+            )
+
+            self.text_box_mot_clef.text = (
+                "Football et Ballon"
+            )
             self.text_box_mot_ou.text = ""
             self.text_box_mots_exclus.text = ""
             self.text_box_nb_jours.text = "30"
             self.text_box_departements.text = None
+
             self.histo_id = None
             self.list_offres = []
-            return None
 
-        row = rows[0]
+        else:
+            self.histo_id = derniere_ligne.get("histo_id")
 
-        if not row:
-            return None
-
-        self.histo_id = row.get_id()
-
-        self.text_box_mot_clef.text = row["mots_cles"]
-        try:
-            self.text_box_mot_ou.text = row["mots_ou"] or ""
-        except Exception:
-            self.text_box_mot_ou.text = self.mots_score_obj_to_mots_ou_texte(
-                row["mots_score_obj"]
+            self.text_box_mot_clef.text = (
+                derniere_ligne.get("mots_cles") or ""
             )
 
+            mots_ou = derniere_ligne.get("mots_ou")
 
-        
-        try:
-            self.text_box_mots_exclus.text = row["mots_exclus"] or ""
-        except Exception:
-            self.text_box_mots_exclus.text = ""
-            
-        self.text_box_nb_jours.text = row["nb_jours"]
-        self.text_box_departements.text = row["departements"]
-            
-        src = row["sources"]
-        if src is not None:
-            self.multi_select_drop_down_platformes.selected = src
+            if mots_ou is not None:
+                self.text_box_mot_ou.text = mots_ou or ""
+            else:
+                try:
+                    self.text_box_mot_ou.text = (
+                        self.mots_score_obj_to_mots_ou_texte(
+                            derniere_ligne.get("mots_score_obj")
+                        )
+                    )
+                except Exception:
+                    self.text_box_mot_ou.text = ""
+
+            self.text_box_mots_exclus.text = (
+                derniere_ligne.get("mots_exclus") or ""
+            )
+
+            self.text_box_nb_jours.text = (
+                derniere_ligne.get("nb_jours") or "30"
+            )
+
+            self.text_box_departements.text = (
+                derniere_ligne.get("departements")
+            )
+
+            sources = derniere_ligne.get("sources")
+
+            if sources is not None:
+                self.multi_select_drop_down_platformes.selected = (
+                    sources
+                )
+            else:
+                self.multi_select_drop_down_platformes.selected = (
+                    plateformes
+                )
+
+        # ============================================================
+        # Offres uniquement pour origine == "check"
+        # ============================================================
+
+        if inclure_offres:
+            t_offres = window.performance.now()
+
+            offres_chargees = (
+                self.normaliser_liste_offres_vu(
+                    derniere_ligne.get("offres") or []
+                )
+            )
+
+            mots_obligatoires = (
+                self.extraire_liste_mots_saisie(
+                    self.text_box_mot_clef.text or ""
+                )
+            )
+
+            mots_ou = self.extraire_liste_mots_saisie(
+                self.text_box_mot_ou.text or ""
+            )
+
+            mots_exclus = (
+                self.extraire_liste_mots_saisie(
+                    self.text_box_mots_exclus.text or ""
+                )
+            )
+
+            offres_chargees = (
+                self.filtrer_offres_criteres_positifs(
+                    offres_chargees,
+                    mots_obligatoires,
+                    mots_ou
+                )
+            )
+
+            offres_chargees = (
+                self.filtrer_offres_exclues(
+                    offres_chargees,
+                    mots_exclus
+                )
+            )
+
+            offres_chargees = (
+                self.ajouter_correspondance_mots_ou(
+                    offres_chargees,
+                    mots_ou
+                )
+            )
+
+            self.list_offres = (
+                self.trier_offres_par_interet(
+                    offres_chargees
+                )
+            )
+
+            afficher_temps(
+                "traitement offres mode check",
+                t_offres
+            )
+
         else:
-            self.multi_select_drop_down_platformes.selected = [r["id"] for r in rows_platformes]
+            self.list_offres = []
 
-        
-        # Refiltrage des offres chargées depuis l'historique
-        offres_chargees = self.normaliser_liste_offres_vu(
-            row["offres"] or []
+        afficher_temps(
+            "application dernière recherche",
+            t
         )
-        
-        mots_obligatoires = self.extraire_liste_mots_saisie(
-            self.text_box_mot_clef.text or ""
+    
+        # ================================================================
+        # Ouverture normale depuis le Menu
+        # ================================================================
+    
+        t = window.performance.now()
+    
+        if origine == "":
+            self.column_panel_params.visible = True
+            self.maj_bouton_recherche_visible()
+    
+        afficher_temps(
+            "traitement origine normale",
+            t
         )
-        
-        mots_ou = self.extraire_liste_mots_saisie(
-            self.text_box_mot_ou.text or ""
+    
+        # ================================================================
+        # Ouverture en mode vérification
+        # ================================================================
+    
+        t = window.performance.now()
+    
+        if origine == "check":
+            self.column_panel_params.visible = False
+    
+            if mk != "":
+                self.text_box_mot_clef.text = mk
+    
+            self.set_checkbox_on_off_sans_event(
+                bool(checkbox_on_off)
+            )
+    
+            if bt_mail_visible is True:
+                self.button_selection_mailed.visible = True
+    
+            if derniere_ligne is not None:
+                self.afficher_offres(self.list_offres)
+            else:
+                self.column_panel_select.visible = False
+    
+            self.f.navigation_link_search_go.visible = False
+    
+        afficher_temps(
+            "traitement origine check",
+            t
         )
-        
-        mots_exclus = self.extraire_liste_mots_saisie(
-            self.text_box_mots_exclus.text or ""
+    
+        # ================================================================
+        # Temps total
+        # ================================================================
+    
+        afficher_temps(
+            "TOTAL __init__",
+            t_total
         )
-        
-        # Tous les mots ET et au moins un mot OU
-        offres_chargees = self.filtrer_offres_criteres_positifs(
-            offres_chargees,
-            mots_obligatoires,
-            mots_ou
-        )
-        
-        # Suppression des offres contenant un mot exclu
-        offres_chargees = self.filtrer_offres_exclues(
-            offres_chargees,
-            mots_exclus
-        )
-        
-        # Recalcul des mots OU trouvés et du taux
-        offres_chargees = self.ajouter_correspondance_mots_ou(
-            offres_chargees,
-            mots_ou
-        )
-        
-        # Tri des offres restantes
-        self.list_offres = self.trier_offres_par_interet(
-            offres_chargees
-        )
-        
-        return row
-
 
 
     def mots_score_obj_to_mots_ou_texte(self, mots_score_obj):
@@ -2409,3 +2574,6 @@ class search(searchTemplate):
 
     def go_up(self, **event_args):
         self.scroll_into_view(smooth=True, align="start")
+
+    def go_down(self, **event_args):
+        self.scroll_into_view(smooth=True, align="end")

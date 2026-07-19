@@ -14,9 +14,11 @@ class RowTemplate1(RowTemplate1Template):
         # écran tel ?
         context = Context_ecran.context_screen()
         if context['screen_type']=="phone":
-            self.icon_button_retour.text = ''
+            self.icon_button_go_up.text = ''
+            self.icon_button_go_down.text = ''
         else:
-            self.icon_button_retour.text = 'Retour'
+            self.icon_button_go_up.text = 'Début'
+            self.icon_button_go_down.text = 'Fin'
             
         self.comp_html = None
 
@@ -643,8 +645,12 @@ class RowTemplate1(RowTemplate1Template):
                 trouves.append(mot)
         return trouves
 
-    def icon_button_retour_click(self, **event_args):
+    def icon_button_go_up_click(self, **event_args):
         self.parent.raise_event(
-            "x-icon_button_retour_go_up",
+            "x-icon_button_go_up",
         )
-        #self.scroll_into_view(smooth=True, align="start")
+
+    def icon_button_go_down_click(self, **event_args):
+        self.parent.raise_event(
+            "x-icon_button_go_down",
+        )

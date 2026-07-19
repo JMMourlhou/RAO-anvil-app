@@ -153,20 +153,59 @@ class Menu(MenuTemplate):
 
     def navigation_link_user_appels_offres_click(self, **event_args):
         """This method is called when the component is clicked"""
+        t0 = window.performance.now()
+    
         self.bt_deconnect.visible = False
         self.navigation_link_fermer.visible = False
-        
+    
         self.Titre.visible = False
         self.bt_user_mail.visible = False
         self.navigation_link_user_contact.visible = False
         self.navigation_link_user_parametres.visible = False
         self.navigation_link_user_appels_offres.visible = False
-        
+    
         self.navigation_link_retour.visible = True
-        
+    
+        print(
+            f"[PERF] préparation menu : "
+            f"{(window.performance.now() - t0) / 1000:.3f} s"
+        )
+    
+        t1 = window.performance.now()
         self.content_panel.clear()
-        self.form_search = search()
-        self.content_panel.add_component(self.form_search, full_width_row=False)
+    
+        print(
+            f"[PERF] clear content_panel : "
+            f"{(window.performance.now() - t1) / 1000:.3f} s"
+        )
+    
+        t2 = window.performance.now()
+
+        # ne créer l'instance de la form search qu'à l'ouverture (initialisé en init)
+        if self.form_search is None:
+            self.form_search = search()
+            
+    
+        print(
+            f"[PERF] construction search : "
+            f"{(window.performance.now() - t2) / 1000:.3f} s"
+        )
+    
+        t3 = window.performance.now()
+        self.content_panel.add_component(
+            self.form_search,
+            full_width_row=False
+        )
+    
+        print(
+            f"[PERF] ajout de search : "
+            f"{(window.performance.now() - t3) / 1000:.3f} s"
+        )
+    
+        print(
+            f"[PERF] durée totale : "
+            f"{(window.performance.now() - t0) / 1000:.3f} s"
+        )
         
 
     def navigation_link_fermer_click(self, **event_args):
