@@ -1,55 +1,98 @@
+import anvil.users
 import anvil.server
 from anvil.tables import app_tables
 
 
+def rendre_valeur_portable(valeur):
+    """
+    Transforme récursivement une valeur en objet stockable
+    dans une colonne Simple Object Anvil.
+    """
+
+    if valeur is None:
+        return ""
+
+    if isinstance(valeur, (str, int, float, bool)):
+        return valeur
+
+    if isinstance(valeur, dict):
+        return {
+            str(cle): rendre_valeur_portable(sous_valeur)
+            for cle, sous_valeur in valeur.items()
+        }
+
+    if isinstance(valeur, (list, tuple, set)):
+        return [
+            rendre_valeur_portable(element)
+            for element in valeur
+        ]
+
+    return str(valeur)
+
+
 def nettoyer_offres_pour_histo(offres):
     """
-    Nettoie les offres avant stockage dans histo['offres'].
-
-    Objectif :
-    - garantir une liste de dictionnaires simples
-    - garantir la clé 'vu'
-    - éviter les valeurs non sérialisables
+    Prépare les offres avant leur stockage dans histo['offres'].
     """
 
-    nouvelles_offres = []
+    offres_nettoyees = []
 
     for offre in offres or []:
         try:
-            nouvelle_offre = dict(offre)
+            offre_dict = dict(offre)
         except Exception:
             continue
 
-        for cle, valeur in list(nouvelle_offre.items()):
-            if valeur is None:
-                nouvelle_offre[cle] = ""
-            elif isinstance(valeur, (str, int, float, bool, list, dict)):
-                nouvelle_offre[cle] = valeur
-            else:
-                nouvelle_offre[cle] = str(valeur)
+        offre_propre = {
+            str(cle): rendre_valeur_portable(valeur)
+            for cle, valeur in offre_dict.items()
+        }
 
-        nouvelle_offre["vu"] = bool(nouvelle_offre.get("vu", False))
-        nouvelles_offres.append(nouvelle_offre)
+        offre_propre["vu"] = bool(
+            offre_propre.get("vu", False)
+        )
 
-    return nouvelles_offres
+        offres_nettoyees.append(offre_propre)
+
+    return offres_nettoyees
 
 
-@anvil.server.callable
+@anvil.server.callable(require_user=True)
 def update_histo_offres(histo_id, offres):
     """
-    Mises à jour après clic sur les checkbox ou suppression d’une offre.
+    Met à jour les offres de la recherche courante.
 
-    Met à jour :
-    - histo['offres']
-    - histo['nb_offres']
+    La fonction vérifie que la ligne histo appartient bien
+    à l’utilisateur connecté.
     """
 
     try:
+        user = anvil.users.get_user()
+
+        if not user:
+            return {
+                "ok": False,
+                "message": "Utilisateur non connecté.",
+                "offres": [],
+                "nb_offres": 0
+            }
+
+        email_user = str(user["email"] or "").strip().lower()
+
+        if not email_user:
+            return {
+                "ok": False,
+                "message": "Adresse e-mail utilisateur introuvable.",
+                "offres": [],
+                "nb_offres": 0
+            }
+
         if not histo_id:
             return {
                 "ok": False,
-                "message": "histo_id manquant",
-                "offres": []
+                "message": "histo_id manquant.",
+                "offres": [],
+                "nb_offres": 0
             }
 
         row = app_tables.histo.get_by_id(histo_id)
@@ -57,27 +100,51 @@ def update_histo_offres(histo_id, offres):
         if row is None:
             return {
                 "ok": False,
-                "message": "Ligne histo introuvable",
-                "offres": []
+                "message": "Ligne histo introuvable.",
+                "offres": [],
+                "nb_offres": 0
             }
 
-        nouvelles_offres = nettoyer_offres_pour_histo(offres)
+        email_histo = str(
+            row["email"] or ""
+        ).strip().lower()
 
-        row["offres"] = nouvelles_offres
-        row["nb_offres"] = len(nouvelles_offres)
+        if not email_histo or email_histo != email_user:
+            return {
+                "ok": False,
+                "message": (
+                    "Accès refusé : cette recherche n’appartient "
+                    "pas à l’utilisateur connecté."
+                ),
+                "offres": [],
+                "nb_offres": 0
+            }
+
+        offres_nettoyees = nettoyer_offres_pour_histo(
+            offres
+        )
+
+        row["offres"] = offres_nettoyees
+        row["nb_offres"] = len(offres_nettoyees)
 
         return {
             "ok": True,
-            "message": "Offres mises à jour",
-            "offres": nouvelles_offres,
-            "nb_offres": len(nouvelles_offres)
+            "message": "Offres mises à jour.",
+            "offres": offres_nettoyees,
+            "nb_offres": len(offres_nettoyees)
         }
 
     except Exception as e:
-        print("Erreur au module 'update_histo_offres' :", repr(e))
+        print(
+            "ERREUR update_histo_offres :",
+            repr(e)
+        )
 
         return {
             "ok": False,
-            "message": f"Erreur update_histo_offres : {repr(e)}",
-            "offres": []
+            "message": (
+                f"Erreur update_histo_offres : {repr(e)}"
+            ),
+            "offres": [],
+            "nb_offres": 0
         }
