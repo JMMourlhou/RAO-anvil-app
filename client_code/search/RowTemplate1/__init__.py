@@ -1,10 +1,7 @@
 from ._anvil_designer import RowTemplate1Template
 from anvil import *
-import anvil.users
-import anvil.server
 import re
 from ...recherche_mk_html import recherche_mk_html
-import m3.components as m3
 from .. import Context_ecran
 
 class RowTemplate1(RowTemplate1Template):
@@ -19,7 +16,7 @@ class RowTemplate1(RowTemplate1Template):
         else:
             self.icon_button_go_up.text = 'Début'
             self.icon_button_go_down.text = 'Fin'
-            
+
         self.comp_html = None
 
         # Evite qu'une modification par code déclenche une sauvegarde inutile
@@ -57,11 +54,11 @@ class RowTemplate1(RowTemplate1Template):
         self.set_checkbox_vu_sans_event(
             bool(self.item_value("vu", False))
         )
-        
-        
-            
+
+
+
         # Libellé du bouton Vérification :
-        # niveau de correspondance + mots OU trouvés
+        # couleur de correspondance + mots trouvés
         self.maj_libelle_bouton_verification()
 
     def form_show(self, **event_args):
@@ -198,77 +195,43 @@ class RowTemplate1(RowTemplate1Template):
         )
 
     # -------------------------------------------------------------------------
-    # Extraction des mots-clés classiques saisis par l'utilisateur
-    # -------------------------------------------------------------------------
-
-    def extraire_mots_cles(self):
-        parent_tag = getattr(self.parent, "tag", None)
-        brut = (getattr(parent_tag, "mots_cles_saisis", "") or "").strip().lower()
-
-        if not brut:
-            return []
-
-        texte = brut.replace(";", ",").replace("\n", ",")
-        texte = texte.replace(" et ", ",")
-        texte = texte.replace(" ou ", ",")
-
-        morceaux = [m.strip() for m in texte.split(",") if m.strip()]
-
-        mots_uniques = []
-        deja_vus = set()
-
-        for mot in morceaux:
-            if mot not in deja_vus:
-                deja_vus.add(mot)
-                mots_uniques.append(mot)
-
-        return mots_uniques
-
-    # -------------------------------------------------------------------------
     # Bouton Vérification
     # -------------------------------------------------------------------------
     def extraire_liste_depuis_parent_tag(self, nom_tag):
         """
         Récupère une liste de mots depuis self.parent.tag.
-        Utilisé pour afficher séparément les mots ET et les mots OU.
+        Utilisé pour récupérer les mots ET saisis dans la Form search.
         """
-    
+
         parent_tag = getattr(self.parent, "tag", None)
         brut = (getattr(parent_tag, nom_tag, "") or "").strip().lower()
-    
+
         if not brut:
             return []
-    
+
         texte = brut.replace(";", ",").replace("\n", ",")
         texte = texte.replace(" et ", ",")
         texte = texte.replace(" ou ", ",")
-    
+
         morceaux = [m.strip() for m in texte.split(",") if m.strip()]
-    
+
         mots_uniques = []
         deja_vus = set()
-    
+
         for mot in morceaux:
             if mot not in deja_vus:
                 deja_vus.add(mot)
                 mots_uniques.append(mot)
-    
+
         return mots_uniques
 
     def extraire_mots_et(self):
         """
         Retourne les mots ET saisis dans search.
         """
-    
+
         return self.extraire_liste_depuis_parent_tag("mots_et_saisis")
-    
-    def extraire_mots_ou_saisis(self):
-        """
-        Retourne les mots OU saisis dans search.
-        """
-    
-        return self.extraire_liste_depuis_parent_tag("mots_ou_saisis")
-        
+
     def button_generer_html_click(self, **event_args):
         """
         Affiche le texte avec les mots-clés recherchés surlignés.
@@ -277,70 +240,60 @@ class RowTemplate1(RowTemplate1Template):
         # Changement apparence du bouton
         if self.column_panel_detail.visible is False:
             self.button_generer_html.icon = "mi:keyboard_double_arrow_up"
-    
+
             # On marque comme vu
             if self.checkbox_vu.checked is not True:
                 self.set_checkbox_vu_sans_event(True)
                 self.checkbox_vu_change()
-    
+
         else:
             self.button_generer_html.icon = "mi:keyboard_double_arrow_down"
             self.column_panel_detail.visible = False
             return
-    
+
         # Contenu brut à afficher
         texte_source = self.get_texte_source_verification()
-    
+
         if not texte_source:
             alert("Aucun texte disponible pour cette offre !")
             return
-    
-  
-        # Mots-clés de recherche :
-        # obligatoires + mots OU saisis
-        mots_cles = self.extraire_mots_cles()
-        
+
+
+        # Mots obligatoires de la recherche
+        mots_cles = self.extraire_mots_et()
+
         # Mots OU réellement trouvés dans cette offre
         mots_ou_trouves = self.item_value("mots_ou_trouves", [])
-        
+
         if mots_ou_trouves is None:
             mots_ou_trouves = []
-        
+
         if isinstance(mots_ou_trouves, str):
             mots_ou_trouves = [mots_ou_trouves]
-        
-        # Ancien nom conservé pour compatibilité avec recherche_mk_html.
-        # Ici, mots_score ne signifie plus "score manuel".
-        # Il contient les mots OU réellement trouvés dans l'offre.
-        mots_score = list(mots_ou_trouves)
-        
+
+        mots_ou_a_surligner = list(mots_ou_trouves)
+
         # Sécurité : si aucun mot à mettre en évidence
-        if not mots_cles and not mots_score:
+        if not mots_cles and not mots_ou_a_surligner:
             alert("Aucun mot-clé à mettre en évidence !")
             return
-        
-        print("===== DEBUG VERIFICATION ROW =====")
-        print("mots_cles envoyés au HTML :", mots_cles)
-        print("mots_ou_trouves :", mots_ou_trouves)
-        print("mots_score envoyés au HTML :", mots_score)
-        print("==================================")
-    
+
         # Mise en forme simple du texte avant envoi au composant HTML
         texte = self.format_search_text_for_display(texte_source)
-    
+
         # Création du composant HTML si besoin
         if self.comp_html is None:
             self.comp_html = recherche_mk_html()
             self.column_panel_affichage.clear()
             self.column_panel_affichage.add_component(self.comp_html)
-    
-        # Envoi du texte + mots-clés + mots de scoring au composant HTML
+
+        # Envoi des mots ET et des mots OU trouvés au composant HTML
         self.comp_html.charger(
             texte,
-            mots_cles,
-            mots_score=mots_score
+            mots_cles=mots_cles,
+            mots_ou=mots_ou_a_surligner
         )
-    
+
         self.column_panel_detail.visible = True
 
     def format_search_text_for_display(self, texte):
@@ -467,13 +420,13 @@ class RowTemplate1(RowTemplate1Template):
         Retourne le texte réellement utile pour la vérification visuelle.
     
         Important :
-        le scoring des mots OU est calculé dans search sur plusieurs champs :
+        la correspondance des mots OU est calculée dans search sur plusieurs champs :
         titre, description, search_text, acheteur, lieu, nature, procedure.
     
         Donc l'affichage de vérification doit aussi reprendre ces champs,
         sinon un mot peut être considéré comme trouvé mais invisible au clic.
         """
-    
+
         champs = [
             ("Titre", self.item_value("titre", "")),
             ("Acheteur", self.item_value("acheteur", "")),
@@ -485,30 +438,30 @@ class RowTemplate1(RowTemplate1Template):
             ("Description", self.item_value("description", "")),
             ("Texte source", self.item_value("search_text", "")),
         ]
-    
+
         blocs = []
         deja_vus = set()
-    
+
         for libelle, valeur in champs:
             texte = str(valeur or "").strip()
-    
+
             if not texte:
                 continue
-    
+
             if texte in ("-", "Non renseigné", "None"):
                 continue
-    
+
             # Evite d'afficher deux fois exactement le même bloc
             cle = self._normalize_text(
                 re.sub(r"\s+", " ", texte)
             ).strip()
-    
+
             if cle in deja_vus:
                 continue
-    
+
             deja_vus.add(cle)
             blocs.append(f"{libelle} : {texte}")
-    
+
         return "\n\n".join(blocs)
 
     def maj_libelle_bouton_verification(self):
@@ -523,39 +476,39 @@ class RowTemplate1(RowTemplate1Template):
         - on n'affiche pas les libellés ET / OU
         - l'intérêt reste porté par la couleur et le tri
         """
-    
+
         self.button_generer_html.role = "bt-verification-base"
-    
+
         nb_total = self.item_value("nb_mots_ou_total", 0)
         taux = self.item_value("taux_mots_ou", 0)
-    
+
         mots_ou_trouves = self.item_value("mots_ou_trouves", [])
         role_interet = self.item_value("role_interet", "")
-    
+
         try:
             nb_total = int(nb_total or 0)
         except Exception:
             nb_total = 0
-    
+
         try:
             taux = int(taux or 0)
         except Exception:
             taux = 0
-    
+
         if mots_ou_trouves is None:
             mots_ou_trouves = []
-    
+
         if isinstance(mots_ou_trouves, str):
             mots_ou_trouves = [mots_ou_trouves]
-    
+
         mots_ou_trouves = [
             str(m or "").strip()
             for m in mots_ou_trouves
             if str(m or "").strip()
         ]
-    
+
         mots_et = self.extraire_mots_et()
-    
+
         # ------------------------------------------------------------
         # Couleur du bouton
         # ------------------------------------------------------------
@@ -563,11 +516,11 @@ class RowTemplate1(RowTemplate1Template):
         # bouton gris pour signaler "critère ET seulement"
         if nb_total == 0 or taux == 0:
             self.button_generer_html.role = "bt-interet-0"
-        
+
         # Mots OU trouvés : rôle calculé dans search
         elif role_interet:
             self.button_generer_html.role = role_interet
-    
+
         # Sécurité pour anciennes offres sauvegardées sans role_interet
         else:
             if taux <= 20:
@@ -582,27 +535,27 @@ class RowTemplate1(RowTemplate1Template):
                 self.button_generer_html.role = "bt-interet-99"
             else:
                 self.button_generer_html.role = "bt-interet-100"
-    
+
         # ------------------------------------------------------------
         # Texte simple du bouton
         # ------------------------------------------------------------
         mots_affiches = []
-    
+
         for mot in mots_et + mots_ou_trouves:
             mot = str(mot or "").strip()
-    
+
             if mot and mot not in mots_affiches:
                 mots_affiches.append(mot)
 
         numero = self.item_value("numero_offre", "")
         total = self.item_value("nb_offres_total", "")
-        
+
         numero_texte = ""
-        
+
         if numero and total:
             numero_texte = f"{numero}/{total}"        
 
-      
+
         if mots_affiches:
             if numero_texte:
                 self.button_generer_html.text = (
@@ -619,31 +572,6 @@ class RowTemplate1(RowTemplate1Template):
                 self.button_generer_html.text = f"{numero_texte} - Cliquez pour vérifier"
             else:
                 self.button_generer_html.text = "Cliquez pour vérifier"
-
-    def mots_cles_presents(self, texte, mots_clefs):
-        texte_norm = self._normalize_text(texte)
-        trouves = []
-    
-        for mot in mots_clefs:
-            mot = (mot or "").strip()
-    
-            if not mot:
-                continue
-    
-            mot_norm = self._normalize_text(mot)
-    
-            if not mot_norm:
-                continue
-    
-            if len(mot_norm) <= 4:
-                pattern = rf"(?<![a-z0-9]){re.escape(mot_norm)}(?![a-z0-9])"
-                present = re.search(pattern, texte_norm) is not None
-            else:
-                present = mot_norm in texte_norm
-    
-            if present:
-                trouves.append(mot)
-        return trouves
 
     def icon_button_go_up_click(self, **event_args):
         self.parent.raise_event(
