@@ -777,24 +777,20 @@ class search(searchTemplate):
         # --- Sauvegarde de la requête et des offres ---
         self.label_progress_recherche.text = "Sauvegarde de la recherche..."
 
-        date_time = Time.french_zone_time()
+        date_heure = Time.french_zone_time()
 
         try:
             with anvil.server.no_loading_indicator:
                 result = anvil.server.call(
                     "backup_requete",
-                    self.user,
-                    selected_platformes,
-                    self.get_mots_obligatoires_texte(),
-                    self.text_box_nb_jours.text,
-                    self.text_box_departements.text,
-                    date_time,
-                    nb_offres,
-                    offres_finales,
-                    {},
-                    False,
-                    self.get_mots_ou_texte(),
-                    self.get_mots_exclus_texte()
+                    sources=selected_platformes,
+                    mots_cles=self.get_mots_obligatoires_texte(),
+                    mots_ou=self.get_mots_ou_texte(),
+                    mots_exclus=self.get_mots_exclus_texte(),
+                    nb_jours=self.text_box_nb_jours.text,
+                    departements=self.text_box_departements.text,
+                    date_heure=date_heure,
+                    offres=offres_finales
                 )
 
         except Exception as e:

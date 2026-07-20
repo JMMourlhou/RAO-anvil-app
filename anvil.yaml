@@ -88,14 +88,6 @@ db_schema:
       client_hidden: false
       name: nb_offres
       type: number
-    - admin_ui: {order: 13, width: 200}
-      client_hidden: false
-      name: mots_cles_in_score
-      type: bool
-    - admin_ui: {order: 12, width: 268}
-      client_hidden: false
-      name: mots_score_obj
-      type: simpleObject
     - admin_ui: {order: 2, width: 200}
       client_hidden: false
       name: mots_ou
