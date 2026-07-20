@@ -1,11 +1,24 @@
-import anvil.users
 import anvil.server
-from anvil.tables import app_tables
+import anvil.users
 import anvil.tables as tables
+from anvil.tables import app_tables
+
 from . import Variables_globales
+
 
 @anvil.server.callable
 def initialiser_form_search(inclure_offres=False):
+    """
+    Renvoie au client les données nécessaires à l'ouverture de la Form Search :
+    - l'utilisateur connecté ;
+    - le code de l'application ;
+    - la liste des plateformes ;
+    - la dernière recherche de l'utilisateur.
+
+    Les offres de la dernière recherche ne sont renvoyées que lorsque
+    ``inclure_offres`` vaut True.
+    """
+
     user = anvil.users.get_user()
 
     if not user:
@@ -29,23 +42,21 @@ def initialiser_form_search(inclure_offres=False):
     )
 
     row = next(iter(rows_histo), None)
-
     histo = None
 
     if row is not None:
         histo = {
             "histo_id": row.get_id(),
-            "mots_cles": row["mots_cles"],
-            "mots_ou": row["mots_ou"],
-            "mots_score_obj": row["mots_score_obj"],
-            "mots_exclus": row["mots_exclus"],
+            "mots_cles": row["mots_cles"] or "",
+            "mots_ou": row["mots_ou"] or "",
+            "mots_exclus": row["mots_exclus"] or "",
             "nb_jours": row["nb_jours"],
-            "departements": row["departements"],
-            "sources": row["sources"]
+            "departements": row["departements"] or "",
+            "sources": list(row["sources"] or [])
         }
 
         if inclure_offres:
-            histo["offres"] = row["offres"] or []
+            histo["offres"] = list(row["offres"] or [])
 
     return {
         "user": user,
