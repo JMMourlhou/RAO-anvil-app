@@ -3,7 +3,7 @@ components:
   - components:
     - layout_properties: {width: 321.26614404296873}
       name: Titre_2
-      properties: {align: center, background_color: '', bold: true, font_size: 16, icon: 'mi:image_search', icon_color: 'theme:Light Green', icon_size: 40, italic: true, line_height: '', scale: small, style: label, text: '  A.O.S   -   Plateformes sélectionnées :', text_color: 'theme:Primary', underline: false}
+      properties: {align: center, background_color: '', bold: true, font_size: 16, icon: 'mi:image_search', icon_color: 'theme:Light Green', icon_size: 40, italic: true, line_height: '', scale: small, style: label, text: '  R.A.O.   -   Plateformes sélectionnées :', text_color: 'theme:Primary', underline: false}
       type: form:dep_lin1x4oec0ytd:_Components.Text
     - layout_properties: {width: 203.0289560546875}
       name: multi_select_drop_down_platformes

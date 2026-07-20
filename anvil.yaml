@@ -104,6 +104,7 @@ db_schema:
       client_hidden: false
       name: mots_exclus
       type: string
+    indexes: []
     server: full
     title: histo
   platformes:
