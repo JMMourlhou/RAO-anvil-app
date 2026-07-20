@@ -1,6 +1,5 @@
 import anvil.server
 import anvil.users
-import unicodedata
 
 from datetime import datetime, date
 from html import escape
@@ -153,10 +152,10 @@ def _build_text_body(offres, contexte, email_user):
         resume = _txt(_get_valeur(offre, "resume_court"), "")
         lien_source = _txt(_get_valeur(offre, "lien_source"), "")
         lien_app = _txt(_get_valeur(offre, "lien_app"), "")
-    
+
         mots_trouves_liste = _mots_trouves_affichage_mail(offre, contexte or {})
         mots_trouves = _format_mots_trouves(mots_trouves_liste)
-    
+
         lignes.append("")
         lignes.append(f"{idx}. {titre}")
         lignes.append("")
@@ -164,22 +163,22 @@ def _build_text_body(offres, contexte, email_user):
         lignes.append(f"Lieu / département : {lieu}")
         lignes.append(f"Source : {source}")
         lignes.append(f"Date limite de réponse : {date_limite}")
-    
+
         if mots_trouves:
             lignes.append(f"Mots trouvés : {mots_trouves}")
-    
+
         if resume:
             lignes.append("")
             lignes.append("Résumé :")
             lignes.append(resume)
-    
+
         if lien_source:
             lignes.append("")
             lignes.append(f"Lien vers l'annonce source : {lien_source}")
-    
+
         if lien_app:
             lignes.append(f"Lien vers l'analyse RAO : {lien_app}")
-    
+
         lignes.append("")
         lignes.append("------------------------------------------------------------")
 
@@ -200,7 +199,7 @@ def _build_html_body(offres, contexte, email_user):
     mots_exclus = _html(contexte.get("mots_exclus"), "") if contexte else ""
     departements = _html(contexte.get("departements"), "") if contexte else ""
     nb_jours = _html(contexte.get("nb_jours"), "") if contexte else ""
-    
+
     sources = ""
     if contexte:
         sources = contexte.get("sources") or ""
@@ -269,10 +268,10 @@ def _build_html_body(offres, contexte, email_user):
         resume = _html(_get_valeur(offre, "resume_court"), "")
         lien_source = _get_valeur(offre, "lien_source") or ""
         lien_app = _get_valeur(offre, "lien_app") or ""
-    
+
         mots_trouves_liste = _mots_trouves_affichage_mail(offre, contexte or {})
         mots_trouves = _html(_format_mots_trouves(mots_trouves_liste), "")
-    
+
         ligne_mots = ""
 
         if mots_trouves:
@@ -282,7 +281,7 @@ def _build_html_body(offres, contexte, email_user):
                 <td style="padding:4px 0;">{mots_trouves}</td>
                 </tr>
             """
-    
+
         bloc_resume = ""
         if resume:
             bloc_resume = f"""
@@ -291,7 +290,7 @@ def _build_html_body(offres, contexte, email_user):
             {resume}
             </p>
             """
-    
+
         bouton_source = ""
         if lien_source:
             bouton_source = f"""
@@ -300,7 +299,7 @@ def _build_html_body(offres, contexte, email_user):
             Voir l'annonce source
             </a>
             """
-    
+
         bouton_app = ""
         if lien_app:
             bouton_app = f"""
@@ -309,7 +308,7 @@ def _build_html_body(offres, contexte, email_user):
             Revoir dans RAO
             </a>
             """
-    
+
         html += f"""
         <div style="background:#ffffff; border:1px solid #dddddd; border-radius:8px; padding:14px; margin-bottom:12px;">
     
@@ -405,8 +404,10 @@ def envoyer_mail_offres_selectionnees(offres_selectionnees, contexte=None):
             "error": "Trop d'offres sélectionnées. Limite actuelle : 50 offres par mail."
         }
 
-    # Tri recommandé : date limite puis score décroissant.
-    # Ici on fait simple car les dates peuvent être de formats différents.
+    # Les échéances les plus proches apparaissent en premier.
+    # Les offres sans date reconnue sont placées à la fin.
+    # Le tri Python étant stable, l'ordre d'affichage de Search est conservé
+    # lorsque plusieurs offres ont la même date limite.
     offres = sorted(
         offres_selectionnees,
         key=_cle_tri_offre
@@ -429,15 +430,15 @@ def envoyer_mail_offres_selectionnees(offres_selectionnees, contexte=None):
 
     try:
         result = anvil.server.call(
-        "send_mail_general",
-        to_address=email_user,
-        subject=subject,
-        text_body=text_body,
-        html_body=html_body,
-        from_address="jmarc@jmm-formation-et-services.fr",
-        from_name="RAO - JM-Web34",
-        reply_to="jmarc@jmm-formation-et-services.fr"
-    )
+            "send_mail_general",
+            to_address=email_user,
+            subject=subject,
+            text_body=text_body,
+            html_body=html_body,
+            from_address="jmarc@jmm-formation-et-services.fr",
+            from_name="RAO - JM-Web34",
+            reply_to="jmarc@jmm-formation-et-services.fr"
+        )
     except Exception as e:
         return {
             "ok": False,
@@ -458,45 +459,6 @@ def envoyer_mail_offres_selectionnees(offres_selectionnees, contexte=None):
         "error": result.get("error") if isinstance(result, dict) else str(result)
     }
 
-
-
-def _extraire_mots_depuis_texte(texte):
-    """
-    Transforme une chaîne en liste de mots simples.
-    Séparateurs gérés : virgule, point-virgule, espaces, retours ligne.
-    """
-    if not texte:
-        return []
-
-    texte = str(texte)
-    for sep in [",", ";", "\n", "\t"]:
-        texte = texte.replace(sep, " ")
-
-    mots = [x.strip() for x in texte.split(" ") if x.strip()]
-    return mots
-
-
-def _liste_mots_recherche(contexte):
-    """
-    Construit la liste des mots de recherche à partir du contexte.
-    Ici on prend mots_cles + mots_ou.
-    """
-    if not contexte:
-        return []
-
-    mots_et = _extraire_mots_depuis_texte(contexte.get("mots_cles", ""))
-    mots_ou = _extraire_mots_depuis_texte(contexte.get("mots_ou", ""))
-
-    # dédoublonnage simple en conservant l'ordre
-    resultat = []
-    for mot in mots_et + mots_ou:
-        mot_min = mot.lower()
-        if mot_min not in [x.lower() for x in resultat]:
-            resultat.append(mot)
-
-    return resultat
-
-
 def _mots_trouves_affichage_mail(offre, contexte):
     """
     Retourne les mots à afficher dans le mail.
@@ -506,7 +468,7 @@ def _mots_trouves_affichage_mail(offre, contexte):
       car l'offre a déjà passé le filtre positif ;
     - les mots OU trouvés viennent du champ mots_ou_trouves,
       déjà calculé dans search ;
-    - on ne calcule pas de score ni de pourcentage.
+    - aucun calcul supplémentaire n'est effectué dans ce module.
     """
 
     mots_affiches = []
@@ -665,22 +627,17 @@ def _parse_date_limite(value):
 
     return None
 
-def _score_int(offre):
-    """
-    Retourne le score sous forme d'entier.
-    Si le score est vide, invalide ou non numérique, retourne 0.
-    """
-
-    try:
-        return int(offre.get("score") or 0)
-    except Exception:
-        return 0
-
 def _cle_tri_offre(offre):
-    date_limite = _parse_date_limite(offre.get("date_limite_rep"))
+    """
+    Clé de tri par date limite croissante.
+    Les dates absentes ou non reconnues sont placées à la fin.
+    """
+
+    date_limite = _parse_date_limite(
+        _get_valeur(offre, "date_limite_rep")
+    )
 
     return (
         date_limite is None,
-        date_limite or date.max,
-        -_score_int(offre)
+        date_limite or date.max
     )
