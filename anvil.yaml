@@ -76,7 +76,7 @@ db_schema:
       client_hidden: false
       name: departements
       type: simpleObject
-    - admin_ui: {order: 5, width: 160}
+    - admin_ui: {order: -0.25, width: 160}
       client_hidden: false
       name: sources
       type: simpleObject
@@ -88,19 +88,19 @@ db_schema:
       client_hidden: false
       name: nb_offres
       type: number
-    - admin_ui: {order: 8, width: 200}
+    - admin_ui: {order: 13, width: 200}
       client_hidden: false
       name: mots_cles_in_score
       type: bool
-    - admin_ui: {order: 2, width: 268}
+    - admin_ui: {order: 12, width: 268}
       client_hidden: false
       name: mots_score_obj
       type: simpleObject
-    - admin_ui: {order: 10, width: 200}
+    - admin_ui: {order: 2, width: 200}
       client_hidden: false
       name: mots_ou
       type: string
-    - admin_ui: {order: 11, width: 200}
+    - admin_ui: {order: 4.75, width: 200}
       client_hidden: false
       name: mots_exclus
       type: string
