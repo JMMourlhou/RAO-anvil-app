@@ -2403,13 +2403,21 @@ class search(searchTemplate):
             return
     
         confirmation = confirm(
-            "Créer une veille quotidienne avec les critères "
-            "de cette recherche ?\n\n"
-            "La veille recherchera chaque jour les nouvelles offres "
-            "publiées pendant le dernier jour."
+            content=(
+                "Créer une veille quotidienne avec les critères "
+                "de cette recherche ?\n\n"
+                "La veille recherchera chaque jour les nouvelles offres "
+                "publiées pendant le dernier jour."
+            ),
+            title="Création d’une veille quotidienne",
+            buttons=[
+                ("Créer la veille", True, "success"),
+                ("Annuler", False, "default")
+            ],
+            dismissible=False
         )
-    
-        if not confirmation:
+
+        if confirmation is not True:
             return
     
         self.button_daily_survey_creation.enabled = False
