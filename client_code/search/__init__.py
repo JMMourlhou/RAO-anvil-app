@@ -115,7 +115,9 @@ class search(searchTemplate):
         self.label_jauge_globale.visible = False
         self.label_jauge_source.visible = False
         self.text_param_summary.visible = False
-
+        self.button_daily_survey_creation.visible = False
+        self.button_daily_survey_creation.enabled = True
+        
         # Évite les événements indésirables lors d'une modification par code
         self._ignore_checkbox_on_off_change = False
 
@@ -612,7 +614,13 @@ class search(searchTemplate):
         if not selected_platformes:
             alert("Sélectionnez au moins une plateforme.")
             return
-
+            
+        # --- L’ancienne recherche ne doit plus permettre
+        #     la création d’une veille.
+        self.button_daily_survey_creation.visible = False
+        self.button_daily_survey_creation.enabled = True
+  
+        
         # --- Construction des requêtes envoyées aux sources ---
         # Important : cette fonction doit maintenant renvoyer large.
         # Exemple : formation + sst/mac/pse1/pse2 => ['formation']
@@ -819,7 +827,13 @@ class search(searchTemplate):
         self.list_offres = offres_finales
 
         self.afficher_offres(self.list_offres)
+        
+        # La veille journalière ne peut être créée qu’après une recherche ayant trouvé des offres.
+        
+        self.button_daily_survey_creation.enabled = True
+        self.button_daily_survey_creation.visible = True
 
+        
         self.f.navigation_link_search_go.enabled = False
 
         self.column_panel_params.visible = False
@@ -2354,3 +2368,108 @@ class search(searchTemplate):
 
     def go_down(self, **event_args):
         self.scroll_into_view(smooth=True, align="end")
+
+
+    def button_daily_survey_creation_click(self, **event_args):
+        """
+        Enregistre les critères de la recherche actuelle comme veille quotidienne.
+        """
+    
+        if self._recherche_en_cours:
+            Notification(
+                "Attendez la fin de la recherche.",
+                timeout=3
+            ).show()
+            return
+    
+        if not self.list_offres:
+            self.button_daily_survey_creation.visible = False
+    
+            alert(
+                "La veille quotidienne peut être créée uniquement "
+                "après une recherche ayant trouvé au moins une offre."
+            )
+            return
+    
+        try:
+            sources = list(
+                self.multi_select_drop_down_platformes.selected or []
+            )
+        except Exception:
+            sources = []
+    
+        if not sources:
+            alert("Aucune plateforme n’est sélectionnée.")
+            return
+    
+        confirmation = confirm(
+            "Créer une veille quotidienne avec les critères "
+            "de cette recherche ?\n\n"
+            "La veille recherchera chaque jour les nouvelles offres "
+            "publiées pendant le dernier jour."
+        )
+    
+        if not confirmation:
+            return
+    
+        self.button_daily_survey_creation.enabled = False
+        self.button_daily_survey_creation.text = (
+            "Création de la veille..."
+        )
+        try:
+            result = anvil.server.call(
+                "enregistrer_daily_survey",
+                sources=sources,
+                mots_cles=self.get_mots_obligatoires_texte(),
+                mots_ou=self.get_mots_ou_texte(),
+                mots_exclus=self.get_mots_exclus_texte(),
+                departements=(
+                    self.text_box_departements.text or ""
+                )
+            )
+    
+        except Exception as e:
+            print(
+                "Erreur création de la veille quotidienne :",
+                repr(e)
+            )
+    
+            self.button_daily_survey_creation.enabled = True
+            
+    
+            alert(
+                "Impossible de créer la veille quotidienne.\n\n"
+                f"{e}"
+            )
+            return
+    
+        if not isinstance(result, dict):
+            self.button_daily_survey_creation.enabled = True
+           
+    
+            alert(
+                "Le serveur n’a pas renvoyé la réponse attendue."
+            )
+            return
+    
+        if not result.get("ok"):
+            self.button_daily_survey_creation.enabled = True
+            
+    
+            alert(
+                result.get("message")
+                or "La veille quotidienne n’a pas pu être créée."
+            )
+            return
+    
+        # Ce traitement convient aux trois statuts :
+        # creee, deja_active et reactivee.
+        self.button_daily_survey_creation.text = (
+            "Veille quotidienne active"
+        )
+        self.button_daily_survey_creation.enabled = False
+    
+        alert(
+            result.get("message")
+            or "La veille quotidienne est maintenant active."
+        )

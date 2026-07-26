@@ -34,6 +34,69 @@ db_schema:
     indexes: []
     server: full
     title: contact
+  daily_survey:
+    client: none
+    columns:
+    - admin_ui: {order: 0, width: 154}
+      client_hidden: false
+      name: email
+      target: users
+      type: link_single
+    - admin_ui: {order: 1, width: 158}
+      client_hidden: false
+      name: sources
+      type: simpleObject
+    - admin_ui: {order: 2, width: 200}
+      client_hidden: false
+      name: mots_cles
+      type: string
+    - admin_ui: {order: 3, width: 200}
+      client_hidden: false
+      name: mots_ou
+      type: string
+    - admin_ui: {order: 4, width: 200}
+      client_hidden: false
+      name: mots_exclus
+      type: string
+    - admin_ui: {order: 5, width: 95}
+      client_hidden: false
+      name: nb_jours
+      type: number
+    - admin_ui: {order: 6, width: 120}
+      client_hidden: false
+      name: departements
+      type: string
+    - admin_ui: {order: -1, width: 156}
+      client_hidden: false
+      name: active
+      type: bool
+    - admin_ui: {order: -0.5, width: 209}
+      client_hidden: false
+      name: date_creation
+      type: datetime
+    - admin_ui: {order: -0.25, width: 200}
+      client_hidden: false
+      name: derniere_recherche
+      type: datetime
+    - admin_ui: {order: -0.0625, width: 200}
+      client_hidden: false
+      name: dernier_statut
+      type: string
+    - admin_ui: {order: -0.03125, width: 152}
+      client_hidden: false
+      name: derniere_erreur
+      type: string
+    - admin_ui: {order: 7, width: 200}
+      client_hidden: false
+      name: cle_requete
+      type: string
+    - admin_ui: {order: 8, width: 200}
+      client_hidden: false
+      name: nb_offres_derniere_recherche
+      type: number
+    indexes: []
+    server: full
+    title: daily_survey
   files:
     client: none
     columns: []
@@ -119,7 +182,7 @@ db_schema:
   users:
     client: search
     columns:
-    - admin_ui: {order: 0, width: 245}
+    - admin_ui: {order: -2, width: 245}
       client_hidden: false
       name: email
       type: string
@@ -187,8 +250,24 @@ db_schema:
       client_hidden: false
       name: api_key_created_at
       type: datetime
+    indexes: []
     server: full
     title: users
+  users_parametres:
+    client: none
+    columns:
+    - admin_ui: {order: 0, width: 200}
+      client_hidden: false
+      name: email
+      target: users
+      type: link_single
+    - admin_ui: {order: 1, width: 200}
+      client_hidden: false
+      name: mail_if_no_result
+      type: bool
+    indexes: []
+    server: full
+    title: users_parametres
 dependencies:
 - config: {}
   dep_id: dep_lin1x4oec0ytd

@@ -66,6 +66,11 @@ components:
     name: column_panel_progress_recherche
     properties: {background: 'theme:Background', visible: false}
     type: ColumnPanel
+  - event_bindings: {click: button_daily_survey_creation_click}
+    layout_properties: {slot: card-content-slot}
+    name: button_daily_survey_creation
+    properties: {align: center, text: 'Lancer cette recherche tous les jours automatiquement ?', visible: false}
+    type: m3._Components.Button
   - components:
     - event_bindings: {change: text_box_mot_clef_change, pressed_enter: text_box_mot_clef_pressed_enter}
       layout_properties: {grid_position: 'UTAJVP,AQYHRQ'}
