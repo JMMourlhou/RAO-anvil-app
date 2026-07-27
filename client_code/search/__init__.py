@@ -2414,6 +2414,7 @@ class search(searchTemplate):
                 "La veille recherchera chaque jour les nouvelles offres "
                 "publiées pendant le dernier jour."
             ),
+            large=True,
             title="Création d’une veille quotidienne",
             buttons=[
                 ("Créer la veille", True, "success"),
