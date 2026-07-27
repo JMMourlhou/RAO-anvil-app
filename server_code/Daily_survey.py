@@ -239,11 +239,11 @@ def enregistrer_daily_survey(
 
         if bool(ligne_existante["active"]):
             return {
-                "ok": True,
+                "ok": False,
                 "statut": "deja_active",
                 "daily_survey_id": ligne_existante.get_id(),
                 "message": (
-                    "Cette veille quotidienne est déjà active."
+                    "Rien de grave: Cette veille quotidienne est déjà active !\n Il faut changer de paramètres pour créer une autre veille."
                 )
             }
 

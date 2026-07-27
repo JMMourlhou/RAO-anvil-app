@@ -12,7 +12,8 @@ from .. import Context_ecran
 from ..Alertes import (
 afficher_information,
 afficher_reussite,
-demander_choix
+demander_choix,
+afficher_avertissement
 )
 
 
@@ -187,7 +188,7 @@ class search(searchTemplate):
                 e
             )
 
-            afficher_information(
+            afficher_avertissement(
                 "Impossible d'initialiser la recherche.\n\n"
                 f"{e}",
                 titre="Erreur d’initialisation"
@@ -200,7 +201,7 @@ class search(searchTemplate):
         )
 
         if not isinstance(donnees_initiales, dict):
-            afficher_information(
+            afficher_avertissement(
                 "Le serveur n'a pas renvoyé les données "
                 "d'initialisation attendues.",
                 titre="Erreur d’initialisation"
@@ -218,7 +219,7 @@ class search(searchTemplate):
         )
 
         if not self.user:
-            afficher_information(
+            afficher_avertissement(
                 "Vous n'êtes pas connecté.",
                 titre="Connexion requise"
             )
@@ -597,7 +598,7 @@ class search(searchTemplate):
         depts = [d.strip() for d in deps_texte.split(",") if d.strip()]
 
         if not mots_obligatoires and not mots_ou:
-            afficher_information(
+            afficher_avertissement(
                 "Vous devez saisir au moins un mot-clé.\n\n"
                 "Exemple :\n"
                 "- mots obligatoires : formation\n"
@@ -630,7 +631,7 @@ class search(searchTemplate):
         selected_platformes = self.multi_select_drop_down_platformes.selected
 
         if not selected_platformes:
-            afficher_information(
+            afficher_avertissement(
                 "Sélectionnez au moins une plateforme.",
                 titre="Plateforme requise"
             )
@@ -681,7 +682,7 @@ class search(searchTemplate):
             print(f"Erreur au lancement de la recherche background sur Pi5 : {e}")
             self.label_progress_recherche.text = "Erreur au lancement de la recherche."
             self.deverrouiller_recherche(cacher_bouton=False)
-            afficher_information(
+            afficher_avertissement(
                 f"Erreur pendant le lancement de la recherche :\n\n{e}",
                 titre="Erreur de recherche"
             )
@@ -733,7 +734,7 @@ class search(searchTemplate):
 
             self.deverrouiller_recherche(cacher_bouton=False)
 
-            afficher_information(
+            afficher_avertissement(
                 "Désolé, aucune offre n’a été trouvée.",
                 titre="Résultat de la recherche"
             )
@@ -759,7 +760,7 @@ class search(searchTemplate):
 
             self.deverrouiller_recherche(cacher_bouton=False)
 
-            afficher_information(
+            afficher_avertissement(
                 "Des offres ont été récupérées, mais aucune ne respecte les critères :\n\n"
                 f"Obligatoires : {', '.join(mots_obligatoires) or '-'}\n"
                 f"Au moins un : {', '.join(mots_ou) or '-'}",
@@ -782,7 +783,7 @@ class search(searchTemplate):
             self.label_progress_recherche.text = "Aucune offre après exclusion."
 
             self.deverrouiller_recherche(cacher_bouton=False)
-            afficher_information(
+            afficher_avertissement(
                 "Des offres correspondaient aux critères, mais elles contenaient "
                 "toutes au moins un mot exclu.",
                 titre="Résultat de la recherche"
@@ -835,7 +836,7 @@ class search(searchTemplate):
 
         except Exception as e:
             self.deverrouiller_recherche(cacher_bouton=False)
-            afficher_information(
+            afficher_avertissement(
                 f"Erreur pendant la sauvegarde dans l’historique :\n\n{e}",
                 titre="Erreur de sauvegarde"
             )
@@ -844,7 +845,7 @@ class search(searchTemplate):
         if not result or not result.get("ok"):
             message = result.get("message") if result else "Erreur inconnue"
             self.deverrouiller_recherche(cacher_bouton=False)
-            afficher_information(
+            afficher_avertissement(
                 "La recherche a fonctionné, mais la sauvegarde dans "
                 f"l’historique a échoué.\n\n{message}",
                 titre="Erreur de sauvegarde"
@@ -855,7 +856,7 @@ class search(searchTemplate):
 
         if not self.histo_id:
             self.deverrouiller_recherche(cacher_bouton=False)
-            afficher_information(
+            afficher_avertissement(
                 "La sauvegarde dans l’historique a été effectuée, "
                 "mais l’identifiant histo_id est manquant.",
                 titre="Erreur de sauvegarde"
@@ -1056,8 +1057,8 @@ class search(searchTemplate):
         """Efface toutes les offres affichées et met histo['offres'] à []."""
 
         r = demander_choix(
-            titre="Suppression des offres",
-            message="Effacer toutes les offres affichées ?"
+            titre="Changement des conditions de recherche",
+            message="Repasser à la saisie des paramètres ? "
         )
 
         if not r:
@@ -1078,7 +1079,7 @@ class search(searchTemplate):
         self.checkbox_on_off.visible = False
         self.f.navigation_link_search_go.visible = True
         self.f.navigation_link_search_go.enabled = True
-
+        self.button_daily_survey_creation.visible = False
         
     def button_del_before_modif_param(self, **event_args):
         """
@@ -1101,7 +1102,7 @@ class search(searchTemplate):
         """
 
         if not item:
-            afficher_information(
+            afficher_avertissement(
                 "Offre introuvable.",
                 titre="Information"
             )
@@ -1147,7 +1148,7 @@ class search(searchTemplate):
         """
 
         if not self.histo_id:
-            afficher_information(
+            afficher_avertissement(
                 "Impossible de sauvegarder : histo_id manquant.",
                 titre="Erreur de sauvegarde"
             )
@@ -1161,7 +1162,7 @@ class search(searchTemplate):
                     self.list_offres
                 )
         except Exception as e:
-            afficher_information(
+            afficher_avertissement(
                 f"Erreur pendant la sauvegarde des offres :\n\n{e}",
                 titre="Erreur de sauvegarde"
             )
@@ -1169,7 +1170,7 @@ class search(searchTemplate):
 
         if not result or not result.get("ok"):
             message = result.get("message") if result else "Erreur inconnue"
-            afficher_information(
+            afficher_avertissement(
                 f"Erreur pendant la sauvegarde :\n\n{message}",
                 titre="Erreur de sauvegarde"
             )
@@ -1351,7 +1352,7 @@ class search(searchTemplate):
 
     
         if not self.user:
-            afficher_information(
+            afficher_avertissement(
                 "Vous devez être connecté pour recevoir les offres par mail.",
                 titre="Connexion requise"
             )
@@ -1380,7 +1381,7 @@ class search(searchTemplate):
         confirmation = demander_choix(
             titre="Confirmation de l’envoi",
             message=(
-                f"{nb} offre(s) sélectionnée(s) vont être envoyée(s) à :\n\n"
+                f"... envoyer les {nb} offre(s) sélectionnée(s) à :\n\n"
                 f"{email_user}\n\n"
                 "Confirmer l’envoi ?"
             )
@@ -2499,7 +2500,7 @@ class search(searchTemplate):
         if not self.list_offres:
             self.button_daily_survey_creation.visible = False
     
-            afficher_information(
+            afficher_avertissement(
                 "La veille quotidienne peut être créée uniquement "
                 "après une recherche ayant trouvé au moins une offre.",
                 titre="Veille quotidienne"
@@ -2514,7 +2515,7 @@ class search(searchTemplate):
             sources = []
     
         if not sources:
-            afficher_information(
+            afficher_avertissement(
                 "Aucune plateforme n’est sélectionnée.",
                 titre="Plateforme requise"
             )
@@ -2523,11 +2524,15 @@ class search(searchTemplate):
         confirmation = demander_choix(
             titre="Création d’une veille quotidienne",
             message=(
-                "Créer une veille quotidienne avec les critères "
+                " ... créer une veille quotidienne à partir des paramètres "
                 "de cette recherche ?\n\n"
-                "La veille recherchera chaque jour les nouvelles offres "
-                "publiées pendant le dernier jour."
-            )
+                "     Cette veille vérifiera <u><strong>chaque jour</strong></u> toutes les offres "
+                "qui ont éventuellemnt été publiées la veille.\n\n"
+                "Dans le cas où une ou plusieurs offres répondent aux critères, \n"
+                "  un mail vous sera envoyé ! \n\n"
+                "<span style=\"background-color:#FFF1A8;\">La première veille est offerte.</span>"
+            ),
+            autoriser_html=True
         )
 
         if confirmation is not True:
@@ -2560,7 +2565,7 @@ class search(searchTemplate):
             self.button_daily_survey_creation.enabled = True
             self.button_daily_survey_creation.text = texte_bouton_initial
 
-            afficher_information(
+            afficher_avertissement(
                 "Impossible de créer la veille quotidienne.\n\n"
                 f"{e}",
                 titre="Erreur de création"
@@ -2571,7 +2576,7 @@ class search(searchTemplate):
             self.button_daily_survey_creation.enabled = True
             self.button_daily_survey_creation.text = texte_bouton_initial
 
-            afficher_information(
+            afficher_avertissement(
                 "Le serveur n’a pas renvoyé la réponse attendue.",
                 titre="Erreur de création"
             )
@@ -2581,10 +2586,10 @@ class search(searchTemplate):
             self.button_daily_survey_creation.enabled = True
             self.button_daily_survey_creation.text = texte_bouton_initial
 
-            afficher_information(
+            afficher_avertissement(
                 result.get("message")
                 or "La veille quotidienne n’a pas pu être créée.",
-                titre="Création impossible"
+                titre="Nouvelle veille non crée."
             )
             return
     
@@ -2593,6 +2598,8 @@ class search(searchTemplate):
         self.button_daily_survey_creation.text = (
             "Veille quotidienne active"
         )
+        self.button_daily_survey_creation.background_color = "red"
+        self.button_daily_survey_creation.foreground_color = "yellow"
         self.button_daily_survey_creation.enabled = False
     
         afficher_reussite(
