@@ -37,7 +37,7 @@ db_schema:
   daily_survey:
     client: none
     columns:
-    - admin_ui: {order: 0, width: 154}
+    - admin_ui: {order: 0, width: 211}
       client_hidden: false
       name: email
       target: users
