@@ -38,9 +38,9 @@ class search(searchTemplate):
 
         t = window.performance.now()
 
-        context = Context_ecran.context_screen()
+        self.context = Context_ecran.context_screen()
 
-        if context["screen_type"] == "phone":
+        if self.context["screen_type"] == "phone":
             self.button_selection_mailed.text = "Mail"
         else:
             self.button_selection_mailed.text = (
@@ -1343,7 +1343,12 @@ class search(searchTemplate):
     
         finally:
             self.button_selection_mailed.enabled = True
-            self.button_selection_mailed.text = "Envoyer les offres sélectionnées"
+            if self.context["screen_type"] == "phone":
+                self.button_selection_mailed.text = "Mail"
+            else:
+                self.button_selection_mailed.text = (
+                    "Envoi de la sélection"
+                )
 
     def _get_contexte_recherche_pour_mail(self):
         """Prépare les infos de contexte pour le mail."""
@@ -2480,4 +2485,38 @@ class search(searchTemplate):
         alert(
             result.get("message")
             or "La veille quotidienne est maintenant active."
+        )
+
+
+
+    # Exemple d'affichage sympa Alert
+    def button_alert_info_click(self, msg,  **event_args):
+        """This method is called when the button is clicked"""
+        # Création du composant RichText
+        rt = RichText(format="restricted_html",
+                      content = """
+        <h2 style="color:#0055aa; margin-top:0;">Informations importantes</h2>
+        
+        <p>
+        Ce message contient du texte <strong>formaté</strong> et un peu de HTML.
+        </p>
+        
+        <ul>
+        <li>Point <b>numéro 1</b></li>
+        <li>Point <span style="color:red;">important</span></li>
+        <li>Point <i>en italique</i></li>
+        </ul>
+        
+        <p>
+        Vous pouvez même insérer une <span style="background-color:yellow;">mise en évidence</span>.
+        </p>
+        """
+                     )
+
+        # Afficher dans une alerte
+        alert(
+            content=rt,
+            title= "Confirmation",
+            large=True,
+            buttons=["Ok"]
         )
