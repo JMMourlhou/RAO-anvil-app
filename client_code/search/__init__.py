@@ -7,6 +7,15 @@ import re
 from anvil.js import get_dom_node, window    # pour écouteur JS sur le DropDown et conter tps d'éxéction
 from .. import Context_ecran
 
+
+# Alertes :
+from ..Alertes import (
+afficher_information,
+afficher_reussite,
+demander_choix
+)
+
+
 class search(searchTemplate):
     def __init__(
         self,
@@ -117,7 +126,7 @@ class search(searchTemplate):
         self.text_param_summary.visible = False
         self.button_daily_survey_creation.visible = False
         self.button_daily_survey_creation.enabled = True
-        
+
         # Évite les événements indésirables lors d'une modification par code
         self._ignore_checkbox_on_off_change = False
 
@@ -178,9 +187,10 @@ class search(searchTemplate):
                 e
             )
 
-            alert(
+            afficher_information(
                 "Impossible d'initialiser la recherche.\n\n"
-                f"{e}"
+                f"{e}",
+                titre="Erreur d’initialisation"
             )
             return
 
@@ -190,9 +200,10 @@ class search(searchTemplate):
         )
 
         if not isinstance(donnees_initiales, dict):
-            alert(
+            afficher_information(
                 "Le serveur n'a pas renvoyé les données "
-                "d'initialisation attendues."
+                "d'initialisation attendues.",
+                titre="Erreur d’initialisation"
             )
             return
 
@@ -207,7 +218,10 @@ class search(searchTemplate):
         )
 
         if not self.user:
-            alert("Vous n'êtes pas connecté.")
+            afficher_information(
+                "Vous n'êtes pas connecté.",
+                titre="Connexion requise"
+            )
             return
 
         # ================================================================
@@ -583,11 +597,12 @@ class search(searchTemplate):
         depts = [d.strip() for d in deps_texte.split(",") if d.strip()]
 
         if not mots_obligatoires and not mots_ou:
-            alert(
+            afficher_information(
                 "Vous devez saisir au moins un mot-clé.\n\n"
                 "Exemple :\n"
                 "- mots obligatoires : formation\n"
-                "- au moins un de ces mots : sst, pse1"
+                "- au moins un de ces mots : sst, pse1",
+                titre="Saisie requise"
             )
             self.text_box_mot_clef.focus()
             return
@@ -595,7 +610,10 @@ class search(searchTemplate):
         try:
             periode = int(self.text_box_nb_jours.text)
         except Exception:
-            alert("Le nombre de jours doit être un nombre entier.")
+            afficher_information(
+                "Le nombre de jours doit être un nombre entier.",
+                titre="Valeur incorrecte"
+            )
             self.text_box_nb_jours.focus()
             return
 
@@ -612,7 +630,10 @@ class search(searchTemplate):
         selected_platformes = self.multi_select_drop_down_platformes.selected
 
         if not selected_platformes:
-            alert("Sélectionnez au moins une plateforme.")
+            afficher_information(
+                "Sélectionnez au moins une plateforme.",
+                titre="Plateforme requise"
+            )
             return
             
         # --- L’ancienne recherche ne doit plus permettre
@@ -660,7 +681,10 @@ class search(searchTemplate):
             print(f"Erreur au lancement de la recherche background sur Pi5 : {e}")
             self.label_progress_recherche.text = "Erreur au lancement de la recherche."
             self.deverrouiller_recherche(cacher_bouton=False)
-            alert(f"Erreur pendant le lancement de la recherche : {e}")
+            afficher_information(
+                f"Erreur pendant le lancement de la recherche :\n\n{e}",
+                titre="Erreur de recherche"
+            )
             return
 
         # afficher les paramètres 
@@ -709,7 +733,10 @@ class search(searchTemplate):
 
             self.deverrouiller_recherche(cacher_bouton=False)
 
-            alert("Désolé... pas d'offres trouvées !")
+            afficher_information(
+                "Désolé, aucune offre n’a été trouvée.",
+                titre="Résultat de la recherche"
+            )
             return
 
         self.label_progress_recherche.text = "Filtrage des critères positifs..."
@@ -732,10 +759,11 @@ class search(searchTemplate):
 
             self.deverrouiller_recherche(cacher_bouton=False)
 
-            alert(
+            afficher_information(
                 "Des offres ont été récupérées, mais aucune ne respecte les critères :\n\n"
                 f"Obligatoires : {', '.join(mots_obligatoires) or '-'}\n"
-                f"Au moins un : {', '.join(mots_ou) or '-'}"
+                f"Au moins un : {', '.join(mots_ou) or '-'}",
+                titre="Résultat de la recherche"
             )
             return
 
@@ -754,7 +782,11 @@ class search(searchTemplate):
             self.label_progress_recherche.text = "Aucune offre après exclusion."
 
             self.deverrouiller_recherche(cacher_bouton=False)
-            alert("Des offres correspondaient aux critères, mais elles contenaient toutes au moins un mot exclu.")
+            afficher_information(
+                "Des offres correspondaient aux critères, mais elles contenaient "
+                "toutes au moins un mot exclu.",
+                titre="Résultat de la recherche"
+            )
             return
 
         # --- Génération de la liste des offres ---
@@ -803,14 +835,19 @@ class search(searchTemplate):
 
         except Exception as e:
             self.deverrouiller_recherche(cacher_bouton=False)
-            alert(f"Erreur pendant la sauvegarde dans histo : {e}")
+            afficher_information(
+                f"Erreur pendant la sauvegarde dans l’historique :\n\n{e}",
+                titre="Erreur de sauvegarde"
+            )
             return
 
         if not result or not result.get("ok"):
             message = result.get("message") if result else "Erreur inconnue"
             self.deverrouiller_recherche(cacher_bouton=False)
-            alert(
-                f"La recherche a fonctionné, mais la sauvegarde dans histo a échoué.\n\n{message}"
+            afficher_information(
+                "La recherche a fonctionné, mais la sauvegarde dans "
+                f"l’historique a échoué.\n\n{message}",
+                titre="Erreur de sauvegarde"
             )
             return
 
@@ -818,7 +855,11 @@ class search(searchTemplate):
 
         if not self.histo_id:
             self.deverrouiller_recherche(cacher_bouton=False)
-            alert("Sauvegarde histo effectuée, mais histo_id manquant.")
+            afficher_information(
+                "La sauvegarde dans l’historique a été effectuée, "
+                "mais l’identifiant histo_id est manquant.",
+                titre="Erreur de sauvegarde"
+            )
             return
 
         print(f"Ligne histo sauvegardée : {self.histo_id}")
@@ -1014,10 +1055,9 @@ class search(searchTemplate):
     def button_del_all_click(self, **event_args):
         """Efface toutes les offres affichées et met histo['offres'] à []."""
 
-        r = alert(
-            "Effacer toutes les offres affichées ?",
-            dismissible=False,
-            buttons=[("oui", True), ("non", False)]
+        r = demander_choix(
+            titre="Suppression des offres",
+            message="Effacer toutes les offres affichées ?"
         )
 
         if not r:
@@ -1061,13 +1101,15 @@ class search(searchTemplate):
         """
 
         if not item:
-            alert("Offre introuvable.")
+            afficher_information(
+                "Offre introuvable.",
+                titre="Information"
+            )
             return
 
-        r = alert(
-            "Effacer cette offre affichée ?",
-            dismissible=False,
-            buttons=[("oui", True), ("non", False)]
+        r = demander_choix(
+            titre="Suppression de l’offre",
+            message="Effacer cette offre affichée ?"
         )
 
         if not r:
@@ -1105,7 +1147,10 @@ class search(searchTemplate):
         """
 
         if not self.histo_id:
-            alert("Impossible de sauvegarder : histo_id manquant.")
+            afficher_information(
+                "Impossible de sauvegarder : histo_id manquant.",
+                titre="Erreur de sauvegarde"
+            )
             return False
 
         try:
@@ -1116,12 +1161,18 @@ class search(searchTemplate):
                     self.list_offres
                 )
         except Exception as e:
-            alert(f"Erreur pendant la sauvegarde des offres : {e}")
+            afficher_information(
+                f"Erreur pendant la sauvegarde des offres :\n\n{e}",
+                titre="Erreur de sauvegarde"
+            )
             return False
 
         if not result or not result.get("ok"):
             message = result.get("message") if result else "Erreur inconnue"
-            alert(f"Erreur pendant la sauvegarde : {message}")
+            afficher_information(
+                f"Erreur pendant la sauvegarde :\n\n{message}",
+                titre="Erreur de sauvegarde"
+            )
             return False
 
         self.list_offres = result.get("offres", self.list_offres)
@@ -1285,8 +1336,11 @@ class search(searchTemplate):
         """
 
         self._ignore_checkbox_on_off_change = True
-        self.checkbox_on_off.checked = bool(valeur)
-        self._ignore_checkbox_on_off_change = False
+
+        try:
+            self.checkbox_on_off.checked = bool(valeur)
+        finally:
+            self._ignore_checkbox_on_off_change = False
 
     # =========================================================================
     # Envoi mail
@@ -1297,23 +1351,39 @@ class search(searchTemplate):
 
     
         if not self.user:
-            alert("Vous devez être connecté pour recevoir les offres par mail.")
+            afficher_information(
+                "Vous devez être connecté pour recevoir les offres par mail.",
+                titre="Connexion requise"
+            )
             return
     
         email_user = self.user['email']
+
+        if not email_user:
+            afficher_information(
+                "Aucune adresse e-mail n’est associée à votre compte.",
+                titre="Adresse e-mail manquante"
+            )
+            return
     
         offres_selectionnees = self._get_offres_selectionnees_pour_mail()
     
         if not offres_selectionnees:
-            alert("Aucune offre sélectionnée à envoyer par mail.")
+            afficher_information(
+                "Aucune offre sélectionnée à envoyer par mail.",
+                titre="Sélection requise"
+            )
             return
     
         nb = len(offres_selectionnees)
     
-        confirmation = confirm(
-            f"{nb} offre(s) sélectionnée(s) vont être envoyée(s) à :\n\n"
-            f"{email_user}\n\n"
-            "Confirmer l'envoi ?"
+        confirmation = demander_choix(
+            titre="Confirmation de l’envoi",
+            message=(
+                f"{nb} offre(s) sélectionnée(s) vont être envoyée(s) à :\n\n"
+                f"{email_user}\n\n"
+                "Confirmer l’envoi ?"
+            )
         )
     
         if not confirmation:
@@ -1330,16 +1400,22 @@ class search(searchTemplate):
             )
     
             if result and result.get("ok"):
-                alert(
+                afficher_reussite(
                     f"Mail envoyé avec succès à {email_user}.\n\n"
                     f"{result.get('nb_offres', nb)} offre(s) envoyée(s)."
                 )
             else:
                 erreur = result.get("error") if isinstance(result, dict) else str(result)
-                alert(f"Erreur pendant l'envoi du mail :\n{erreur}")
+                afficher_information(
+                    f"Erreur pendant l’envoi du mail :\n\n{erreur}",
+                    titre="Erreur d’envoi"
+                )
     
         except Exception as e:
-            alert(f"Erreur pendant l'envoi du mail :\n{str(e)}")
+            afficher_information(
+                f"Erreur pendant l’envoi du mail :\n\n{e}",
+                titre="Erreur d’envoi"
+            )
     
         finally:
             self.button_selection_mailed.enabled = True
@@ -2083,7 +2159,10 @@ class search(searchTemplate):
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
-            alert(f"Impossible de lire la progression : {e}")
+            afficher_information(
+                f"Impossible de lire la progression :\n\n{e}",
+                titre="Erreur de progression"
+            )
             return
     
         progress = state.get("progress", 0)
@@ -2129,7 +2208,10 @@ class search(searchTemplate):
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
-            alert(f"Erreur pendant la recherche : {e}")
+            afficher_information(
+                f"Erreur pendant la recherche :\n\n{e}",
+                titre="Erreur de recherche"
+            )
             return
     
         if not result:
@@ -2143,9 +2225,30 @@ class search(searchTemplate):
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
-            alert("La recherche est terminée, mais aucun résultat n'a été retourné.")
+            afficher_information(
+                "La recherche est terminée, mais aucun résultat "
+                "n’a été retourné.",
+                titre="Résultat de la recherche"
+            )
             return
     
+        if not isinstance(result, dict):
+            self.afficher_progression_recherche(
+                ligne_1="⚠️ Réponse serveur incorrecte",
+                ligne_2="Le résultat reçu n’est pas exploitable",
+                etat="error",
+                progress_global=0,
+                progress_source=0,
+                afficher_jauges=False
+            )
+
+            self.deverrouiller_recherche(cacher_bouton=False)
+            afficher_information(
+                "Le serveur n’a pas renvoyé le dictionnaire attendu.",
+                titre="Erreur de recherche"
+            )
+            return
+
         errors = result.get("errors", [])
     
         if errors:
@@ -2157,7 +2260,10 @@ class search(searchTemplate):
             message_limite = result.get("message_limite") or (
                 "Recherche trop large : une partie seulement des offres est affichée."
             )
-            alert(message_limite)
+            afficher_information(
+                message_limite,
+                titre="Recherche limitée"
+            )
             print("⚠️ Recherche limitée :", message_limite)
     
         self.afficher_progression_recherche(
@@ -2188,7 +2294,10 @@ class search(searchTemplate):
             )
     
             self.deverrouiller_recherche(cacher_bouton=False)
-            alert(f"Erreur pendant le traitement final des offres : {e}")
+            afficher_information(
+                f"Erreur pendant le traitement final des offres :\n\n{e}",
+                titre="Erreur de traitement"
+            )
             return
 
     def maj_bouton_recherche_visible(self):
@@ -2390,9 +2499,10 @@ class search(searchTemplate):
         if not self.list_offres:
             self.button_daily_survey_creation.visible = False
     
-            alert(
+            afficher_information(
                 "La veille quotidienne peut être créée uniquement "
-                "après une recherche ayant trouvé au moins une offre."
+                "après une recherche ayant trouvé au moins une offre.",
+                titre="Veille quotidienne"
             )
             return
     
@@ -2404,28 +2514,27 @@ class search(searchTemplate):
             sources = []
     
         if not sources:
-            alert("Aucune plateforme n’est sélectionnée.")
+            afficher_information(
+                "Aucune plateforme n’est sélectionnée.",
+                titre="Plateforme requise"
+            )
             return
     
-        confirmation = confirm(
-            content=(
+        confirmation = demander_choix(
+            titre="Création d’une veille quotidienne",
+            message=(
                 "Créer une veille quotidienne avec les critères "
                 "de cette recherche ?\n\n"
                 "La veille recherchera chaque jour les nouvelles offres "
                 "publiées pendant le dernier jour."
-            ),
-            large=True,
-            title="Création d’une veille quotidienne",
-            buttons=[
-                ("Créer la veille", True, "success"),
-                ("Annuler", False, "default")
-            ],
-            dismissible=False
+            )
         )
 
         if confirmation is not True:
             return
     
+        texte_bouton_initial = self.button_daily_survey_creation.text
+
         self.button_daily_survey_creation.enabled = False
         self.button_daily_survey_creation.text = (
             "Création de la veille..."
@@ -2449,30 +2558,33 @@ class search(searchTemplate):
             )
     
             self.button_daily_survey_creation.enabled = True
-            
-    
-            alert(
+            self.button_daily_survey_creation.text = texte_bouton_initial
+
+            afficher_information(
                 "Impossible de créer la veille quotidienne.\n\n"
-                f"{e}"
+                f"{e}",
+                titre="Erreur de création"
             )
             return
     
         if not isinstance(result, dict):
             self.button_daily_survey_creation.enabled = True
-           
-    
-            alert(
-                "Le serveur n’a pas renvoyé la réponse attendue."
+            self.button_daily_survey_creation.text = texte_bouton_initial
+
+            afficher_information(
+                "Le serveur n’a pas renvoyé la réponse attendue.",
+                titre="Erreur de création"
             )
             return
     
         if not result.get("ok"):
             self.button_daily_survey_creation.enabled = True
-            
-    
-            alert(
+            self.button_daily_survey_creation.text = texte_bouton_initial
+
+            afficher_information(
                 result.get("message")
-                or "La veille quotidienne n’a pas pu être créée."
+                or "La veille quotidienne n’a pas pu être créée.",
+                titre="Création impossible"
             )
             return
     
@@ -2483,41 +2595,8 @@ class search(searchTemplate):
         )
         self.button_daily_survey_creation.enabled = False
     
-        alert(
+        afficher_reussite(
             result.get("message")
             or "La veille quotidienne est maintenant active."
         )
 
-
-
-    # Exemple d'affichage sympa Alert
-    def button_alert_info_click(self, msg,  **event_args):
-        """This method is called when the button is clicked"""
-        # Création du composant RichText
-        rt = RichText(format="restricted_html",
-                      content = """
-        <h2 style="color:#0055aa; margin-top:0;">Informations importantes</h2>
-        
-        <p>
-        Ce message contient du texte <strong>formaté</strong> et un peu de HTML.
-        </p>
-        
-        <ul>
-        <li>Point <b>numéro 1</b></li>
-        <li>Point <span style="color:red;">important</span></li>
-        <li>Point <i>en italique</i></li>
-        </ul>
-        
-        <p>
-        Vous pouvez même insérer une <span style="background-color:yellow;">mise en évidence</span>.
-        </p>
-        """
-                     )
-
-        # Afficher dans une alerte
-        alert(
-            content=rt,
-            title= "Confirmation",
-            large=True,
-            buttons=["Ok"]
-        )

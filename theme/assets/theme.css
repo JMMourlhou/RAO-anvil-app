@@ -941,3 +941,174 @@ Bouton Vérification - niveau d'intérêt
     font-weight: 900 !important;
 }
 
+/* ==========================================================
+STYLE COMMUN DES ALERTES PERSONNALISÉES
+========================================================== */
+
+.anvil-role-alert-information .modal-content,
+.anvil-role-alert-information.modal-content,
+
+.anvil-role-alert-reussite .modal-content,
+.anvil-role-alert-reussite.modal-content,
+
+.anvil-role-alert-choix .modal-content,
+.anvil-role-alert-choix.modal-content {
+    border-radius: 18px !important;
+    overflow: hidden !important;
+
+    box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.30),
+        0 4px 12px rgba(0, 0, 0, 0.18) !important;
+}
+
+
+/* ==========================================================
+ALERTE INFORMATION — BLEU CIEL
+========================================================== */
+
+.anvil-role-alert-information .modal-content,
+.anvil-role-alert-information.modal-content {
+    background:
+        linear-gradient(
+            135deg,
+            #f2fbff 0%,
+            #d9f3ff 100%
+        ) !important;
+
+    border: 3px solid #29a8df !important;
+}
+
+.anvil-role-alert-information .modal-header {
+    background-color: #bcecff !important;
+    border-bottom: 1px solid #77d5f5 !important;
+}
+
+.anvil-role-alert-information .modal-title {
+    color: #075985 !important;
+    font-weight: 700 !important;
+}
+
+
+/* ==========================================================
+ALERTE RÉUSSITE — VERT CLAIR
+========================================================== */
+
+.anvil-role-alert-reussite .modal-content,
+.anvil-role-alert-reussite.modal-content {
+    background:
+        linear-gradient(
+            135deg,
+            #f1fff4 0%,
+            #d9f8df 100%
+        ) !important;
+
+    border: 3px solid #38a85a !important;
+}
+
+.anvil-role-alert-reussite .modal-header {
+    background-color: #bcecc8 !important;
+    border-bottom: 1px solid #75cf8c !important;
+}
+
+.anvil-role-alert-reussite .modal-title {
+    color: #166534 !important;
+    font-weight: 700 !important;
+}
+
+
+/* ==========================================================
+ALERTE DE CHOIX — JAUNE CHALEUREUX
+========================================================== */
+
+.anvil-role-alert-choix .modal-content,
+.anvil-role-alert-choix.modal-content {
+    background:
+        linear-gradient(
+            135deg,
+            #fffdf1 0%,
+            #ffedb8 100%
+        ) !important;
+
+    border: 3px solid #e9a917 !important;
+}
+
+.anvil-role-alert-choix .modal-header {
+    background-color: #ffe38a !important;
+    border-bottom: 1px solid #e9bd3e !important;
+}
+
+.anvil-role-alert-choix .modal-title {
+    color: #713f12 !important;
+    font-weight: 700 !important;
+}
+
+
+/* ==========================================================
+CORPS ET PIED DES ALERTES
+========================================================== */
+
+.anvil-role-alert-information .modal-body,
+.anvil-role-alert-information .modal-footer,
+
+.anvil-role-alert-reussite .modal-body,
+.anvil-role-alert-reussite .modal-footer,
+
+.anvil-role-alert-choix .modal-body,
+.anvil-role-alert-choix .modal-footer {
+    background-color: transparent !important;
+}
+
+
+/* Séparation légère au-dessus des boutons */
+
+.anvil-role-alert-information .modal-footer,
+.anvil-role-alert-reussite .modal-footer,
+.anvil-role-alert-choix .modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.10) !important;
+}
+
+/* ==========================================================
+CENTRAGE FORCÉ DES ALERTES ANVIL
+========================================================== */
+
+/* Le conteneur général de l'alerte centre son contenu */
+#alert-modal {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+
+    width: 100vw !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* La fenêtre elle-même */
+#alert-modal .modal-dialog {
+    position: relative !important;
+
+    float: none !important;
+    left: auto !important;
+    right: auto !important;
+
+    margin: 30px auto !important;
+
+    transform: none !important;
+}
+
+/* Téléphones */
+@media (max-width: 767px) {
+    #alert-modal .modal-dialog {
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
+        margin: 8px auto !important;
+    }
+}
+
+/* Tablettes et ordinateurs */
+@media (min-width: 768px) {
+    #alert-modal .modal-dialog {
+        width: 80vw !important;
+        max-width: 1000px !important;
+        margin: 30px auto !important;
+    }
+}
