@@ -1,4 +1,5 @@
 from anvil import *
+import anvil.server
 from anvil.js import window
 
 def context_ecran():
