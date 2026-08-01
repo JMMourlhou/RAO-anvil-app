@@ -2031,6 +2031,7 @@ class search(searchTemplate):
             offre = {
                 "idweb": self._to_str(item.get("idweb")),
                 "source": self._to_str(item.get("source")),
+                "source_originale": self._to_str(item.get("source_originale")),
                 "titre": self._to_str(item.get("titre")),
                 "date_publication": self._to_iso_date(item.get("date_publication")),
                 "date_limite_rep": self._to_iso_date(item.get("date_limite_rep")),
