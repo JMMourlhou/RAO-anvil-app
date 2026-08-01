@@ -51,6 +51,19 @@ class RowTemplate1(RowTemplate1Template):
 
         self.text_departement.text = self.item_value("departement", "")
 
+        source = self.item_value("source", "")
+        source_originale = self.item_value("source_originale", "")
+        
+        if source_originale:
+            texte_source = (
+                f"Repérée par : {source} | Publication : {source_originale}"
+            )
+        else:
+            texte_source = f"Source : {source}" if source else ""
+        
+        self.label_source.text = texte_source
+        self.label_source.visible = bool(texte_source)
+        
         # Vu / non vu
         self.set_checkbox_vu_sans_event(
             bool(self.item_value("vu", False))

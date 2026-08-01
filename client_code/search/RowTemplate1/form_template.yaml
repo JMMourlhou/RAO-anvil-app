@@ -92,6 +92,10 @@ components:
       margin: [null, null, '5', null]
     text: Lien
   type: form:dep_lin1x4oec0ytd:_Components.Link
+- layout_properties: {}
+  name: label_source
+  properties: {align: center, font_size: 12, icon_size: null, italic: true, style: label, text_color: 'theme:On Secondary Container'}
+  type: m3._Components.Text
 - event_bindings: {click: button_generer_html_click}
   layout_properties: {}
   name: button_generer_html
