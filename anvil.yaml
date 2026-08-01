@@ -173,10 +173,11 @@ db_schema:
       client_hidden: false
       name: url
       type: string
-    - admin_ui: {order: -1, width: 73}
+    - admin_ui: {order: -1, width: 89}
       client_hidden: false
       name: id
       type: string
+    indexes: []
     server: full
     title: platformes
   users:
