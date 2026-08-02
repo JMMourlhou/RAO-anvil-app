@@ -43,7 +43,17 @@ class RowTemplate1(RowTemplate1Template):
         except Exception:
             pass
 
-        self.text_departement.text = self.item_value("departement", "")
+        try:
+            self.link_lien.url = lien
+        except Exception:
+            pass
+        
+        self.text_departement.text = self.item_value(
+            "departement",
+            ""
+        )
+        
+        source = self.item_value("source", "")
 
         # Vu / non vu
         self.set_checkbox_vu_sans_event(

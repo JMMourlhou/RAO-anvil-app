@@ -88,7 +88,7 @@ class RowTemplate1(RowTemplate1Template):
             )
         
         self.label_source.text = texte_source
-        self.label_source.visible = bool(texte_source).label_source.visible = bool(texte_source)
+        self.label_source.visible = bool(texte_source)
         
         # Vu / non vu
         self.set_checkbox_vu_sans_event(

@@ -724,6 +724,10 @@ class search(searchTemplate):
         mots_ou = ctx.get("mots_ou", [])
         mots_exclus = ctx.get("mots_exclus", [])
         selected_platformes = ctx.get("selected_platformes", [])
+        print(
+            f"[CLIENT SEARCH] Offres reçues de l'Uplink : "
+            f"{len(offres or [])}"
+        )
 
         if not offres:
             self.data_grid_1.visible = False
@@ -740,17 +744,35 @@ class search(searchTemplate):
             )
             return
 
-        self.label_progress_recherche.text = "Filtrage des critères positifs..."
-
-        # =====================================================
-        # 1. Filtrage positif local
-        # =====================================================
-        offres = self.filtrer_offres_criteres_positifs(
-            offres,
-            mots_obligatoires,
-            mots_ou
+        self.label_progress_recherche.text = "Vérification des critères positifs..."
+        
+        # Les trois premiers mots obligatoires sont déjà contrôlés
+        # par les modules sources sur le texte complet.
+        #
+        # On évite de refaire le même contrôle côté client sur les
+        # descriptions raccourcies par lighten_offer_for_client().
+        if len(mots_obligatoires) <= 3:
+            offres = list(offres or [])
+        
+            print(
+                "[CLIENT SEARCH] Filtre positif client ignoré : "
+                "critères déjà contrôlés côté serveur"
+            )
+        
+        else:
+            # Sécurité provisoire pour les recherches comportant
+            # plus de trois mots obligatoires.
+            offres = self.filtrer_offres_criteres_positifs(
+                offres,
+                mots_obligatoires,
+                mots_ou
+            )
+        
+        print(
+            f"[CLIENT SEARCH] Après contrôle positif : "
+            f"{len(offres or [])}"
         )
-
+        
         if not offres:
             self.data_grid_1.visible = False
             self.column_panel_select.visible = False
@@ -774,7 +796,11 @@ class search(searchTemplate):
         self.label_progress_recherche.text = "Application des mots exclus..."
 
         offres = self.filtrer_offres_exclues(offres, mots_exclus)
-
+        print(
+            f"[CLIENT SEARCH] Après mots exclus : "
+            f"{len(offres or [])}"
+        )
+        
         if not offres:
             self.data_grid_1.visible = False
             self.column_panel_select.visible = False
@@ -797,7 +823,12 @@ class search(searchTemplate):
             offres,
             dedoublonner=True
         )
-
+        
+        print(
+            f"[CLIENT SEARCH] Après build_offres_list : "
+            f"{len(offres_preparees or [])}"
+        )
+        
         # --- Calcul automatique de la correspondance des mots OU ---
         self.label_progress_recherche.text = "Évaluation de la correspondance des offres..."
 
