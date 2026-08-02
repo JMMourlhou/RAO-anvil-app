@@ -49,27 +49,51 @@ class RowTemplate1(RowTemplate1Template):
         except Exception:
             pass
 
-        self.text_departement.text = self.item_value("departement", "")
-
         source = self.item_value("source", "")
-        source_originale = self.item_value("source_originale", "")
+        source_originale = self.item_value(
+            "source_originale",
+            ""
+        )
         
-        if source_originale:
+        sources_detectees = self.item_value(
+            "sources_detectees",
+            []
+        )
+        
+        if isinstance(sources_detectees, str):
+            sources_detectees = [sources_detectees]
+        
+        sources_carif = [
+            valeur
+            for valeur in sources_detectees
+            if "CARIF" in str(valeur or "").upper()
+        ]
+        
+        if "CARIF" not in source.upper() and sources_carif:
             texte_source = (
-                f"Repérée par : {source} | Publication : {source_originale}"
+                f"Source : {source} — également repérée par "
+                + ", ".join(sources_carif)
             )
+        
+        elif source_originale:
+            texte_source = (
+                f"Repérée par : {source} | "
+                f"Publication : {source_originale}"
+            )
+        
         else:
-            texte_source = f"Source : {source}" if source else ""
+            texte_source = (
+                f"Source : {source}"
+                if source else ""
+            )
         
         self.label_source.text = texte_source
-        self.label_source.visible = bool(texte_source)
+        self.label_source.visible = bool(texte_source).label_source.visible = bool(texte_source)
         
         # Vu / non vu
         self.set_checkbox_vu_sans_event(
             bool(self.item_value("vu", False))
         )
-
-
 
         # Libellé du bouton Vérification :
         # couleur de correspondance + mots trouvés
