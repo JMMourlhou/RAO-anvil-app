@@ -34,7 +34,10 @@ class RowTemplate1(RowTemplate1Template):
 
         # Champs principaux
         self.text_titre.text = self.item_value("titre", "")
-
+        self.text_departement.text = self.item_value(
+            "departement",
+            ""
+        )
         # Dans les résultats, la clé est souvent lien_source, pas lien
         lien = (
             self.item_value("lien_source", "")
@@ -49,46 +52,97 @@ class RowTemplate1(RowTemplate1Template):
         except Exception:
             pass
 
-        source = self.item_value("source", "")
-        source_originale = self.item_value(
-            "source_originale",
-            ""
-        )
-        
+        source = str(
+            self.item_value("source", "") or ""
+        ).strip()
+
+        source_originale = str(
+            self.item_value("source_originale", "") or ""
+        ).strip()
+
         sources_detectees = self.item_value(
             "sources_detectees",
             []
         )
-        
+
+        # Certaines anciennes offres peuvent contenir une chaîne simple.
         if isinstance(sources_detectees, str):
             sources_detectees = [sources_detectees]
-        
-        sources_carif = [
-            valeur
-            for valeur in sources_detectees
-            if "CARIF" in str(valeur or "").upper()
-        ]
-        
-        if "CARIF" not in source.upper() and sources_carif:
+
+        elif not isinstance(
+            sources_detectees,
+            (list, tuple, set)
+        ):
+            sources_detectees = []
+
+        def normaliser_nom_source(valeur):
+            return " ".join(
+                str(valeur or "").strip().split()
+            ).lower()
+
+        source_normalisee = normaliser_nom_source(
+            source
+        )
+
+        sources_secondaires = []
+
+        sources_deja_ajoutees = (
+            {source_normalisee}
+            if source_normalisee
+            else set()
+        )
+
+        for valeur in sources_detectees:
+            nom_source = " ".join(
+                str(valeur or "").strip().split()
+            )
+
+            nom_source_normalise = (
+                normaliser_nom_source(nom_source)
+            )
+
+            if not nom_source_normalise:
+                continue
+
+            # Ne pas répéter la source principale.
+            if nom_source_normalise in sources_deja_ajoutees:
+                continue
+
+            sources_deja_ajoutees.add(
+                nom_source_normalise
+            )
+
+            sources_secondaires.append(
+                nom_source
+            )
+
+        if sources_secondaires:
             texte_source = (
                 f"Source : {source} — également repérée par "
-                + ", ".join(sources_carif)
+                + ", ".join(sources_secondaires)
             )
-        
-        elif source_originale:
+
+        elif (
+            source_originale
+            and normaliser_nom_source(source_originale)
+            != source_normalisee
+        ):
             texte_source = (
                 f"Repérée par : {source} | "
                 f"Publication : {source_originale}"
             )
-        
+
         else:
             texte_source = (
                 f"Source : {source}"
-                if source else ""
+                if source
+                else ""
             )
-        
+
         self.label_source.text = texte_source
-        self.label_source.visible = bool(texte_source)
+        self.label_source.visible = bool(
+            texte_source
+        )       
         
         # Vu / non vu
         self.set_checkbox_vu_sans_event(
