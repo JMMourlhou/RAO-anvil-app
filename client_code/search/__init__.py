@@ -37,410 +37,382 @@ class search(searchTemplate):
         # ================================================================
 
         t = window.performance.now()
-
         self.init_components(**properties)
-
         afficher_temps("init_components", t)
+
+        # ================================================================
+        # Personnalisation MultiSelect plateformes
+        # ================================================================
+
+        # Boutons en français
+        self.multi_select_drop_down_platformes._dd.select_all_btn.text = "Tout sélectionner"
+        self.multi_select_drop_down_platformes._dd.deselect_all_btn.text = "Tout désélectionner"
+
+        # Couleurs boutons
+        self.multi_select_drop_down_platformes._dd.select_all_btn.foreground = "theme:Dark"
+        self.multi_select_drop_down_platformes._dd.deselect_all_btn.foreground = "theme:Dark"
+        self.multi_select_drop_down_platformes._dd.select_all_btn.background = "theme:Light Green"
+        self.multi_select_drop_down_platformes._dd.deselect_all_btn.background = "theme:Light Green"
 
         # ================================================================
         # Détection du type d'écran
         # ================================================================
 
         t = window.performance.now()
-
         self.context = Context_ecran.context_screen()
 
         if self.context["screen_type"] == "phone":
+
             self.button_selection_mailed.text = "Mail"
+
+            # Largeur du menu ouvert du MultiSelect
+            popover = self.multi_select_drop_down_platformes.popover
+            popover.dom_popover.style.width = "calc(100vw - 10px)"
+            popover.dom_popover.style.maxWidth = "calc(100vw - 10px)"
+
+            # Le contenu interne prend toute la largeur disponible
+            self.multi_select_drop_down_platformes._dd._dom_node.style.width = "100%"
+            self.multi_select_drop_down_platformes._dd._dom_node.style.minWidth = "100%"
+    
         else:
-            self.button_selection_mailed.text = (
-                "Envoi de la sélection"
-            )
-
-        afficher_temps(
-            "Context_ecran et adaptation affichage",
-            t
-        )
-
+    
+            self.button_selection_mailed.text = "Envoi de la sélection"
+    
+            # Largeur du menu ouvert du MultiSelect
+            popover = self.multi_select_drop_down_platformes.popover
+            popover.dom_popover.style.width = "calc(40vw - 50px)"
+            popover.dom_popover.style.maxWidth = "calc(40vw - 50px)"
+    
+            self.multi_select_drop_down_platformes._dd._dom_node.style.width = "60%"
+            self.multi_select_drop_down_platformes._dd._dom_node.style.minWidth = "60%"
+    
+        afficher_temps("Context_ecran et adaptation affichage", t)
+    
         # ================================================================
         # Form principale
         # ================================================================
-
+    
         t = window.performance.now()
-
         self.f = get_open_form()
-
         afficher_temps("get_open_form", t)
-
+    
         # ================================================================
         # Affichage de la progression
         # ================================================================
-
+    
         t = window.performance.now()
-
-        self.column_panel_progress_recherche.role = (
-            "progress-search-box"
-        )
-        self.label_progress_recherche.role = (
-            "progress-search-main"
-        )
-        self.label_jauge_globale.role = (
-            "progress-gauge-global"
-        )
-        self.label_jauge_source.role = (
-            "progress-gauge-source"
-        )
-
+    
+        self.column_panel_progress_recherche.role = "progress-search-box"
+        self.label_progress_recherche.role = "progress-search-main"
+        self.label_jauge_globale.role = "progress-gauge-global"
+        self.label_jauge_source.role = "progress-gauge-source"
+    
         self.column_panel_progress_recherche.visible = False
-
-        afficher_temps(
-            "initialisation affichage progression",
-            t
-        )
-
+    
+        afficher_temps("initialisation affichage progression", t)
+    
         # ================================================================
         # Variables internes
         # ================================================================
-
+    
         t = window.performance.now()
-
+    
         self.user = None
         self.histo_id = None
         self.list_offres = []
-
+    
         self.label_progress_recherche.visible = False
         self.timer_recherche_progress.interval = 0
-
+    
         self.task_recherche = None
         self._ctx_recherche = {}
         self._recherche_en_cours = False
         self._annulation_recherche_demandee = False
-
+    
         self.base_app = ""
-
+    
         self._last_progress_global = None
         self._last_progress_source = None
         self._last_progress_role = None
-
+    
         self.label_jauge_globale.visible = False
         self.label_jauge_source.visible = False
         self.text_param_summary.visible = False
+    
         self.button_daily_survey_creation.visible = False
         self.button_daily_survey_creation.enabled = True
-
+    
         # Évite les événements indésirables lors d'une modification par code
         self._ignore_checkbox_on_off_change = False
-
-        afficher_temps(
-            "initialisation variables internes",
-            t
-        )
-
+    
+        afficher_temps("initialisation variables internes", t)
+    
         # ================================================================
         # Événements du RepeatingPanel
         # ================================================================
-
+    
         t = window.performance.now()
-
+    
         self.repeating_panel_offres.set_event_handler(
             "x-checkbox-vu-changee",
             self.modifier_offre_vu
         )
-
+    
         self.repeating_panel_offres.set_event_handler(
             "x-del-offre",
             self.del_offre_affichee
         )
-
+    
         self.repeating_panel_offres.set_event_handler(
             "x-icon_button_go_up",
             self.go_up
         )
-
+    
         self.repeating_panel_offres.set_event_handler(
             "x-icon_button_go_down",
             self.go_down
         )
-
-        afficher_temps(
-            "installation handlers repeating_panel_offres",
-            t
-        )
-
+    
+        afficher_temps("installation handlers repeating_panel_offres", t)
+    
         # ================================================================
         # Appel serveur unique
         # ================================================================
-
+    
         inclure_offres = origine == "check"
-
         t = window.performance.now()
-
+    
         try:
             with anvil.server.no_loading_indicator:
                 donnees_initiales = anvil.server.call(
                     "initialiser_form_search",
                     inclure_offres
                 )
-
+    
         except Exception as e:
-            print(
-                "Erreur pendant l'initialisation de search :",
-                e
-            )
-
+            print("Erreur pendant l'initialisation de search :", e)
+    
             afficher_avertissement(
                 "Impossible d'initialiser la recherche.\n\n"
                 f"{e}",
                 titre="Erreur d’initialisation"
             )
             return
-
-        afficher_temps(
-            "appel initialiser_form_search",
-            t
-        )
-
+    
+        afficher_temps("appel initialiser_form_search", t)
+    
         if not isinstance(donnees_initiales, dict):
             afficher_avertissement(
-                "Le serveur n'a pas renvoyé les données "
-                "d'initialisation attendues.",
+                "Le serveur n'a pas renvoyé les données d'initialisation attendues.",
                 titre="Erreur d’initialisation"
             )
             return
-
+    
         # ================================================================
         # Utilisateur et base_app
         # ================================================================
-
+    
         self.user = donnees_initiales.get("user")
-
-        self.base_app = (
-            donnees_initiales.get("base_app") or ""
-        )
-
+        self.base_app = donnees_initiales.get("base_app") or ""
+    
         if not self.user:
             afficher_avertissement(
                 "Vous n'êtes pas connecté.",
                 titre="Connexion requise"
             )
             return
-
+    
         # ================================================================
-        # Configuration des plateformes
+        # Configuration de la DropDown plateformes
         # ================================================================
-
+    
         t = window.performance.now()
-
-        plateformes = (
-            donnees_initiales.get("plateformes") or []
-        )
-
-        self.multi_select_drop_down_platformes.items = [
-            {
-                "key": plateforme_id,
+    
+        plateformes = donnees_initiales.get("plateformes") or []
+    
+        # ------------------------------------------------------------
+        # key   = texte affiché dans la DropDown
+        # value = ID utilisé par le programme
+        # ------------------------------------------------------------
+    
+        liste_items = []
+        liste_ids_plateformes = []
+    
+        for plateforme in plateformes:
+    
+            plateforme_id = plateforme["id"]
+            texte_affiche = plateforme["drop_down_display"] or plateforme_id
+    
+            item = {
+                "key": texte_affiche,
                 "value": plateforme_id
             }
-            for plateforme_id in plateformes
-        ]
-
-        self.multi_select_drop_down_platformes.placeholder = (
-            "Sélectionnez les plateformes"
-        )
+    
+            liste_items.append(item)
+            liste_ids_plateformes.append(plateforme_id)
+    
+        # Configuration du composant
         self.multi_select_drop_down_platformes.multiple = True
         self.multi_select_drop_down_platformes.enable_filtering = False
         self.multi_select_drop_down_platformes.enable_select_all = True
+        self.multi_select_drop_down_platformes.items = liste_items
+    
+        self.multi_select_drop_down_platformes.placeholder = "Sélectionnez les plateformes"
         self.multi_select_drop_down_platformes.width = "100%"
         self.multi_select_drop_down_platformes.background = "#3CD9ED"
         self.multi_select_drop_down_platformes.spacing_above = "1"
+    
+        # ------------------------------------------------------------
+        # Texte affiché quand la DropDown est fermée :
+        # AWS, BOAMP, TED...
+        # ------------------------------------------------------------
 
-        afficher_temps(
-            "configuration plateformes",
-            t
-        )
-
+        def format_selected_text(count, total):
+    
+            ids_selectionnes = self.multi_select_drop_down_platformes.selected or []
+            textes = []
+    
+            for plateforme_id in ids_selectionnes:
+                textes.append(str(plateforme_id))
+    
+            return ", ".join(textes)
+    
+        self.multi_select_drop_down_platformes.format_selected_text = format_selected_text
+    
+        afficher_temps("configuration plateformes", t)
+    
         # ================================================================
         # Dernière recherche
         # ================================================================
-
+    
         t = window.performance.now()
-
+    
         derniere_ligne = donnees_initiales.get("histo")
-
+    
         if derniere_ligne is None:
-            # Nouvel utilisateur sans historique
-            self.multi_select_drop_down_platformes.selected = (
-                plateformes
-            )
-
-            self.text_box_mot_clef.text = (
-                "Football et Ballon"
-            )
-            self.text_box_mot_ou.text = ""
-            self.text_box_mots_exclus.text = ""
+    
+            # Nouvel utilisateur : toutes les plateformes sélectionnées
+            self.multi_select_drop_down_platformes.selected = liste_ids_plateformes
+    
+            self.text_box_mot_clef.text = "Formation"
+            self.text_box_mot_ou.text = "sst, mac, psc, pse1, pse2, aipr, habilitation"
+            self.text_box_mots_exclus.text = "Information, Déformation"
             self.text_box_nb_jours.text = "30"
             self.text_box_departements.text = None
-
+    
             self.histo_id = None
             self.list_offres = []
-
+    
         else:
+    
             self.histo_id = derniere_ligne.get("histo_id")
-
-            self.text_box_mot_clef.text = (
-                derniere_ligne.get("mots_cles") or ""
-            )
-
-            self.text_box_mot_ou.text = (
-                derniere_ligne.get("mots_ou") or ""
-            )
-
-            self.text_box_mots_exclus.text = (
-                derniere_ligne.get("mots_exclus") or ""
-            )
-
-            self.text_box_nb_jours.text = (
-                derniere_ligne.get("nb_jours") or "30"
-            )
-
-            self.text_box_departements.text = (
-                derniere_ligne.get("departements")
-            )
-
+    
+            self.text_box_mot_clef.text = derniere_ligne.get("mots_cles") or ""
+            self.text_box_mot_ou.text = derniere_ligne.get("mots_ou") or ""
+            self.text_box_mots_exclus.text = derniere_ligne.get("mots_exclus") or ""
+            self.text_box_nb_jours.text = derniere_ligne.get("nb_jours") or "30"
+            self.text_box_departements.text = derniere_ligne.get("departements")
+    
             sources = derniere_ligne.get("sources")
-
+    
             if sources is not None:
-                self.multi_select_drop_down_platformes.selected = (
-                    sources
-                )
+                self.multi_select_drop_down_platformes.selected = sources
             else:
-                self.multi_select_drop_down_platformes.selected = (
-                    plateformes
-                )
-
-        # ============================================================
+                self.multi_select_drop_down_platformes.selected = liste_ids_plateformes
+    
+        # ================================================================
         # Offres uniquement pour origine == "check"
-        # ============================================================
-
+        # ================================================================
+    
         if inclure_offres and derniere_ligne is not None:
+    
             t_offres = window.performance.now()
-
-            offres_chargees = (
-                self.normaliser_liste_offres_vu(
-                    derniere_ligne.get("offres") or []
-                )
+    
+            offres_chargees = self.normaliser_liste_offres_vu(
+                derniere_ligne.get("offres") or []
             )
-
-            mots_obligatoires = (
-                self.extraire_liste_mots_saisie(
-                    self.text_box_mot_clef.text or ""
-                )
+    
+            mots_obligatoires = self.extraire_liste_mots_saisie(
+                self.text_box_mot_clef.text or ""
             )
-
+    
             mots_ou = self.extraire_liste_mots_saisie(
                 self.text_box_mot_ou.text or ""
             )
-
-            mots_exclus = (
-                self.extraire_liste_mots_saisie(
-                    self.text_box_mots_exclus.text or ""
-                )
+    
+            mots_exclus = self.extraire_liste_mots_saisie(
+                self.text_box_mots_exclus.text or ""
             )
-
-            offres_chargees = (
-                self.filtrer_offres_criteres_positifs(
-                    offres_chargees,
-                    mots_obligatoires,
-                    mots_ou
-                )
+    
+            offres_chargees = self.filtrer_offres_criteres_positifs(
+                offres_chargees,
+                mots_obligatoires,
+                mots_ou
             )
-
-            offres_chargees = (
-                self.filtrer_offres_exclues(
-                    offres_chargees,
-                    mots_exclus
-                )
+    
+            offres_chargees = self.filtrer_offres_exclues(
+                offres_chargees,
+                mots_exclus
             )
-
-            offres_chargees = (
-                self.ajouter_correspondance_mots_ou(
-                    offres_chargees,
-                    mots_ou
-                )
+    
+            offres_chargees = self.ajouter_correspondance_mots_ou(
+                offres_chargees,
+                mots_ou
             )
-
-            self.list_offres = (
-                self.trier_offres_par_interet(
-                    offres_chargees
-                )
-            )
-
-            afficher_temps(
-                "traitement offres mode check",
-                t_offres
-            )
-
+    
+            self.list_offres = self.trier_offres_par_interet(offres_chargees)
+    
+            afficher_temps("traitement offres mode check", t_offres)
+    
         else:
             self.list_offres = []
-
-        afficher_temps(
-            "application dernière recherche",
-            t
-        )
-
+    
+        afficher_temps("application dernière recherche", t)
+    
         # ================================================================
         # Ouverture normale depuis le Menu
         # ================================================================
-
+    
         t = window.performance.now()
-
+    
         if origine == "":
             self.column_panel_params.visible = True
             self.maj_bouton_recherche_visible()
-
-        afficher_temps(
-            "traitement origine normale",
-            t
-        )
-
+    
+        afficher_temps("traitement origine normale", t)
+    
         # ================================================================
         # Ouverture en mode vérification
         # ================================================================
-
+    
         t = window.performance.now()
-
+    
         if origine == "check":
+    
             self.column_panel_params.visible = False
-
+    
             if mk != "":
                 self.text_box_mot_clef.text = mk
-
-            self.set_checkbox_on_off_sans_event(
-                bool(checkbox_on_off)
-            )
-
+    
+            self.set_checkbox_on_off_sans_event(bool(checkbox_on_off))
+    
             if bt_mail_visible is True:
                 self.button_selection_mailed.visible = True
-
+    
             if derniere_ligne is not None:
                 self.afficher_offres(self.list_offres)
             else:
                 self.column_panel_select.visible = False
-
+    
             self.f.navigation_link_search_go.visible = False
-
-        afficher_temps(
-            "traitement origine check",
-            t
-        )
-
+    
+        afficher_temps("traitement origine check", t)
+    
         # ================================================================
         # Temps total
         # ================================================================
-
-        afficher_temps(
-            "TOTAL __init__",
-            t_total
-        )
+    
+        afficher_temps("TOTAL __init__", t_total)
 
     def verrouiller_recherche(self):
         """

@@ -173,9 +173,13 @@ db_schema:
       client_hidden: false
       name: url
       type: string
-    - admin_ui: {order: -1, width: 89}
+    - admin_ui: {order: -1, width: 288}
       client_hidden: false
       name: id
+      type: string
+    - admin_ui: {order: 0.5, width: 406}
+      client_hidden: false
+      name: drop_down_display
       type: string
     indexes: []
     server: full

@@ -30,7 +30,10 @@ def initialiser_form_search(inclure_offres=False):
         }
 
     plateformes = [
-        row["id"]
+        {
+            "id": row["id"],
+            "drop_down_display": row["drop_down_display"]
+        }
         for row in app_tables.platformes.search(
             tables.order_by("id", ascending=True)
         )

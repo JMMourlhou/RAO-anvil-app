@@ -59,87 +59,120 @@ class RowTemplate1(RowTemplate1Template):
         source_originale = str(
             self.item_value("source_originale", "") or ""
         ).strip()
-
-        sources_detectees = self.item_value("sources_detectees", [])
         
-        # Certaines anciennes offres peuvent contenir une chaîne simple.
+        sources_detectees = self.item_value(
+            "sources_detectees",
+            []
+        )
+        
+        # Certaines anciennes offres peuvent contenir
+        # une chaîne simple.
         if isinstance(sources_detectees, str):
             sources_detectees = [sources_detectees]
-
+        
         elif not isinstance(
             sources_detectees,
             (list, tuple, set)
         ):
             sources_detectees = []
         
-        # Conversion des codes techniques en noms lisibles  
-        sources_detectees = [
-            self.nom_source_affiche(source)
-            for source in sources_detectees
-        ]
-
+        
         def normaliser_nom_source(valeur):
             return " ".join(
                 str(valeur or "").strip().split()
             ).lower()
-
+        
+        
+        # ---------------------------------------------------------
+        # Source principale
+        # ---------------------------------------------------------
+        
         source_normalisee = normaliser_nom_source(
             source
         )
-
-        sources_secondaires = []
-
-        sources_deja_ajoutees = (
-            {source_normalisee}
-            if source_normalisee
-            else set()
+        
+        source_affichee = self.nom_source_affiche(
+            source
         )
-
-        for valeur in sources_detectees:
-            nom_source = " ".join(
-                str(valeur or "").strip().split()
-            )
-
-            nom_source_normalise = (
-                normaliser_nom_source(nom_source)
-            )
-
-            if not nom_source_normalise:
-                continue
-
-            # Ne pas répéter la source principale.
-            if nom_source_normalise in sources_deja_ajoutees:
-                continue
-
+        
+        
+        # ---------------------------------------------------------
+        # Sources secondaires réellement différentes
+        # ---------------------------------------------------------
+        
+        sources_secondaires = []
+        sources_deja_ajoutees = set()
+        
+        if source_normalisee:
             sources_deja_ajoutees.add(
-                nom_source_normalise
+                source_normalisee
             )
-
+        
+        for valeur in sources_detectees:
+        
+            valeur = str(
+                valeur or ""
+            ).strip()
+        
+            valeur_normalisee = normaliser_nom_source(
+                valeur
+            )
+        
+            if not valeur_normalisee:
+                continue
+        
+            # C'est la source principale :
+            # ne pas l'afficher une deuxième fois.
+            if valeur_normalisee in sources_deja_ajoutees:
+                continue
+        
+            sources_deja_ajoutees.add(
+                valeur_normalisee
+            )
+        
             sources_secondaires.append(
-                nom_source
+                self.nom_source_affiche(valeur)
             )
-
+        
+        
+        # ---------------------------------------------------------
+        # Construction du texte affiché
+        # ---------------------------------------------------------
+        
         if sources_secondaires:
+        
             texte_source = (
-                f"Source : {source} — également repérée par "
+                f"Source : {source_affichee}"
+                " — également repérée par "
                 + ", ".join(sources_secondaires)
             )
-
+        
         elif (
             source_originale
             and normaliser_nom_source(source_originale)
             != source_normalisee
         ):
+        
             texte_source = (
-                f"Repérée par : {source} | "
-                f"Publication : {source_originale}"
+                f"Repérée par : {source_affichee} | "
+                f"Publication : "
+                f"{self.nom_source_affiche(source_originale)}"
+            )
+        
+        else:
+        
+            texte_source = (
+                f"Source : {source_affichee}"
+                if source_affichee
+                else ""
             )
 
-        else:
-            source_affichee = self.nom_source_affiche(source)  # sources aws en claire
-            texte_source = (f"Source : {source_affichee}" if source_affichee else "")
-            # texte_source = (f"Source : {source}" if source else "")
 
+
+
+
+
+        
         self.label_source.text = texte_source
         self.label_source.visible = bool(
             texte_source
@@ -229,8 +262,8 @@ class RowTemplate1(RowTemplate1Template):
             "AWS-GM": "AWS / Gazette de Montpellier",
             "AWS-NR": "AWS / Nouvelle République",
             "AWS-SO": "AWS / Sud Ouest",
-            "AWS-LDM": "AWS / LDM",
-            "AWS-MP74": "AWS / MP74",
+            "AWS-LDM": "AWS / La Dépêche du Midi",
+            "AWS-MP74": "AWS / Association des Maires 74",
         }
         return noms_aws.get(source.upper(), source)
 
