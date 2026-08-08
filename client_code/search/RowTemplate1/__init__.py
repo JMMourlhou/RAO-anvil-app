@@ -60,11 +60,8 @@ class RowTemplate1(RowTemplate1Template):
             self.item_value("source_originale", "") or ""
         ).strip()
 
-        sources_detectees = self.item_value(
-            "sources_detectees",
-            []
-        )
-
+        sources_detectees = self.item_value("sources_detectees", [])
+        
         # Certaines anciennes offres peuvent contenir une chaîne simple.
         if isinstance(sources_detectees, str):
             sources_detectees = [sources_detectees]
@@ -74,6 +71,12 @@ class RowTemplate1(RowTemplate1Template):
             (list, tuple, set)
         ):
             sources_detectees = []
+        
+        # Conversion des codes techniques en noms lisibles  
+        sources_detectees = [
+            self.nom_source_affiche(source)
+            for source in sources_detectees
+        ]
 
         def normaliser_nom_source(valeur):
             return " ".join(
@@ -133,11 +136,9 @@ class RowTemplate1(RowTemplate1Template):
             )
 
         else:
-            texte_source = (
-                f"Source : {source}"
-                if source
-                else ""
-            )
+            source_affichee = self.nom_source_affiche(source)  # sources aws en claire
+            texte_source = (f"Source : {source_affichee}" if source_affichee else "")
+            # texte_source = (f"Source : {source}" if source else "")
 
         self.label_source.text = texte_source
         self.label_source.visible = bool(
@@ -220,6 +221,20 @@ class RowTemplate1(RowTemplate1Template):
 
         return "-"
 
+    def nom_source_affiche(self, source):
+        source = (source or "").strip()
+        noms_aws = {
+            "AWS-ML": "AWS / Midi-Libre",
+            "AWS-DL": "AWS / Dauphiné Libéré",
+            "AWS-GM": "AWS / Gazette de Montpellier",
+            "AWS-NR": "AWS / Nouvelle République",
+            "AWS-SO": "AWS / Sud Ouest",
+            "AWS-LDM": "AWS / LDM",
+            "AWS-MP74": "AWS / MP74",
+        }
+        return noms_aws.get(source.upper(), source)
+
+    
     def set_checkbox_vu_sans_event(self, valeur):
         """
         Modifie checkbox_vu.checked sans déclencher le traitement parent.
