@@ -38,6 +38,7 @@ class search(searchTemplate):
 
         t = window.performance.now()
         self.init_components(**properties)
+        self.initialiser_selecteur_cpv()
         afficher_temps("init_components", t)
 
         # ================================================================
@@ -2485,6 +2486,144 @@ class search(searchTemplate):
         except Exception as e:
             print("Erreur réglage jauge :", e)
 
+    def initialiser_selecteur_cpv(self):
+        """Initialise les listes CPV locales et leurs événements, sans appel serveur.
+
+        Aucun paramètre. Retour : None. La sélection est propre à cette instance
+        de search ; elle ne provient pas d'une veille et n'est jamais sauvegardée.
+        """
+        self.cpv_selectionnes = []
+        self._recherche_cpv_en_cours = False
+        self.repeating_panel_suggestions_cpv.items = []
+        self.repeating_panel_suggestions_cpv.set_event_handler("x-ajouter-cpv", self.ajouter_cpv)
+        self.repeating_panel_cpv_selectionnes.set_event_handler("x-retirer-cpv", self.retirer_cpv)
+        self.rafraichir_cpv_selectionnes()
+
+    @handle("button_rechercher_cpv", "click")
+    def button_rechercher_cpv_click(self, **event_args):
+        """Lance la recherche CPV au clic ; event_args contient l'événement Anvil.
+
+        Retour : None. Les erreurs inattendues restent propagées.
+        """
+        self.rechercher_cpv_depuis_saisie()
+
+    @handle("text_box_recherche_cpv", "pressed_enter")
+    def text_box_recherche_cpv_pressed_enter(self, **event_args):
+        """Recherche les CPV sur Entrée, sans lancer la recherche d'offres.
+
+        Paramètre : event_args (dict), événement Anvil. Retour : None.
+        Les erreurs inattendues restent propagées.
+        """
+        self.rechercher_cpv_depuis_saisie()
+
+    @handle("text_box_recherche_cpv", "change")
+    def text_box_recherche_cpv_change(self, **event_args):
+        """Efface les suggestions devenues obsolètes sans appeler le serveur.
+
+        Paramètre : event_args (dict), événement Anvil. Retour : None.
+        La sélection demeure intacte, y compris lorsque la saisie devient vide.
+        """
+        if self._recherche_cpv_en_cours:
+            return
+        self.repeating_panel_suggestions_cpv.items = []
+        self.label_message_recherche_cpv.text = ""
+
+    def rechercher_cpv_depuis_saisie(self):
+        """Recherche au plus dix CPV à partir du texte saisi dans la Form.
+
+        Aucun paramètre. Retour : None. Une saisie vide efface les suggestions.
+        Les refus attendus de l'API sont affichés ; une panne laisse un message
+        simple et propage l'erreur pour diagnostic, sans perdre la sélection.
+        """
+        if self._recherche_cpv_en_cours:
+            return
+
+        terme_recherche = str(self.text_box_recherche_cpv.text or "").strip()
+        self.repeating_panel_suggestions_cpv.items = []
+        self.label_message_recherche_cpv.text = ""
+        if not terme_recherche:
+            return
+        if len(terme_recherche) > 200:
+            self.label_message_recherche_cpv.text = "La recherche est limitée à 200 caractères."
+            return
+
+        # Un seul appel explicite à la fois évite les réponses concurrentes
+        # et les requêtes envoyées pour chaque caractère saisi.
+        self._recherche_cpv_en_cours = True
+        self.button_rechercher_cpv.enabled = False
+        self.text_box_recherche_cpv.enabled = False
+        self.label_message_recherche_cpv.text = "Recherche des CPV…"
+        recherche_terminee = False
+        try:
+            reponse_recherche = anvil.server.call("rechercher_cpv", terme_recherche, 10)
+            if not reponse_recherche["ok"]:
+                self.label_message_recherche_cpv.text = reponse_recherche["message"]
+            else:
+                resultats_cpv = reponse_recherche["resultats"]
+                self.repeating_panel_suggestions_cpv.items = resultats_cpv[:10]
+                if resultats_cpv:
+                    self.label_message_recherche_cpv.text = "Choisissez les prestations à ajouter."
+                else:
+                    self.label_message_recherche_cpv.text = "Aucun CPV trouvé"
+            recherche_terminee = True
+        finally:
+            # Rétablir l'interface même en cas de panne, sans masquer l'erreur
+            # technique ni toucher aux CPV déjà retenus.
+            self._recherche_cpv_en_cours = False
+            self.button_rechercher_cpv.enabled = True
+            self.text_box_recherche_cpv.enabled = True
+            if not recherche_terminee:
+                self.label_message_recherche_cpv.text = "La recherche CPV est indisponible. Réessayez."
+
+    def ajouter_cpv(self, cpv_propose, **event_args):
+        """Ajoute une suggestion officielle à la sélection locale, sans écriture.
+
+        Paramètres : cpv_propose (dict contenant code et libelle, deux str),
+        event_args (dict Anvil). Retour : None. Un doublon est ignoré ;
+        au-delà de 100 codes, un message invite à réduire la sélection.
+        """
+        code_cpv = cpv_propose["code"]
+        for cpv_selectionne in self.cpv_selectionnes:
+            if cpv_selectionne["code"] == code_cpv:
+                self.label_message_selection_cpv.text = "Ce CPV est déjà sélectionné."
+                return
+
+        # Respecter la borne de résolution et de validation définie en 10C.
+        if len(self.cpv_selectionnes) >= 100:
+            self.label_message_selection_cpv.text = "Vous pouvez sélectionner jusqu’à 100 CPV."
+            return
+
+        self.cpv_selectionnes.append({
+            "code": code_cpv,
+            "libelle": cpv_propose["libelle"],
+        })
+        self.rafraichir_cpv_selectionnes()
+
+    def retirer_cpv(self, code_cpv, **event_args):
+        """Retire uniquement le code demandé de la sélection locale.
+
+        Paramètres : code_cpv (str), event_args (dict Anvil). Retour : None.
+        Un code absent ne change pas la sélection. Aucun appel serveur.
+        """
+        cpv_conserves = []
+        for cpv_selectionne in self.cpv_selectionnes:
+            if cpv_selectionne["code"] != code_cpv:
+                cpv_conserves.append(cpv_selectionne)
+        self.cpv_selectionnes = cpv_conserves
+        self.rafraichir_cpv_selectionnes()
+
+    def rafraichir_cpv_selectionnes(self):
+        """Rafraîchit la liste sélectionnée et son état vide, sans toucher aux suggestions.
+
+        Aucun paramètre. Retour : None. L'ordre local est conservé et aucune
+        transformation du libellé officiel n'est effectuée.
+        """
+        self.repeating_panel_cpv_selectionnes.items = list(self.cpv_selectionnes)
+        if self.cpv_selectionnes:
+            self.label_message_selection_cpv.text = ""
+        else:
+            self.label_message_selection_cpv.text = "Aucun CPV sélectionné."
+
     def go_up(self, **event_args):
         self.scroll_into_view(smooth=True, align="start")
 
@@ -2613,4 +2752,3 @@ class search(searchTemplate):
             result.get("message")
             or "La veille quotidienne est maintenant active."
         )
-

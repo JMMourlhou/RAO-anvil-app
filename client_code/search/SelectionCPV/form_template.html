@@ -1,0 +1,7 @@
+<anvil-form container="FlowPanel" prop:vertical_align="middle">
+    <anvil-component type="LinearPanel" name="panel_libelle_cpv" container:expand="true">
+        <anvil-component type="Label" name="label_libelle_cpv" prop:bold="true" prop:font_size="16" prop:spacing_below="none" bind:text="self.item['libelle']"></anvil-component>
+        <anvil-component type="Label" name="label_code_cpv" prop:font_size="12" prop:spacing_above="none" bind:text="self.item['code']"></anvil-component>
+    </anvil-component>
+    <anvil-component type="Button" name="button_retirer_cpv" prop:text="Retirer"></anvil-component>
+</anvil-form>
