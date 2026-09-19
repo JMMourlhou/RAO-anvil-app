@@ -2490,13 +2490,20 @@ class search(searchTemplate):
         """Initialise les listes CPV locales et leurs événements, sans appel serveur.
 
         Aucun paramètre. Retour : None. La sélection est propre à cette instance
-        de search ; elle ne provient pas d'une veille et n'est jamais sauvegardée.
+        de search ; elle ne provient pas d'une veille. La sauvegarde demande
+        un clic explicite et une confirmation dans le parcours CPV.
         """
         self.cpv_selectionnes = []
         self._recherche_cpv_en_cours = False
+        self._sauvegarde_veille_cpv_en_cours = False
+        self._criteres_veille_cpv_actifs = None
         self.repeating_panel_suggestions_cpv.items = []
         self.repeating_panel_suggestions_cpv.set_event_handler("x-ajouter-cpv", self.ajouter_cpv)
         self.repeating_panel_cpv_selectionnes.set_event_handler("x-retirer-cpv", self.retirer_cpv)
+        # Ajouter nos événements sans remplacer ceux de la recherche legacy.
+        self.multi_select_drop_down_platformes.add_event_handler("change", self.actualiser_bouton_veille_cpv)
+        self.text_box_departements.add_event_handler("change", self.actualiser_bouton_veille_cpv)
+        self.text_box_mots_exclus.add_event_handler("change", self.actualiser_bouton_veille_cpv)
         self.rafraichir_cpv_selectionnes()
 
     @handle("button_rechercher_cpv", "click")
@@ -2623,6 +2630,168 @@ class search(searchTemplate):
             self.label_message_selection_cpv.text = ""
         else:
             self.label_message_selection_cpv.text = "Aucun CPV sélectionné."
+        self.actualiser_bouton_veille_cpv()
+
+    def preparer_criteres_veille_cpv(self):
+        """Copie les quatre critères destinés au serveur, sans état legacy.
+
+        Aucun paramètre. Retour : dict contenant cpv_selectionnes (list[str]),
+        sources (list[str]), departements et mots_exclus (str).
+        Les libellés restent dans la Form ; aucune valeur locale n'est modifiée.
+        """
+        codes_cpv = []
+        for cpv_selectionne in self.cpv_selectionnes:
+            codes_cpv.append(cpv_selectionne["code"])
+        sources_selectionnees = list(self.multi_select_drop_down_platformes.selected or [])
+        departements = str(self.text_box_departements.text or "").strip()
+        mots_exclus = str(self.text_box_mots_exclus.text or "").strip()
+        return {
+            "cpv_selectionnes": codes_cpv,
+            "sources": sources_selectionnees,
+            "departements": departements,
+            "mots_exclus": mots_exclus,
+        }
+
+    def valider_criteres_veille_cpv(self, criteres):
+        """Vérifie les préconditions locales sans appeler le serveur.
+
+        Paramètre : criteres (dict préparé par la Form). Retour : bool.
+        Une sélection CPV ou des sources vides affichent un avertissement.
+        La validation métier complète reste à la charge du serveur.
+        """
+        if not criteres["cpv_selectionnes"]:
+            afficher_avertissement("Sélectionnez au moins une prestation CPV.", titre="Veille quotidienne CPV")
+            return False
+        if not criteres["sources"]:
+            afficher_avertissement("Sélectionnez au moins une source.", titre="Veille quotidienne CPV")
+            return False
+        return True
+
+    def construire_resume_veille_cpv(self, criteres):
+        """Construit le résumé textuel des critères à confirmer.
+
+        Paramètre : criteres (dict préparé). Retour : str, sans HTML.
+        Au plus dix libellés sont détaillés pour garder le dialogue lisible ;
+        le nombre total de CPV est toujours indiqué. Aucun terme legacy utilisé.
+        """
+        lignes_resume = [
+            "Créer une veille quotidienne CPV ?",
+            "Nombre de CPV sélectionnés : " + str(len(criteres["cpv_selectionnes"])),
+        ]
+        for cpv_selectionne in self.cpv_selectionnes[:10]:
+            lignes_resume.append("- " + cpv_selectionne["libelle"])
+        nombre_non_affiche = len(criteres["cpv_selectionnes"]) - 10
+        if nombre_non_affiche > 0:
+            lignes_resume.append("Et " + str(nombre_non_affiche) + " autre(s) prestation(s).")
+        lignes_resume.append("Départements : " + (criteres["departements"] or "tous"))
+        lignes_resume.append("Sources : " + ", ".join(criteres["sources"]))
+        lignes_resume.append("Mots exclus : " + (criteres["mots_exclus"] or "aucun"))
+        lignes_resume.append("Fréquence : veille quotidienne, sur les publications du dernier jour.")
+        return "\n".join(lignes_resume)
+
+    def actualiser_bouton_veille_cpv(self, **event_args):
+        """Affiche l'état actif uniquement pour les critères confirmés par le serveur.
+
+        Paramètre : event_args (dict Anvil facultatif). Retour : None.
+        Un changement de critères permet une nouvelle création. Pendant une
+        confirmation ou un appel, le bouton reste désactivé contre les doubles clics.
+        """
+        if self._sauvegarde_veille_cpv_en_cours:
+            self.button_creer_veille_cpv.enabled = False
+            return
+        criteres_actuels = self.preparer_criteres_veille_cpv()
+        veille_active = criteres_actuels == self._criteres_veille_cpv_actifs
+        self.button_creer_veille_cpv.enabled = not veille_active
+        self.button_creer_veille_cpv.bold = veille_active
+        if veille_active:
+            self.button_creer_veille_cpv.text = "Veille quotidienne CPV active"
+        else:
+            self.button_creer_veille_cpv.text = "Créer une veille quotidienne CPV"
+            self.label_statut_veille_cpv.text = ""
+
+    def traiter_reponse_veille_cpv(self, reponse, criteres):
+        """Interprète explicitement le statut serveur sans vider les critères.
+
+        Paramètres : reponse (dict serveur), criteres (dict envoyé).
+        Retour : tuple[str, bool] : message utilisateur et caractère informatif.
+        'deja_active' est informatif même si ok=False. Une validation refusée
+        est affichée ; une réponse malformée lève ValueError pour diagnostic.
+        """
+        if not isinstance(reponse, dict):
+            raise ValueError("Réponse de sauvegarde CPV invalide.")
+        statut = reponse.get("statut")
+        if statut == "cree":
+            message = "Veille quotidienne CPV créée."
+        elif statut == "reactivee":
+            message = "Cette veille existait déjà et a été réactivée."
+        elif statut == "deja_active":
+            message = "Cette veille quotidienne est déjà active."
+        elif statut == "erreur":
+            message = reponse.get("message")
+            if not isinstance(message, str) or not message:
+                raise ValueError("Message de validation CPV manquant.")
+            return message, False
+        else:
+            raise ValueError("Statut de sauvegarde CPV inconnu.")
+        self._criteres_veille_cpv_actifs = criteres
+        return message, True
+
+    @handle("button_creer_veille_cpv", "click")
+    def button_creer_veille_cpv_click(self, **event_args):
+        """Confirme puis sauvegarde une veille CPV sans dépendre des offres trouvées.
+
+        Paramètre : event_args (dict Anvil). Retour : None. Seuls les quatre
+        critères CPV sont envoyés. Annulation et validation refusée préservent
+        la saisie. Toute erreur inattendue reste propagée après remise en état
+        du bouton et affichage d'un message générique.
+        """
+        if self._sauvegarde_veille_cpv_en_cours:
+            return
+        criteres = self.preparer_criteres_veille_cpv()
+        if not self.valider_criteres_veille_cpv(criteres):
+            return
+
+        self._sauvegarde_veille_cpv_en_cours = True
+        self.button_creer_veille_cpv.enabled = False
+        self.button_creer_veille_cpv.text = "Confirmation de la veille CPV…"
+        operation_terminee = False
+        message_retour = ""
+        retour_informatif = False
+        try:
+            confirmation = demander_choix(
+                titre="Veille quotidienne CPV",
+                message=self.construire_resume_veille_cpv(criteres),
+                autoriser_html=False,
+            )
+            if confirmation is not True:
+                operation_terminee = True
+                return
+            # Une confirmation ne doit jamais autoriser des critères différents
+            # de ceux effectivement présentés dans le dialogue.
+            if self.preparer_criteres_veille_cpv() != criteres:
+                message_retour = "Les critères ont changé. Vérifiez-les puis confirmez à nouveau."
+            else:
+                self.button_creer_veille_cpv.text = "Création de la veille CPV…"
+                reponse = anvil.server.call(
+                    "enregistrer_daily_survey_cpv",
+                    cpv_selectionnes=criteres["cpv_selectionnes"],
+                    sources=criteres["sources"],
+                    departements=criteres["departements"],
+                    mots_exclus=criteres["mots_exclus"],
+                )
+                message_retour, retour_informatif = self.traiter_reponse_veille_cpv(reponse, criteres)
+            operation_terminee = True
+        finally:
+            self._sauvegarde_veille_cpv_en_cours = False
+            self.actualiser_bouton_veille_cpv()
+            if not operation_terminee:
+                self.label_statut_veille_cpv.text = "Impossible de confirmer la sauvegarde CPV. Réessayez."
+
+        self.label_statut_veille_cpv.text = message_retour
+        if retour_informatif:
+            afficher_information(message_retour, titre="Veille quotidienne CPV")
+        else:
+            afficher_avertissement(message_retour, titre="Veille quotidienne CPV")
 
     def go_up(self, **event_args):
         self.scroll_into_view(smooth=True, align="start")

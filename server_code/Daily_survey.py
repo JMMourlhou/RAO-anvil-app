@@ -10,6 +10,8 @@ import hashlib
 import json
 import re
 
+from . import CPV_Metier
+
 
 def nettoyer_espace(valeur):
     """
@@ -307,3 +309,229 @@ def enregistrer_daily_survey(
                 f"Erreur lors de la création de la veille : {repr(e)}"
             )
         }
+
+
+# Parcours CPV indépendant : les fonctions legacy ci-dessus restent inchangées.
+SOURCES_VEILLE_CPV = ("BOAMP", "TED", "AWS", "CARIF")
+
+
+class ErreurValidationVeilleCPV(ValueError):
+    """Critère de veille CPV invalide pouvant être expliqué à l'utilisateur."""
+
+
+def verifier_saisie_textuelle_cpv(valeur, nom_critere):
+    """Vérifie un critère facultatif sans transformer ni muter sa valeur.
+
+    Paramètres : valeur (str, list[str] ou None), nom_critere (str).
+    Retour : None. Lève ErreurValidationVeilleCPV pour tout autre type,
+    y compris une liste contenant autre chose que des chaînes.
+    """
+    if valeur is None or isinstance(valeur, str):
+        return
+    if not isinstance(valeur, list):
+        raise ErreurValidationVeilleCPV(nom_critere + " : texte ou liste de chaînes attendu.")
+    for element in valeur:
+        if not isinstance(element, str):
+            raise ErreurValidationVeilleCPV(nom_critere + " : chaque élément doit être une chaîne.")
+
+
+def normaliser_sources_cpv(sources):
+    """Normalise et contrôle les sources autorisées du parcours CPV.
+
+    Paramètre : sources (str pour une seule source, ou list[str]).
+    Retour : list[str] non vide, en majuscules, dédupliquée et triée.
+    Lève ErreurValidationVeilleCPV si type invalide, sélection vide ou source
+    inconnue. Les éléments vides sont ignorés comme dans le parcours historique.
+    """
+    verifier_saisie_textuelle_cpv(sources, "Sources")
+    sources_normalisees = normaliser_sources(sources)
+    if not sources_normalisees:
+        raise ErreurValidationVeilleCPV("Sélectionnez au moins une source.")
+    for source in sources_normalisees:
+        if source not in SOURCES_VEILLE_CPV:
+            raise ErreurValidationVeilleCPV("Source non supportée : " + source)
+    return sources_normalisees
+
+
+def normaliser_departements_cpv(departements):
+    """Normalise les départements pour la colonne texte existante.
+
+    Paramètre : departements (str, list[str] ou None).
+    Retour : str triée, dédupliquée, en majuscules et séparée par ', ',
+    ou '' si vide. Séparateurs : virgule, point-virgule et retour à la ligne.
+    Lève ErreurValidationVeilleCPV pour un mauvais type. L'existence des codes
+    n'est pas contrôlée : aucun référentiel départemental fiable n'est disponible.
+    """
+    verifier_saisie_textuelle_cpv(departements, "Départements")
+    elements_departements = extraire_elements(departements)
+    departements_normalises = set()
+    for departement in elements_departements:
+        departements_normalises.add(departement.upper())
+    return texte_depuis_elements(sorted(departements_normalises))
+
+
+def normaliser_exclusions_cpv(mots_exclus):
+    """Normalise les exclusions sans reformuler les expressions saisies.
+
+    Paramètre : mots_exclus (str, list[str] ou None).
+    Retour : str séparée par ', ', ou '' si vide. Le nettoyage historique
+    retire les doublons sans distinction de casse et conserve la première
+    graphie ainsi que l'ordre. Lève ErreurValidationVeilleCPV si type invalide.
+    """
+    verifier_saisie_textuelle_cpv(mots_exclus, "Mots exclus")
+    return texte_depuis_elements(extraire_elements(mots_exclus))
+
+
+def creer_cle_requete_cpv(email_utilisateur, codes_cpv_valides, sources, departements, mots_exclus):
+    """Calcule l'empreinte SHA-256 version 2 des critères CPV déjà normalisés.
+
+    Paramètres : email_utilisateur (str), codes_cpv_valides (list[str]),
+    sources (list[str]), departements et mots_exclus (str).
+    Retour : str hexadécimale de 64 caractères. Helper interne : les entrées
+    doivent avoir été validées avant l'appel. Les erreurs inattendues se propagent.
+    """
+    # L'ordre de sélection est utile à l'interface, mais ne doit pas créer
+    # une veille supplémentaire lorsque seuls les critères sont réordonnés.
+    contenu_canonique = {
+        "version": 2,
+        "mode_recherche": "cpv",
+        "email": email_utilisateur.strip().casefold(),
+        "cpv_selectionnes": sorted(codes_cpv_valides),
+        "sources": sorted(sources),
+        "departements": elements_pour_cle(extraire_elements(departements)),
+        "mots_exclus": elements_pour_cle(extraire_elements(mots_exclus)),
+        "nb_jours": 1,
+    }
+    texte_canonique = json.dumps(contenu_canonique, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(texte_canonique.encode("utf-8")).hexdigest()
+
+
+def rechercher_doublon_cpv(utilisateur, cle_requete):
+    """Recherche une veille identique appartenant au seul utilisateur connecté.
+
+    Paramètres : utilisateur (ligne Users obtenue côté serveur), cle_requete (str).
+    Retour : ligne daily_survey ou None. Les erreurs Data Tables se propagent.
+    Cette fonction n'est pas callable ; l'identité ne vient jamais du client.
+    """
+    lignes_existantes = app_tables.daily_survey.search(email=utilisateur, cle_requete=cle_requete)
+    return next(iter(lignes_existantes), None)
+
+
+def creer_ligne_veille_cpv(utilisateur, codes_cpv_valides, sources, departements, mots_exclus, cle_requete):
+    """Insère une veille CPV dont tous les critères ont déjà été validés.
+
+    Paramètres : utilisateur (ligne Users), codes_cpv_valides et sources
+    (list[str]), departements, mots_exclus et cle_requete (str).
+    Retour : nouvelle ligne daily_survey. Les erreurs Data Tables se propagent.
+    Helper interne, sans appel automatique lors de l'import du module.
+    """
+    colonnes_veille = {
+        "email": utilisateur,
+        "sources": sources,
+        "mots_cles": "",
+        "mots_ou": "",
+        "mots_exclus": mots_exclus,
+        "nb_jours": 1,
+        "departements": departements,
+        "active": True,
+        "date_creation": datetime.now(anvil.tz.tzutc()),
+        "derniere_recherche": None,
+        "dernier_statut": "jamais_lancee",
+        "derniere_erreur": "",
+        "cle_requete": cle_requete,
+        "nb_offres_derniere_recherche": 0,
+        "mode_recherche": "cpv",
+        "cpv_selectionnes": codes_cpv_valides,
+    }
+    return app_tables.daily_survey.add_row(**colonnes_veille)
+
+
+def repondre_erreur_veille_cpv(message):
+    """Construit une réponse de validation conforme au contrat des veilles.
+
+    Paramètre : message (str explicatif). Retour : dict avec ok=False,
+    statut='erreur', daily_survey_id=None et message. Aucun effet de bord.
+    """
+    return {"ok": False, "statut": "erreur", "daily_survey_id": None, "message": message}
+
+
+@anvil.server.callable(require_user=True)
+def enregistrer_daily_survey_cpv(cpv_selectionnes, sources, departements=None, mots_exclus=None):
+    """Crée ou réactive une veille quotidienne CPV pour l'utilisateur connecté.
+
+    Paramètres
+    ----------
+    cpv_selectionnes : list[str]
+        De 1 à 100 entrées CPV officielles ; doublons retirés dans l'ordre saisi.
+    sources : list[str] ou str
+        Sources parmi BOAMP, TED, AWS et CARIF ; au moins une est requise.
+    departements, mots_exclus : str, list[str] ou None
+        Critères facultatifs, stockés dans les colonnes texte existantes.
+
+    Retour
+    ------
+    dict
+        ok (bool), statut ('cree', 'deja_active', 'reactivee' ou 'erreur'),
+        daily_survey_id (str ou None), message (str).
+        Comme dans le legacy, un doublon actif retourne ok=False.
+
+    Erreurs
+    -------
+    Anvil refuse les appels non authentifiés. Le contrôle interne reste présent
+    pour les appels directs. Identité ou critères invalides : retour 'erreur'
+    avant tout accès à daily_survey. Les erreurs inattendues se propagent.
+    """
+    utilisateur = anvil.users.get_user()
+    if utilisateur is None:
+        return repondre_erreur_veille_cpv("Utilisateur non connecté.")
+
+    email_utilisateur = utilisateur["email"]
+    if not isinstance(email_utilisateur, str):
+        return repondre_erreur_veille_cpv("Adresse e-mail utilisateur inexploitable.")
+    email_utilisateur = email_utilisateur.strip()
+    if re.fullmatch(r"[^@\s]+@[^@\s]+", email_utilisateur) is None:
+        return repondre_erreur_veille_cpv("Adresse e-mail utilisateur inexploitable.")
+
+    try:
+        codes_cpv_valides = CPV_Metier.valider_codes_selectionnes(cpv_selectionnes)
+        sources_normalisees = normaliser_sources_cpv(sources)
+        departements_normalises = normaliser_departements_cpv(departements)
+        exclusions_normalisees = normaliser_exclusions_cpv(mots_exclus)
+    except (CPV_Metier.ErreurValidationCPV, ErreurValidationVeilleCPV) as erreur:
+        return repondre_erreur_veille_cpv(str(erreur))
+
+    cle_requete = creer_cle_requete_cpv(
+        email_utilisateur, codes_cpv_valides, sources_normalisees,
+        departements_normalises, exclusions_normalisees
+    )
+    ligne_existante = rechercher_doublon_cpv(utilisateur, cle_requete)
+    if ligne_existante is not None:
+        if ligne_existante["active"]:
+            return {
+                "ok": False,
+                "statut": "deja_active",
+                "daily_survey_id": ligne_existante.get_id(),
+                "message": "Cette veille CPV est déjà active.",
+            }
+
+        # Conserver les critères et l'historique de cette même ligne :
+        # une réactivation ne correspond pas à une nouvelle recherche.
+        ligne_existante["active"] = True
+        ligne_existante["derniere_erreur"] = ""
+        return {
+            "ok": True,
+            "statut": "reactivee",
+            "daily_survey_id": ligne_existante.get_id(),
+            "message": "La veille CPV a été réactivée.",
+        }
+
+    nouvelle_ligne = creer_ligne_veille_cpv(
+        utilisateur, codes_cpv_valides, sources_normalisees,
+        departements_normalises, exclusions_normalisees, cle_requete
+    )
+    return {
+        "ok": True,
+        "statut": "cree",
+        "daily_survey_id": nouvelle_ligne.get_id(),
+        "message": "La veille quotidienne CPV a été créée.",
+    }
