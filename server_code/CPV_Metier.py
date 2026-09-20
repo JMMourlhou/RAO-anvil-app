@@ -54,6 +54,40 @@ def valider_entrees_recherche(terme, limite):
     return normaliser_texte(terme)
 
 
+def calculer_priorite_libelle(terme_normalise, libelle_normalise):
+    """Classe une correspondance textuelle dans un libellé CPV normalisé.
+
+    Paramètres
+    ----------
+    terme_normalise : str
+        Terme déjà normalisé, non vide.
+    libelle_normalise : str
+        Libellé officiel déjà normalisé.
+
+    Retour
+    ------
+    int ou None
+        0 pour un libellé exact, 1 pour un début de libellé, 2 pour un mot
+        commençant par le terme, 3 pour une inclusion ailleurs, None en
+        l'absence de correspondance.
+    """
+    if libelle_normalise == terme_normalise:
+        return 0
+    if libelle_normalise.startswith(terme_normalise):
+        return 1
+
+    # Découper sur les caractères non alphanumériques permet de reconnaître
+    # le début d'un mot après un espace, une apostrophe ou un tiret.
+    mots_libelle = re.split(r"[^0-9a-z]+", libelle_normalise)
+    for mot_libelle in mots_libelle:
+        if mot_libelle.startswith(terme_normalise):
+            return 2
+
+    if terme_normalise in libelle_normalise:
+        return 3
+    return None
+
+
 def rechercher_dans_catalogue(terme, limite=10):
     """Recherche un libellé partiel ou un préfixe de code dans le catalogue.
 
@@ -76,12 +110,7 @@ def rechercher_dans_catalogue(terme, limite=10):
             elif code_cpv.startswith(terme_normalise):
                 priorite = 1
         else:
-            if libelle_normalise == terme_normalise:
-                priorite = 0
-            elif libelle_normalise.startswith(terme_normalise):
-                priorite = 1
-            elif terme_normalise in libelle_normalise:
-                priorite = 2
+            priorite = calculer_priorite_libelle(terme_normalise, libelle_normalise)
 
         if priorite is not None:
             correspondances.append((priorite, libelle_normalise, code_cpv))

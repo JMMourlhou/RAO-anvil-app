@@ -2,12 +2,15 @@
     <anvil-component type="m3._Components.Card" name="card_recherche" prop:background_color="theme:Dark" prop:spacing='{"margin":[null,"2",null,"2"]}' prop:visible="true" container:grid_position="GUQSUI,TTNXTK">
         <anvil-component type="LinearPanel" name="panel_selecteur_cpv" container:slot="card-content-slot">
             <anvil-component type="Label" name="label_titre_selecteur_cpv" prop:text="Choisissez vos prestations" prop:bold="true" prop:font_size="20"></anvil-component>
-            <anvil-component type="Label" name="label_information_cpv" prop:text="Choisissez vos prestations, puis créez une veille quotidienne CPV avec les sources, départements et exclusions renseignés ci-dessous. La recherche d’offres par mots-clés reste indépendante."></anvil-component>
-            <anvil-component type="Label" name="label_question_recherche_cpv" prop:text="Quel type de prestation recherchez-vous ?" prop:bold="true"></anvil-component>
-            <anvil-component type="TextBox" name="text_box_recherche_cpv" prop:placeholder="Exemple : formation professionnelle" prop:text=""></anvil-component>
-            <anvil-component type="Button" name="button_rechercher_cpv" prop:text="Rechercher" prop:align="left" prop:role="elevated-button"></anvil-component>
+            <anvil-component type="Label" name="label_information_cpv" prop:text="Choisissez vos prestations, puis créez une veille quotidienne CPV avec les sources, départements et exclusions renseignés ci-dessous. La recherche d’offres par mots-clés reste indépendante." prop:visible="false"></anvil-component>
+            <anvil-component type="Label" name="label_question_recherche_cpv" prop:text="Quel type de prestation recherchez-vous ?" prop:bold="true" prop:visible="false"></anvil-component>
+            <anvil-component type="ColumnPanel" name="column_panel_1" prop:col_widths='"{\"BPPUXQ\":55,\"RLHXSZ\":5}"' prop:wrap_on="never">
+                <anvil-component type="TextBox" name="text_box_recherche_cpv" prop:placeholder="Exemple : formation professionnelle" prop:text="" container:grid_position="UVIMFG,BPPUXQ"></anvil-component>
+                <anvil-component type="Button" name="button_rechercher_cpv" prop:text="" prop:align="left" prop:role="elevated-button" prop:icon="fa:search" container:grid_position="UVIMFG,RLHXSZ"></anvil-component>
+            </anvil-component>
             <anvil-component type="Label" name="label_message_recherche_cpv" prop:text=""></anvil-component>
             <anvil-component type="RepeatingPanel" name="repeating_panel_suggestions_cpv" prop:item_template="https___surv_apl_offres_anvil_app.search.SuggestionCPV"></anvil-component>
+            <anvil-component type="Button" name="button_voir_plus_cpv" prop:text="Voir plus" prop:align="left" prop:role="elevated-button" prop:visible="false"></anvil-component>
             <anvil-component type="Label" name="label_titre_selection_cpv" prop:text="CPV sélectionnés" prop:bold="true" prop:font_size="16"></anvil-component>
             <anvil-component type="Label" name="label_message_selection_cpv" prop:text="Aucun CPV sélectionné."></anvil-component>
             <anvil-component type="RepeatingPanel" name="repeating_panel_cpv_selectionnes" prop:item_template="https___surv_apl_offres_anvil_app.search.SelectionCPV"></anvil-component>

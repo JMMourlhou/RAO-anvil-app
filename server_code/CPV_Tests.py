@@ -123,6 +123,72 @@ class TestsAPIRechercheCPV(unittest.TestCase):
         self.assertTrue(reponse["resultats"][0]["libelle"].lower().startswith("services"))
         self.assertEqual(reponse, CPV_API.rechercher_cpv("services", 50))
 
+    def test_fibre_trouve_un_mot_au_milieu_du_libelle(self):
+        reponse = CPV_API.rechercher_cpv("fibre", 50)
+        self.assertTrue(reponse["resultats"])
+        libelles_normalises = [
+            CPV_Metier.normaliser_texte(resultat["libelle"])
+            for resultat in reponse["resultats"]
+        ]
+        self.assertTrue(any("fibre" in libelle for libelle in libelles_normalises))
+        self.assertIn("32562000", [resultat["code"] for resultat in reponse["resultats"]])
+
+    def test_fragment_au_milieu_d_un_mot(self):
+        reponse = CPV_API.rechercher_cpv("ibres", 50)
+        self.assertTrue(reponse["resultats"])
+        self.assertIn("32562000", [resultat["code"] for resultat in reponse["resultats"]])
+
+    def test_secours_reste_recherche_partout(self):
+        reponse = CPV_API.rechercher_cpv("secours", 50)
+        self.assertTrue(reponse["resultats"])
+        for resultat in reponse["resultats"]:
+            self.assertIn("secours", CPV_Metier.normaliser_texte(resultat["libelle"]))
+
+    def test_priorites_exact_debut_mot_inclusion(self):
+        cas = (
+            ("fibre", "fibre", 0),
+            ("fibre", "fibres optiques", 1),
+            ("fibre", "cables a fibres optiques", 2),
+            ("fibre", "materiau multifibre optique", 3),
+            ("fibre", "cables optiques", None),
+        )
+        for terme_normalise, libelle_normalise, priorite_attendue in cas:
+            with self.subTest(libelle=libelle_normalise):
+                priorite = CPV_Metier.calculer_priorite_libelle(
+                    terme_normalise, libelle_normalise
+                )
+                self.assertEqual(priorite, priorite_attendue)
+
+    def test_classement_complet_et_departage_deterministe(self):
+        libelles_test = {
+            "00000004": "Une multifibre optique",
+            "00000003": "Câbles à fibres optiques",
+            "00000002": "Fibres industrielles",
+            "00000001": "Fibre",
+            "00000005": "Câbles à fibres acoustiques",
+        }
+        libelles_normalises_test = {}
+        for code_cpv, libelle_officiel in libelles_test.items():
+            libelles_normalises_test[code_cpv] = CPV_Metier.normaliser_texte(libelle_officiel)
+
+        with patch.object(CPV_Metier, "LIBELLES_NORMALISES", libelles_normalises_test):
+            premier_resultat = CPV_Metier.rechercher_dans_catalogue("fibre", 5)
+            second_resultat = CPV_Metier.rechercher_dans_catalogue("FIBRE", 5)
+
+        self.assertEqual(premier_resultat, [
+            "00000001",
+            "00000002",
+            "00000005",
+            "00000003",
+            "00000004",
+        ])
+        self.assertEqual(second_resultat, premier_resultat)
+
+    def test_limite_appliquee_apres_classement(self):
+        reponse_limitee = CPV_API.rechercher_cpv("fibre", 3)
+        reponse_complete = CPV_API.rechercher_cpv("fibre", 50)
+        self.assertEqual(reponse_limitee["resultats"], reponse_complete["resultats"][:3])
+
     def test_erreur_inattendue_propagee(self):
         with patch.object(CPV_Metier, "rechercher_dans_catalogue", side_effect=RuntimeError("test")):
             with self.assertRaises(RuntimeError):
