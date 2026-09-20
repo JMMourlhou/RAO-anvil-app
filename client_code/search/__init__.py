@@ -295,7 +295,7 @@ class search(searchTemplate):
             # Nouvel utilisateur : toutes les plateformes sélectionnées
             self.multi_select_drop_down_platformes.selected = liste_ids_plateformes
     
-            self.text_box_mot_clef.text = "Formation"
+            self.text_box_mots_obligatoires_cpv.text = "Formation"
             self.text_box_mot_ou.text = "sst, mac, psc, pse1, pse2, aipr, habilitation"
             self.text_box_mots_exclus.text = "Information, Déformation"
             self.text_box_nb_jours.text = "30"
@@ -308,7 +308,7 @@ class search(searchTemplate):
     
             self.histo_id = derniere_ligne.get("histo_id")
     
-            self.text_box_mot_clef.text = derniere_ligne.get("mots_cles") or ""
+            self.text_box_mots_obligatoires_cpv.text = derniere_ligne.get("mots_cles") or ""
             self.text_box_mot_ou.text = derniere_ligne.get("mots_ou") or ""
             self.text_box_mots_exclus.text = derniere_ligne.get("mots_exclus") or ""
             self.text_box_nb_jours.text = derniere_ligne.get("nb_jours") or "30"
@@ -334,7 +334,7 @@ class search(searchTemplate):
             )
     
             mots_obligatoires = self.extraire_liste_mots_saisie(
-                self.text_box_mot_clef.text or ""
+                self.text_box_mots_obligatoires_cpv.text or ""
             )
     
             mots_ou = self.extraire_liste_mots_saisie(
@@ -393,7 +393,7 @@ class search(searchTemplate):
             self.column_panel_params.visible = False
     
             if mk != "":
-                self.text_box_mot_clef.text = mk
+                self.text_box_mots_obligatoires_cpv.text = mk
     
             self.set_checkbox_on_off_sans_event(bool(checkbox_on_off))
     
@@ -462,7 +462,7 @@ class search(searchTemplate):
             print("Erreur réactivation navigation_link_search_go :", e)
 
         try:
-            self.text_box_mot_clef.enabled = True
+            self.text_box_mots_obligatoires_cpv.enabled = True
             self.text_box_mots_exclus.enabled = True
             self.text_box_nb_jours.enabled = True
             self.text_box_departements.enabled = True
@@ -556,7 +556,7 @@ class search(searchTemplate):
             return
 
         # --- Lecture des champs ---
-        mots_obligatoires_texte = self.text_box_mot_clef.text or ""
+        mots_obligatoires_texte = self.text_box_mots_obligatoires_cpv.text or ""
         mots_ou_texte = self.text_box_mot_ou.text or ""
         mots_exclus_texte = self.text_box_mots_exclus.text or ""
         deps_texte = self.text_box_departements.text or ""
@@ -578,7 +578,7 @@ class search(searchTemplate):
                 "- au moins un de ces mots : sst, pse1",
                 titre="Saisie requise"
             )
-            self.text_box_mot_clef.focus()
+            self.text_box_mots_obligatoires_cpv.focus()
             return
 
         try:
@@ -1440,7 +1440,7 @@ class search(searchTemplate):
             sources = []
     
         return {
-            "mots_cles": self.text_box_mot_clef.text or "",
+            "mots_cles": self.text_box_mots_obligatoires_cpv.text or "",
             "mots_ou": self.text_box_mot_ou.text or "",
             "mots_exclus": self.text_box_mots_exclus.text or "",
             "departements": self.text_box_departements.text or "",
@@ -2089,7 +2089,7 @@ class search(searchTemplate):
         Retourne les mots obligatoires nettoyés pour sauvegarde/affichage.
         """
         return ", ".join(
-            self.extraire_liste_mots_saisie(self.text_box_mot_clef.text or "")
+            self.extraire_liste_mots_saisie(self.text_box_mots_obligatoires_cpv.text or "")
         )
 
 
@@ -2316,7 +2316,7 @@ class search(searchTemplate):
         - ou mots OU
         """
     
-        has_mots_obligatoires = bool((self.text_box_mot_clef.text or "").strip())
+        has_mots_obligatoires = bool((self.text_box_mots_obligatoires_cpv.text or "").strip())
         has_mots_ou = bool((self.text_box_mot_ou.text or "").strip())
     
         actif = has_mots_obligatoires or has_mots_ou
@@ -2511,6 +2511,7 @@ class search(searchTemplate):
         self.multi_select_drop_down_platformes.add_event_handler("change", self.actualiser_bouton_veille_cpv)
         self.text_box_departements.add_event_handler("change", self.actualiser_bouton_veille_cpv)
         self.text_box_mots_exclus.add_event_handler("change", self.actualiser_bouton_veille_cpv)
+        self.text_box_mots_obligatoires_cpv.add_event_handler("change", self.actualiser_bouton_veille_cpv)
         self.rafraichir_cpv_selectionnes()
 
     @handle("button_rechercher_cpv", "click")
@@ -2817,10 +2818,10 @@ class search(searchTemplate):
             self.label_resume_cpv.text = f"{nombre_prestations} prestations CPV sélectionnées"
 
     def preparer_criteres_veille_cpv(self):
-        """Copie les quatre critères destinés au serveur, sans état legacy.
+        """Copie les cinq critères CPV, sans normalisation métier côté client.
 
         Aucun paramètre. Retour : dict contenant cpv_selectionnes (list[str]),
-        sources (list[str]), departements et mots_exclus (str).
+        sources (list[str]), departements, mots_exclus et mots_obligatoires (str).
         Les libellés restent dans la Form ; aucune valeur locale n'est modifiée.
         """
         codes_cpv = []
@@ -2829,11 +2830,15 @@ class search(searchTemplate):
         sources_selectionnees = list(self.multi_select_drop_down_platformes.selected or [])
         departements = str(self.text_box_departements.text or "").strip()
         mots_exclus = str(self.text_box_mots_exclus.text or "").strip()
+        # Ce champ reste partagé avec le manuel ; le serveur CPV normalise
+        # sa saisie indépendamment du parsing legacy.
+        mots_obligatoires = self.text_box_mots_obligatoires_cpv.text or ""
         return {
             "cpv_selectionnes": codes_cpv,
             "sources": sources_selectionnees,
             "departements": departements,
             "mots_exclus": mots_exclus,
+            "mots_obligatoires": mots_obligatoires,
         }
 
     def valider_criteres_veille_cpv(self, criteres):
@@ -2869,6 +2874,8 @@ class search(searchTemplate):
             lignes_resume.append("Et " + str(nombre_non_affiche) + " autre(s) prestation(s).")
         lignes_resume.append("Départements : " + (criteres["departements"] or "tous"))
         lignes_resume.append("Sources : " + ", ".join(criteres["sources"]))
+        mots_obligatoires_affiches = criteres["mots_obligatoires"].strip() or "aucun"
+        lignes_resume.append("Mots obligatoires : " + mots_obligatoires_affiches)
         lignes_resume.append("Mots exclus : " + (criteres["mots_exclus"] or "aucun"))
         lignes_resume.append("Fréquence : veille quotidienne, sur les publications du dernier jour.")
         return "\n".join(lignes_resume)
@@ -2924,7 +2931,7 @@ class search(searchTemplate):
     def button_creer_veille_cpv_click(self, **event_args):
         """Confirme puis sauvegarde une veille CPV sans dépendre des offres trouvées.
 
-        Paramètre : event_args (dict Anvil). Retour : None. Seuls les quatre
+        Paramètre : event_args (dict Anvil). Retour : None. Seuls les cinq
         critères CPV sont envoyés. Annulation et validation refusée préservent
         la saisie. Toute erreur inattendue reste propagée après remise en état
         du bouton et affichage d'un message générique.
@@ -2962,6 +2969,7 @@ class search(searchTemplate):
                     sources=criteres["sources"],
                     departements=criteres["departements"],
                     mots_exclus=criteres["mots_exclus"],
+                    mots_obligatoires=criteres["mots_obligatoires"],
                 )
                 message_retour, retour_informatif = self.traiter_reponse_veille_cpv(reponse, criteres)
             operation_terminee = True

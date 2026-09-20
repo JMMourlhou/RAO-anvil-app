@@ -102,6 +102,7 @@ db_schema:
       client_hidden: false
       name: cpv_selectionnes
       type: simpleObject
+    - {name: mots_obligatoires, type: simpleObject}
     indexes: []
     server: full
     title: daily_survey

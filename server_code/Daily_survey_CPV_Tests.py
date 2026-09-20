@@ -178,12 +178,13 @@ class TestsSauvegardeVeilleCPV(unittest.TestCase):
             "email", "sources", "mots_cles", "mots_ou", "mots_exclus", "nb_jours",
             "departements", "active", "date_creation", "derniere_recherche",
             "dernier_statut", "derniere_erreur", "cle_requete",
-            "nb_offres_derniere_recherche", "mode_recherche", "cpv_selectionnes"
+            "nb_offres_derniere_recherche", "mode_recherche", "cpv_selectionnes", "mots_obligatoires"
         })
         self.assertIs(ligne["email"], self.utilisateur)
         self.assertEqual(ligne["mode_recherche"], "cpv")
         self.assertEqual(ligne["mots_cles"], "")
         self.assertEqual(ligne["mots_ou"], "")
+        self.assertEqual(ligne["mots_obligatoires"], [])
         self.assertEqual(ligne["nb_jours"], 1)
         self.assertIs(ligne["active"], True)
         self.assertIsNone(ligne["derniere_recherche"])
@@ -274,11 +275,114 @@ class TestsSauvegardeVeilleCPV(unittest.TestCase):
 
     def test_contrat_signature(self):
         signature = inspect.signature(Daily_survey.enregistrer_daily_survey_cpv)
-        self.assertEqual(list(signature.parameters), ["cpv_selectionnes", "sources", "departements", "mots_exclus"])
+        self.assertEqual(list(signature.parameters), ["cpv_selectionnes", "sources", "departements", "mots_exclus", "mots_obligatoires"])
         self.assertIsNone(signature.parameters["departements"].default)
         self.assertIsNone(signature.parameters["mots_exclus"].default)
+        self.assertIsNone(signature.parameters["mots_obligatoires"].default)
 
     def test_separation_cle_legacy(self):
         cle_legacy = Daily_survey.creer_cle_requete(self.utilisateur["email"], ["BOAMP"], [], [], [], [])
         self.enregistrer()
         self.assertNotEqual(cle_legacy, self.lignes[0]["cle_requete"])
+
+    def test_normalisation_obligatoires(self):
+        cas = [
+            (None, []), ("", []), ("   ", []), ([], []), ((), []),
+            ("sst", ["sst"]), ("sst, recyclage", ["sst", "recyclage"]),
+            ("sst; recyclage", ["sst", "recyclage"]),
+            ("sst\nrecyclage", ["sst", "recyclage"]),
+            ("formation sst", ["formation sst"]),
+            ("formation santé et sécurité", ["formation santé et sécurité"]),
+            ("et ou and or", ["et ou and or"]),
+            ([" SST ", "recyclage", "sst", "formation   sst"],
+             ["SST", "recyclage", "formation sst"]),
+            (("réanimation", "RÉANIMATION"), ["réanimation"]),
+        ]
+        for valeur, attendu in cas:
+            with self.subTest(valeur=valeur):
+                avant = copy.deepcopy(valeur)
+                resultat = Daily_survey.normaliser_mots_obligatoires_cpv(valeur)
+                self.assertEqual(resultat, attendu)
+                self.assertIsInstance(resultat, list)
+                self.assertEqual(valeur, avant)
+                self.assertIsNot(resultat, valeur)
+
+    def test_obligatoires_invalides_avant_table(self):
+        for valeur in (123, {"sst": True}, [1, 2], ["sst", 123],
+                       ("sst", None), True, {"sst"}):
+            with self.subTest(valeur=valeur):
+                self.verifier_refus_sans_table(mots_obligatoires=valeur)
+
+    def test_obligatoires_cle_v3_exacte(self):
+        self.enregistrer(mots_obligatoires=["sst"])
+        contenu = {
+            "version": 3, "mode_recherche": "cpv",
+            "email": self.utilisateur["email"],
+            "cpv_selectionnes": ["80530000"], "sources": ["BOAMP"],
+            "departements": [], "mots_exclus": [], "nb_jours": 1,
+            "mots_obligatoires": ["sst"],
+        }
+        texte = json.dumps(contenu, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        self.assertEqual(self.lignes[0]["cle_requete"], hashlib.sha256(texte.encode("utf-8")).hexdigest())
+        self.assertEqual(self.lignes[0]["mots_obligatoires"], ["sst"])
+
+    def test_obligatoires_identite_et_stockage(self):
+        self.enregistrer(mots_obligatoires=["réanimation", "SST"])
+        avant = copy.deepcopy(self.lignes[0])
+        reponse = self.enregistrer(mots_obligatoires=["sst", "REANIMATION", "Réanimation"])
+        self.assertEqual(reponse["statut"], "deja_active")
+        self.assertFalse(reponse["ok"])
+        self.assertEqual(self.lignes[0], avant)
+        self.assertEqual(self.lignes[0]["mots_obligatoires"], ["réanimation", "SST"])
+
+    def test_obligatoires_ordre_doublons(self):
+        self.enregistrer(mots_obligatoires="sst, recyclage")
+        reponse = self.enregistrer(mots_obligatoires=["RECYCLAGE", "SST", "sst"])
+        self.assertEqual(reponse["statut"], "deja_active")
+
+    def test_obligatoires_expression_distincte(self):
+        self.enregistrer(mots_obligatoires="formation sst")
+        self.assertEqual(self.enregistrer(mots_obligatoires=["formation", "sst"])["statut"], "cree")
+        self.assertNotEqual(self.lignes[0]["cle_requete"], self.lignes[1]["cle_requete"])
+
+    def test_obligatoires_absence_distincte_et_ancienne_ligne(self):
+        self.enregistrer()
+        self.lignes[0]["mots_obligatoires"] = None
+        for valeur in (None, "", " ; ", [], ()):
+            self.assertEqual(self.enregistrer(mots_obligatoires=valeur)["statut"], "deja_active")
+        self.assertIsNone(self.lignes[0]["mots_obligatoires"])
+        self.lignes[0]["active"] = False
+        self.assertEqual(self.enregistrer()["statut"], "reactivee")
+        self.assertIsNone(self.lignes[0]["mots_obligatoires"])
+        self.assertEqual(self.enregistrer(mots_obligatoires="sst")["statut"], "cree")
+        self.assertEqual(len(self.lignes), 2)
+
+    def test_obligatoires_reactivation_limitee(self):
+        self.enregistrer(mots_obligatoires="réanimation")
+        self.lignes[0]["active"] = False
+        self.lignes[0]["derniere_erreur"] = "erreur simulée"
+        attendu = dict(self.lignes[0])
+        attendu.update(active=True, derniere_erreur="")
+        self.assertEqual(self.enregistrer(mots_obligatoires="REANIMATION")["statut"], "reactivee")
+        self.assertEqual(self.lignes[0], attendu)
+
+    def test_obligatoires_isolation(self):
+        self.enregistrer(mots_obligatoires="sst")
+        self.get_user.return_value = {"email": "autre@example.invalid"}
+        self.assertEqual(self.enregistrer(mots_obligatoires="sst")["statut"], "cree")
+
+    def test_obligatoires_sans_legacy_et_sans_mutation(self):
+        termes = [" SST ", "sst", "réanimation"]
+        avant = list(termes)
+        with patch.object(Daily_survey, "enregistrer_daily_survey", side_effect=AssertionError("legacy")), patch.object(
+            Daily_survey, "creer_cle_requete", side_effect=AssertionError("legacy")
+        ):
+            self.enregistrer(mots_obligatoires=termes)
+        self.assertEqual(termes, avant)
+        self.assertEqual(self.lignes[0]["mots_cles"], "")
+        self.assertEqual(self.lignes[0]["mots_ou"], "")
+
+    def test_ancien_appel_positionnel(self):
+        Daily_survey.enregistrer_daily_survey_cpv(["80530000"], ["BOAMP"], "34", "exclusion")
+        self.assertEqual(self.lignes[0]["mots_exclus"], "exclusion")
+        self.assertEqual(self.lignes[0]["mots_obligatoires"], [])
