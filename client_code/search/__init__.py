@@ -2656,12 +2656,15 @@ class search(searchTemplate):
         # Un seul appel explicite à la fois évite les réponses concurrentes
         # et les requêtes envoyées pour chaque caractère saisi.
         self._recherche_cpv_en_cours = True
+        self.panel_selecteur_cpv.visible = True
         self.button_rechercher_cpv.enabled = False
         self.text_box_recherche_cpv.enabled = False
         self.button_voir_plus_cpv.enabled = False
         self.button_voir_moins_cpv.enabled = False
         self.label_message_recherche_cpv.text = "Recherche des CPV…"
+        
         recherche_terminee = False
+        
         try:
             reponse_recherche = anvil.server.call("rechercher_cpv", terme_recherche, limite_demandee)
             if not reponse_recherche["ok"]:

@@ -20,24 +20,24 @@
             <anvil-component type="ColumnPanel" name="column_panel_1" prop:col_widths='"{\"RLHXSZ\":8,\"ZLJVJG\":37}"' prop:wrap_on="never" prop:background="">
                 <anvil-component type="m3._Components.TextInput.TextBox" name="text_box_recherche_cpv" prop:appearance="outlined" prop:label="Secteur recherché" prop:placeholder="Secteur recherché" prop:leading_icon="mi:question_mark" prop:leading_icon_color="theme:Yellow" prop:background_color="theme:Primary Overlay 3" prop:margin='[null,null,null,"2"]' container:grid_position="UVIMFG,ZLJVJG"></anvil-component>
                 <anvil-component type="Button" name="button_rechercher_cpv" prop:text="Chercher" prop:align="left" prop:role="elevated-button" prop:icon="fa:search" prop:spacing='{"margin":["20",null,null,null]}' container:grid_position="UVIMFG,RLHXSZ"></anvil-component>
-                <anvil-component type="LinearPanel" name="panel_selecteur_cpv" prop:border="2px solid Yellow" prop:spacing='{"margin":[null,"20",null,"20"]}' container:grid_position="OKTIFL,EAINPJ">
+                <anvil-component type="LinearPanel" name="panel_selecteur_cpv" prop:border="2px solid Yellow" prop:spacing='{"margin":[null,"20",null,"20"]}' prop:visible="false" container:grid_position="OKTIFL,EAINPJ">
                     <anvil-component type="Label" name="label_message_recherche_cpv" prop:text=""></anvil-component>
-                    <anvil-component type="RepeatingPanel" name="repeating_panel_suggestions_cpv" prop:item_template="https___surv_apl_offres_anvil_app.search.SuggestionCPV" prop:border="2px solid #2e7d32" prop:margin='[null,"2",null,"2"]' prop:background="theme:Primary Overlay 3"></anvil-component>
+                    <anvil-component type="RepeatingPanel" name="repeating_panel_suggestions_cpv" prop:item_template="https___surv_apl_offres_anvil_app.search.SuggestionCPV" prop:border="3px solid Yellow" prop:margin='[null,"2",null,"2"]' prop:background="theme:Primary Overlay 3"></anvil-component>
                     <anvil-component type="FlowPanel" name="flow_panel_1" prop:align="left">
                         <anvil-component type="Button" name="button_voir_moins_cpv" prop:text="Voir moins" prop:visible="false" prop:role="elevated-button"></anvil-component>
                         <anvil-component type="Button" name="button_voir_plus_cpv" prop:text="Voir plus" prop:align="left" prop:role="elevated-button" prop:visible="false"></anvil-component>
-                        <anvil-component type="Button" name="button_cacher_cpv" prop:text="Cacher" prop:role="elevated-button"></anvil-component>
+                        <anvil-component type="Button" name="button_cacher_cpv" prop:text="Cacher" prop:role="elevated-button" prop:border="3px solid Yellow"></anvil-component>
                         <anvil-component type="Label" name="label_statut_veille_cpv" prop:text=""></anvil-component>
                     </anvil-component>
                     <anvil-component type="Button" name="button_creer_veille_cpv" prop:text="Créer une veille quotidienne CPV" prop:align="left" prop:role="elevated-button"></anvil-component>
                 </anvil-component>
             </anvil-component>
         </anvil-component>
-        <anvil-component type="FlowPanel" name="flow_panel_3" container:slot="card-content-slot" prop:spacing='{"margin":["10",null,"0",null]}'>
+        <anvil-component type="FlowPanel" name="flow_panel_3" prop:spacing='{"margin":["10",null,"0",null]}' container:slot="card-content-slot">
             <anvil-component type="Label" name="label_titre_selection_cpv" prop:text="Secteur(s) sélectionné(s) :" prop:bold="true" prop:font_size="16" prop:spacing='{"padding":["2",null,"0",null],"margin":[null,null,"0",null]}' prop:icon=""></anvil-component>
             <anvil-component type="Label" name="label_message_selection_cpv" prop:text="Aucun CPV sélectionné." prop:spacing='{"padding":["2",null,"0",null],"margin":["5",null,"0",null]}'></anvil-component>
         </anvil-component>
-        <anvil-component type="RepeatingPanel" name="repeating_panel_cpv_selectionnes" container:slot="card-content-slot" prop:item_template="https___surv_apl_offres_anvil_app.search.SelectionCPV" prop:border="2px solid " prop:margin='["0","2",null,"2"]'></anvil-component>
+        <anvil-component type="RepeatingPanel" name="repeating_panel_cpv_selectionnes" prop:item_template="https___surv_apl_offres_anvil_app.search.SelectionCPV" prop:border="2px solid " prop:margin='["0","2",null,"2"]' container:slot="card-content-slot"></anvil-component>
         <anvil-component type="FlowPanel" name="zone_resume_cpv" prop:visible="false" container:slot="card-content-slot">
             <anvil-component type="Label" name="label_resume_cpv" prop:text="Aucune prestation CPV sélectionnée"></anvil-component>
             <anvil-component type="Button" name="button_voir_bloc_cpv" prop:text="Modifier ma sélection CPV"></anvil-component>
