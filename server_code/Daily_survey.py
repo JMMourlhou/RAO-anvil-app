@@ -314,6 +314,16 @@ def enregistrer_daily_survey(
 # Parcours CPV indépendant : les fonctions legacy ci-dessus restent inchangées.
 SOURCES_VEILLE_CPV = ("BOAMP", "TED", "AWS", "CARIF")
 
+# Le sélecteur affiche et transmet CARIF-OREF, tandis que le moteur CPV
+# attend CARIF. Seuls les alias explicitement listés sont acceptés.
+ALIASES_SOURCES_CPV = {
+    "BOAMP": "BOAMP",
+    "TED": "TED",
+    "AWS": "AWS",
+    "CARIF": "CARIF",
+    "CARIF-OREF": "CARIF",
+}
+
 
 class ErreurValidationVeilleCPV(ValueError):
     """Critère de veille CPV invalide pouvant être expliqué à l'utilisateur."""
@@ -339,7 +349,8 @@ def normaliser_sources_cpv(sources):
     """Normalise et contrôle les sources autorisées du parcours CPV.
 
     Paramètre : sources (str pour une seule source, ou list[str]).
-    Retour : list[str] non vide, en majuscules, dédupliquée et triée.
+    Retour : list[str] canonique non vide, dédupliquée et triée.
+    L'alias CARIF-OREF devient CARIF après nettoyage des espaces et de la casse.
     Lève ErreurValidationVeilleCPV si type invalide, sélection vide ou source
     inconnue. Les éléments vides sont ignorés comme dans le parcours historique.
     """
@@ -347,10 +358,13 @@ def normaliser_sources_cpv(sources):
     sources_normalisees = normaliser_sources(sources)
     if not sources_normalisees:
         raise ErreurValidationVeilleCPV("Sélectionnez au moins une source.")
+    sources_canoniques = set()
     for source in sources_normalisees:
-        if source not in SOURCES_VEILLE_CPV:
+        if source not in ALIASES_SOURCES_CPV:
             raise ErreurValidationVeilleCPV("Source non supportée : " + source)
-    return sources_normalisees
+        source_canonique = ALIASES_SOURCES_CPV[source]
+        sources_canoniques.add(source_canonique)
+    return sorted(sources_canoniques)
 
 
 def normaliser_departements_cpv(departements):
