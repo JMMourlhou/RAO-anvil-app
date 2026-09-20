@@ -52,21 +52,21 @@ class TestsAPIRechercheCPV(unittest.TestCase):
 
     def test_aucun_resultat(self):
         self.assertEqual(CPV_API.rechercher_cpv("zzzintrouvablezzz"), {
-            "ok": True, "resultats": [], "message": ""
+            "ok": True, "resultats": [], "total_resultats": 0, "message": ""
         })
 
     def test_recherche_vide(self):
         self.assertEqual(CPV_API.rechercher_cpv("  ")["resultats"], [])
 
     def test_limites_respectees(self):
-        for limite in (1, 3, 10, 50):
+        for limite in (1, 3, 10, 50, 60, 110):
             reponse = CPV_API.rechercher_cpv("services", limite)
             self.assertTrue(reponse["ok"])
             self.assertEqual(len(reponse["resultats"]), limite)
         self.assertEqual(len(CPV_API.rechercher_cpv("services")["resultats"]), 10)
 
     def test_limites_invalides(self):
-        for limite in (0, -1, 51, 9454, True, "10", 2.5, None):
+        for limite in (0, -1, NOMBRE_CODES + 1, True, "10", 2.5, None):
             with self.subTest(limite=limite):
                 self.assertFalse(CPV_API.rechercher_cpv("formation", limite)["ok"])
 
@@ -190,6 +190,26 @@ class TestsAPIRechercheCPV(unittest.TestCase):
         self.assertEqual(reponse_limitee["resultats"], reponse_complete["resultats"][:3])
 
     def test_erreur_inattendue_propagee(self):
-        with patch.object(CPV_Metier, "rechercher_dans_catalogue", side_effect=RuntimeError("test")):
+        with patch.object(CPV_Metier, "rechercher_dans_catalogue_avec_total", side_effect=RuntimeError("test")):
             with self.assertRaises(RuntimeError):
                 CPV_API.rechercher_cpv("formation")
+
+
+    def test_total_independant_de_la_limite(self):
+        reponse_complete = CPV_API.rechercher_cpv("services", NOMBRE_CODES)
+        total_attendu = len(reponse_complete["resultats"])
+        self.assertGreater(total_attendu, 100)
+        for limite in (10, 50, 60, 110):
+            reponse = CPV_API.rechercher_cpv("services", limite)
+            self.assertEqual(reponse["total_resultats"], total_attendu)
+            self.assertEqual(reponse["resultats"], reponse_complete["resultats"][:limite])
+
+    def test_total_code_exact_et_vide(self):
+        self.assertEqual(CPV_API.rechercher_cpv("80530000")["total_resultats"], 1)
+        self.assertEqual(CPV_API.rechercher_cpv("")["total_resultats"], 0)
+
+    def test_contrat_metier_historique(self):
+        codes = CPV_Metier.rechercher_dans_catalogue("services", 60)
+        reponse = CPV_API.rechercher_cpv("services", 60)
+        self.assertIsInstance(codes, list)
+        self.assertEqual(codes, [resultat["code"] for resultat in reponse["resultats"]])

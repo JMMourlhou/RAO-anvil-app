@@ -6,7 +6,7 @@ import unicodedata
 from .CPV_Catalogue import LIBELLES_PAR_CODE
 
 
-LIMITE_RESULTATS_MAXIMALE = 50
+LIMITE_RESULTATS_MAXIMALE = len(LIBELLES_PAR_CODE)
 NOMBRE_CODES_MAXIMAL = 100
 LONGUEUR_TERME_MAXIMALE = 200
 
@@ -37,7 +37,7 @@ for code_cpv, libelle_officiel in LIBELLES_PAR_CODE.items():
 
 
 def valider_entrees_recherche(terme, limite):
-    """Valide terme (str, 200 caractères maximum) et limite (int, 1 à 50).
+    """Valide terme (str, 200 caractères maximum) et limite (int, 1 à la taille du catalogue).
 
     Retourne le terme normalisé (str), éventuellement vide. Lève
     ErreurValidationCPV pour un mauvais type ou une borne invalide.
@@ -50,7 +50,7 @@ def valider_entrees_recherche(terme, limite):
     if type(limite) is not int:
         raise ErreurValidationCPV("La limite doit être un entier.")
     if not 1 <= limite <= LIMITE_RESULTATS_MAXIMALE:
-        raise ErreurValidationCPV("La limite doit être comprise entre 1 et 50.")
+        raise ErreurValidationCPV(f"La limite doit être comprise entre 1 et {LIMITE_RESULTATS_MAXIMALE}.")
     return normaliser_texte(terme)
 
 
@@ -89,16 +89,26 @@ def calculer_priorite_libelle(terme_normalise, libelle_normalise):
 
 
 def rechercher_dans_catalogue(terme, limite=10):
+    """Retourne les codes classés, en conservant le contrat historique list[str].
+
+    Paramètres : terme (str), limite (int positif borné au catalogue).
+    Retour : list[str]. Lève ErreurValidationCPV si une entrée est invalide.
+    """
+    codes_resultats, total_resultats = rechercher_dans_catalogue_avec_total(terme, limite)
+    return codes_resultats
+
+
+def rechercher_dans_catalogue_avec_total(terme, limite=10):
     """Recherche un libellé partiel ou un préfixe de code dans le catalogue.
 
-    Paramètres : terme (str, au plus 200 caractères), limite (int, 1 à 50).
-    Retour : list[str] des codes classés, limitée ; [] si terme vide ou absent.
+    Paramètres : terme (str, au plus 200 caractères), limite (int, 1 à la taille du catalogue).
+    Retour : tuple[list[str], int], codes limités et total avant limitation.
     Erreurs : ErreurValidationCPV si type ou limites invalides.
     Aucun synonyme, rapprochement flou ou libellé inventé n'est utilisé.
     """
     terme_normalise = valider_entrees_recherche(terme, limite)
     if not terme_normalise:
-        return []
+        return [], 0
 
     recherche_par_code = re.fullmatch(r"[0-9]+", terme_normalise) is not None
     correspondances = []
@@ -117,11 +127,13 @@ def rechercher_dans_catalogue(terme, limite=10):
 
     # Un tri explicite rend les égalités reproductibles entre deux appels.
     correspondances.sort()
+    # Compter avant la coupe conserve un total indépendant de la limite.
+    total_resultats = len(correspondances)
     resultats_limites = correspondances[:limite]
     codes_resultats = []
     for priorite, libelle_normalise, code_cpv in resultats_limites:
         codes_resultats.append(code_cpv)
-    return codes_resultats
+    return codes_resultats, total_resultats
 
 
 def valider_codes_selectionnes(codes):

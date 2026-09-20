@@ -13,20 +13,20 @@ from . import CPV_Metier
 def rechercher_cpv(terme, limite=10):
     """Recherche des CPV par libellé officiel ou préfixe de code.
 
-    Paramètres : terme (str, 200 caractères maximum), limite (int, 1 à 50).
+    Paramètres : terme (str, 200 caractères maximum), limite (int, 1 à la taille du catalogue).
     Retour : dict avec ok (bool), resultats (list[dict code/libelle]),
-    message (str). Terme vide ou sans correspondance : succès avec [].
+    total_resultats (int avant limitation), message (str). Terme vide ou sans correspondance : succès avec [].
     Entrée invalide : ok=False, resultats=[], message explicatif.
     Les erreurs inattendues sont propagées.
     """
     try:
-        codes_resultats = CPV_Metier.rechercher_dans_catalogue(terme, limite)
+        codes_resultats, total_resultats = CPV_Metier.rechercher_dans_catalogue_avec_total(terme, limite)
     except CPV_Metier.ErreurValidationCPV as erreur:
-        return {"ok": False, "resultats": [], "message": str(erreur)}
+        return {"ok": False, "resultats": [], "total_resultats": 0, "message": str(erreur)}
 
     # La limitation a déjà été appliquée côté métier avant la sérialisation.
     resultats_cpv = CPV_Metier.convertir_resultats_anvil(codes_resultats)
-    return {"ok": True, "resultats": resultats_cpv, "message": ""}
+    return {"ok": True, "resultats": resultats_cpv, "total_resultats": total_resultats, "message": ""}
 
 
 @anvil.server.callable
