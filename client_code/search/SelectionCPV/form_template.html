@@ -1,10 +1,10 @@
 <anvil-form container="FlowPanel" prop:vertical_align="middle" prop:spacing='{"margin":["2",null,"2",null]}' prop:background="theme:Primary Overlay 3">
     <anvil-component type="LinearPanel" name="panel_libelle_cpv" container:expand="true">
-        <anvil-component type="ColumnPanel" name="column_panel_1" prop:col_widths='"{\"MWLEEK\":66,\"XYRJDW\":10,\"JGRPDO\":13,\"XLAJMO\":6}"' prop:wrap_on="never" prop:spacing='{"margin":["2",null,"2",null]}' prop:col_spacing="tiny">
+        <anvil-component type="ColumnPanel" name="column_panel_1" prop:col_widths='"{\"MWLEEK\":64,\"XYRJDW\":13,\"JGRPDO\":12,\"XLAJMO\":6}"' prop:wrap_on="mobile" prop:spacing='{"margin":["2",null,"2",null]}' prop:col_spacing="small">
             <anvil-component type="m3._Components.IconButton" name="icon_button_1" prop:icon="mi:factory" prop:appearance="standard" prop:icon_color="theme:Light Green" prop:margin='["2","0","4",null]' container:grid_position="QWSJLO,XLAJMO"></anvil-component>
-            <anvil-component type="Label" name="label_libelle_cpv" prop:bold="false" prop:font_size="16" prop:spacing_below="none" prop:spacing='{"padding":[null,null,null,"5"]}' prop:foreground="theme:Primary" bind:text="self.item['libelle']" container:grid_position="QWSJLO,MWLEEK"></anvil-component>
+            <anvil-component type="Label" name="label_libelle_cpv" prop:bold="false" prop:font_size="14" prop:spacing_below="none" prop:spacing='{"padding":[null,null,null,"5"]}' prop:foreground="theme:Primary" bind:text="self.item['libelle']" container:grid_position="QWSJLO,MWLEEK"></anvil-component>
             <anvil-component type="Label" name="label_code_cpv" prop:font_size="12" prop:spacing_above="none" prop:spacing='{"padding":["7",null,null,null],"margin":["5",null,null,null]}' bind:text="self.item['code']" container:grid_position="QWSJLO,XYRJDW"></anvil-component>
-            <anvil-component type="Button" name="button_retirer_cpv" prop:text="Retirer" prop:icon="fa:minus-square" container:grid_position="QWSJLO,JGRPDO"></anvil-component>
+            <anvil-component type="Button" name="button_retirer_cpv" prop:text="Retirer" prop:icon="fa:minus-square" prop:spacing='{"padding":[null,"15",null,"15"]}' prop:border="3px solid Yellow" prop:foreground="theme:White" prop:background="theme:Outline" container:grid_position="QWSJLO,JGRPDO"></anvil-component>
         </anvil-component>
     </anvil-component>
 </anvil-form>

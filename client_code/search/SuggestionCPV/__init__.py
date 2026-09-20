@@ -15,7 +15,7 @@ class SuggestionCPV(SuggestionCPVTemplate):
         """
         cpv_est_selectionne = bool(self.item.get("est_selectionne", False))
         if cpv_est_selectionne:
-            self.button_ajouter_cpv.text = "Ajouté ✓"
+            self.button_ajouter_cpv.text = "Ajouté"
             self.button_ajouter_cpv.icon = "fa:check"
             self.button_ajouter_cpv.background = "#2e7d32"
             self.button_ajouter_cpv.foreground = "white"

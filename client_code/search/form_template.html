@@ -38,9 +38,9 @@
             <anvil-component type="Label" name="label_message_selection_cpv" prop:text="Aucun CPV sélectionné." prop:spacing='{"padding":["2",null,"0",null],"margin":["5",null,"0",null]}'></anvil-component>
         </anvil-component>
         <anvil-component type="RepeatingPanel" name="repeating_panel_cpv_selectionnes" prop:item_template="https___surv_apl_offres_anvil_app.search.SelectionCPV" prop:border="2px solid " prop:margin='["0","2",null,"2"]' container:slot="card-content-slot"></anvil-component>
-        <anvil-component type="FlowPanel" name="zone_resume_cpv" prop:visible="false" container:slot="card-content-slot">
-            <anvil-component type="Label" name="label_resume_cpv" prop:text="Aucune prestation CPV sélectionnée"></anvil-component>
-            <anvil-component type="Button" name="button_voir_bloc_cpv" prop:text="Modifier ma sélection CPV"></anvil-component>
+        <anvil-component type="FlowPanel" name="zone_resume_cpv" prop:visible="false" prop:spacing='{"margin":["0",null,null,null]}' container:slot="card-content-slot">
+            <anvil-component type="Label" name="label_resume_cpv" prop:text="Aucune prestation CPV sélectionnée" prop:spacing='{"margin":["0",null,null,null]}'></anvil-component>
+            <anvil-component type="Button" name="button_voir_bloc_cpv" prop:text="Modifier ma sélection CPV" prop:spacing='{"margin":["0",null,null,null]}'></anvil-component>
         </anvil-component>
         <anvil-component type="ColumnPanel" name="column_panel_params" prop:background="" prop:col_spacing="tiny" prop:col_widths='"{}"' prop:spacing='{"padding":[null,null,"0",null]}' prop:wrap_on="mobile" container:slot="card-content-slot">
             <anvil-component type="m3._Components.TextInput.TextBox" name="text_box_mot_clef" prop:placeholder="Mots à trouver obligatoirement dans l'offre" prop:leading_icon="mi:key" prop:background_color="theme:Primary Overlay 3" prop:display_text_color="theme:Primary" prop:label="Mots à trouver obligatoirement dans l'offre :" prop:leading_icon_color="theme:Light Green" prop:label_italic="true" prop:appearance="outlined" prop:text="" prop:margin='["5","2","1","2"]' on:change="self.text_box_mot_clef_change" on:pressed_enter="self.text_box_mot_clef_pressed_enter" container:grid_position="UTAJVP,AQYHRQ"></anvil-component>

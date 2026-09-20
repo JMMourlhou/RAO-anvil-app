@@ -1,7 +1,7 @@
 <anvil-form container="FlowPanel" prop:vertical_align="middle" prop:spacing='{"margin":["2",null,"2",null]}'>
-    <anvil-component type="ColumnPanel" name="column_panel_1" prop:col_widths='"{\"TMTKTG\":45,\"KJLZHN\":9,\"IZKMVA\":8}"' container:width="915.3634836425781">
+    <anvil-component type="ColumnPanel" name="column_panel_1" prop:col_widths='"{\"TMTKTG\":45,\"KJLZHN\":9,\"IZKMVA\":8}"' prop:wrap_on="never" container:width="927.3117446289062">
         <anvil-component type="Label" name="label_libelle_cpv" prop:bold="true" prop:font_size="16" prop:spacing_below="none" prop:spacing='{"margin":[null,null,null,"5"]}' bind:text="self.item['libelle']" container:grid_position="ECJDXH,TMTKTG"></anvil-component>
         <anvil-component type="Label" name="label_code_cpv" prop:font_size="12" prop:spacing_above="none" prop:spacing='{"margin":["5",null,null,null]}' bind:text="self.item['code']" container:grid_position="ECJDXH,IZKMVA"></anvil-component>
-        <anvil-component type="Button" name="button_ajouter_cpv" prop:text="Ajouter" prop:icon="fa:plus-square" prop:border="3px solid Yellow" container:grid_position="ECJDXH,KJLZHN"></anvil-component>
+        <anvil-component type="Button" name="button_ajouter_cpv" prop:text="Ajouter" prop:icon="fa:plus-square" prop:border="3px solid Yellow" prop:spacing='{"padding":[null,"15",null,"15"]}' prop:background="theme:Outline" prop:foreground="theme:White" container:grid_position="ECJDXH,KJLZHN"></anvil-component>
     </anvil-component>
 </anvil-form>
