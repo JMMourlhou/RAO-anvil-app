@@ -2517,8 +2517,8 @@ class search(searchTemplate):
         """
         self.rechercher_cpv_depuis_saisie()
 
-    @handle("text_box_recherche_cpv", "pressed_enter")
-    def text_box_recherche_cpv_pressed_enter(self, **event_args):
+    @handle("text_box_recherche_cp", "pressed_enter")
+    def text_box_recherche_cp_pressed_enter(self, **event_args):
         """Recherche les CPV sur Entrée, sans lancer la recherche d'offres.
 
         Paramètre : event_args (dict), événement Anvil. Retour : None.
@@ -2526,8 +2526,8 @@ class search(searchTemplate):
         """
         self.rechercher_cpv_depuis_saisie()
 
-    @handle("text_box_recherche_cpv", "change")
-    def text_box_recherche_cpv_change(self, **event_args):
+    @handle("text_box_recherche_cp", "change")
+    def text_box_recherche_cp_change(self, **event_args):
         """Efface les suggestions devenues obsolètes sans appeler le serveur.
 
         Paramètre : event_args (dict), événement Anvil. Retour : None.
