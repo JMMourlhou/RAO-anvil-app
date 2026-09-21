@@ -7,6 +7,9 @@ import re
 from anvil.js import get_dom_node, window    # pour écouteur JS sur le DropDown et conter tps d'éxéction
 from .. import Context_ecran
 
+# Pour entrer le titre des repeating panel dans le cadre
+import anvil.js  
+from ..Titre_RepeatingPanel import definir_titre_repeating_panel
 
 # Alertes :
 from ..Alertes import (
@@ -415,6 +418,13 @@ class search(searchTemplate):
         # ================================================================
     
         afficher_temps("TOTAL __init__", t_total)
+
+        # ================================================================
+        # Définition du titre des repeating panels (à partir du module definir_titre_repeating_panel)
+        # ================================================================
+        definir_titre_repeating_panel(self.repeating_panel_cpv_selectionnes, "Secteur sélectionné :")
+        definir_titre_repeating_panel(self.repeating_panel_suggestions_cpv, "Secteurs à sélectionner :")
+        
 
     def verrouiller_recherche(self):
         """
@@ -2820,7 +2830,6 @@ class search(searchTemplate):
     @handle("button_cacher_cpv", "click")
     def button_cacher_cpv_click(self, **event_args):
         """Replie la recherche en gardant les sélections visibles. event_args : dict. Retour : None."""
-        self.actualiser_resume_cpv()
         self.bloc_selecteur_cpv_complet.visible = False
         self.zone_resume_cpv.visible = True
 
@@ -3048,10 +3057,12 @@ class search(searchTemplate):
         cpv_selectionnes = list(self.repeating_panel_cpv_selectionnes.items or [])
         nb_cpv_selectionnes = len(cpv_selectionnes)
         if nb_cpv_selectionnes == 1:
-            self.label_titre_selection_cpv.text = "Secteur sélectionné:"
+            titre = "Secteur sélectionné"
         else:
-            self.label_titre_selection_cpv.text = "Secteurs sélectionnés:"
-        self.label_titre_selection_cpv.visible = bool(cpv_selectionnes)
+             titre = "Secteurs sélectionnés"
+        definir_titre_repeating_panel(self.repeating_panel_cpv_selectionnes, titre)
+        self.repeating_panel_cpv_selectionnes.visible = bool(cpv_selectionnes) 
+        self.button_cacher_cpv.visible = bool(cpv_selectionnes) 
 
     def rafraichir_cpv_selectionnes(self):
         """Rafraîchit les CPV sélectionnés et synchronise les suggestions visibles.
@@ -3063,24 +3074,10 @@ class search(searchTemplate):
         # Recalculer les boutons depuis la sélection évite tout état parallèle
         # susceptible de se désynchroniser après un ajout ou un retrait.
         self.rafraichir_etat_suggestions_cpv()
-        self.actualiser_resume_cpv()
         self.maj_bouton_recherche_visible()
         self.mettre_a_jour_affichage_selection_cpv()
         self.actualiser_bouton_veille_cpv()
 
-    def actualiser_resume_cpv(self):
-        """Affiche le nombre de prestations retenues, sans modifier la sélection.
-
-        Aucun paramètre. Retour : None. Le compteur est toujours dérivé de
-        self.cpv_selectionnes, y compris lorsque la vue compacte est masquée.
-        """
-        nombre_prestations = len(self.cpv_selectionnes)
-        if nombre_prestations == 0:
-            self.label_resume_cpv.text = "Aucune prestation CPV sélectionnée"
-        elif nombre_prestations == 1:
-            self.label_resume_cpv.text = "1 prestation CPV sélectionnée"
-        else:
-            self.label_resume_cpv.text = f"{nombre_prestations} prestations CPV sélectionnées"
 
     def preparer_criteres_veille_cpv(self):
         """Copie les cinq critères CPV, sans normalisation métier côté client.

@@ -21,25 +21,21 @@
             <anvil-component type="ColumnPanel" name="column_panel_1" prop:col_widths='"{\"RLHXSZ\":8,\"ZLJVJG\":37}"' prop:wrap_on="never" prop:background="">
                 <anvil-component type="m3._Components.TextInput.TextBox" name="text_box_recherche_cpv" prop:appearance="outlined" prop:label="Secteur recherché" prop:placeholder="Secteur recherché" prop:leading_icon="mi:question_mark" prop:leading_icon_color="theme:Yellow" prop:background_color="theme:Primary Overlay 3" prop:margin='[null,null,null,"2"]' container:grid_position="UVIMFG,ZLJVJG"></anvil-component>
                 <anvil-component type="LinearPanel" name="panel_selecteur_cpv" prop:border="2px solid Yellow" prop:spacing='{"margin":[null,"20",null,"20"]}' prop:visible="false" container:grid_position="OKTIFL,EAINPJ">
-                    <anvil-component type="Label" name="label_message_recherche_cpv" prop:text=""></anvil-component>
-                    <anvil-component type="RepeatingPanel" name="repeating_panel_suggestions_cpv" prop:item_template="https___surv_apl_offres_anvil_app.search.SuggestionCPV" prop:border="3px solid Yellow" prop:margin='[null,"2",null,"2"]' prop:background="theme:Primary Overlay 3"></anvil-component>
-                    <anvil-component type="FlowPanel" name="flow_panel_1" prop:align="left">
-                        <anvil-component type="Button" name="button_voir_moins_cpv" prop:text="Voir moins" prop:visible="false" prop:role="elevated-button"></anvil-component>
-                        <anvil-component type="Button" name="button_voir_plus_cpv" prop:text="Voir plus" prop:align="left" prop:role="elevated-button" prop:visible="false"></anvil-component>
-                        <anvil-component type="Button" name="button_cacher_cpv" prop:text="Cacher" prop:role="elevated-button" prop:border="3px solid Yellow"></anvil-component>
+                    <anvil-component type="FlowPanel" name="flow_panel_1" prop:align="center">
+                        <anvil-component type="Button" name="button_voir_moins_cpv" prop:text="Voir moins" prop:visible="false" prop:role="elevated-button" prop:background="theme:Light Green" prop:foreground="theme:Background"></anvil-component>
+                        <anvil-component type="Button" name="button_voir_plus_cpv" prop:text="Voir plus" prop:align="left" prop:role="elevated-button" prop:visible="false" prop:background="theme:Light Green" prop:foreground="theme:Background"></anvil-component>
+                        <anvil-component type="Button" name="button_cacher_cpv" prop:text="Cacher" prop:role="elevated-button" prop:border="" prop:background="theme:Yellow" prop:foreground="theme:Surface" prop:visible="false"></anvil-component>
                         <anvil-component type="Label" name="label_statut_veille_cpv" prop:text=""></anvil-component>
                     </anvil-component>
-                    <anvil-component type="Button" name="button_creer_veille_cpv" prop:text="Créer une veille quotidienne CPV" prop:align="left" prop:role="elevated-button"></anvil-component>
+                    <anvil-component type="RepeatingPanel" name="repeating_panel_suggestions_cpv" prop:item_template="https___surv_apl_offres_anvil_app.search.SuggestionCPV" prop:border="" prop:margin='[null,"10",null,"10"]' prop:background="theme:Primary Overlay 3" prop:role='["repeating-panel-rounded"]'></anvil-component>
+                    <anvil-component type="Label" name="label_message_recherche_cpv" prop:text="" prop:align="center"></anvil-component>
+                    <anvil-component type="Button" name="button_creer_veille_cpv" prop:text="Créer une veille quotidienne CPV" prop:align="left" prop:role="elevated-button" prop:visible="false"></anvil-component>
                 </anvil-component>
             </anvil-component>
         </anvil-component>
-        <anvil-component type="FlowPanel" name="flow_panel_3" prop:spacing='{"margin":["10",null,"0",null]}' container:slot="card-content-slot">
-            <anvil-component type="Label" name="label_titre_selection_cpv" prop:text="Secteur(s) sélectionné(s) :" prop:bold="false" prop:font_size="12" prop:spacing='{"padding":["2",null,"0",null],"margin":[null,null,"0",null]}' prop:icon="" prop:visible="false" prop:italic="true"></anvil-component>
-        </anvil-component>
-        <anvil-component type="RepeatingPanel" name="repeating_panel_cpv_selectionnes" prop:item_template="https___surv_apl_offres_anvil_app.search.SelectionCPV" prop:border="2px solid " prop:margin='["0","2",null,"2"]' container:slot="card-content-slot"></anvil-component>
-        <anvil-component type="FlowPanel" name="zone_resume_cpv" prop:visible="false" prop:spacing='{"margin":["0",null,null,null]}' container:slot="card-content-slot">
-            <anvil-component type="Label" name="label_resume_cpv" prop:text="Aucune prestation CPV sélectionnée" prop:spacing='{"margin":["0",null,null,null]}'></anvil-component>
-            <anvil-component type="Button" name="button_voir_bloc_cpv" prop:text="Modifier ma sélection CPV" prop:spacing='{"margin":["0",null,null,null]}'></anvil-component>
+        <anvil-component type="RepeatingPanel" name="repeating_panel_cpv_selectionnes" prop:item_template="https___surv_apl_offres_anvil_app.search.SelectionCPV" prop:border="" prop:margin='["0","2",null,"2"]' prop:role='["repeating-panel-rounded"]' prop:visible="false" container:slot="card-content-slot"></anvil-component>
+        <anvil-component type="FlowPanel" name="zone_resume_cpv" prop:visible="false" prop:spacing='{"margin":["0",null,null,null]}' prop:align="center" container:slot="card-content-slot">
+            <anvil-component type="Button" name="button_voir_bloc_cpv" prop:text="Modifier ma sélection de secteurs d'activité" prop:spacing='{"margin":["0",null,null,null]}' prop:background="theme:Outline" prop:foreground="theme:White" prop:border="3px solid Yellow"></anvil-component>
         </anvil-component>
         <anvil-component type="ColumnPanel" name="column_panel_params" prop:background="" prop:col_spacing="tiny" prop:col_widths='"{}"' prop:spacing='{"padding":[null,null,"0",null]}' prop:wrap_on="mobile" container:slot="card-content-slot">
             <anvil-component type="m3._Components.TextInput.TextBox" name="text_box_mots_obligatoires_cpv" prop:placeholder="Mots à trouver obligatoirement dans l'offre" prop:leading_icon="mi:key" prop:background_color="theme:Primary Overlay 3" prop:display_text_color="theme:Primary" prop:label="Mots à trouver obligatoirement dans l'offre :" prop:leading_icon_color="theme:Light Green" prop:label_italic="true" prop:appearance="outlined" prop:text="" prop:margin='["5","2","1","2"]' on:change="self.text_box_mot_clef_change" on:pressed_enter="self.text_box_mot_clef_pressed_enter" container:grid_position="UTAJVP,AQYHRQ"></anvil-component>

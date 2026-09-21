@@ -941,3 +941,32 @@ Bouton Vérification - niveau d'intérêt
     font-weight: 900 !important;
 }
 
+
+
+.anvil-role-repeating-panel-rounded {
+    position: relative;
+
+    border: 1px solid #8d9a9a;
+    border-radius: 6px;
+
+    padding: 14px 12px 8px 12px;
+    margin-top: 10px;
+}
+
+.anvil-role-repeating-panel-rounded::before {
+    content: attr(data-titre);
+
+    position: absolute;
+    top: -8px;
+    left: 14px;
+
+    padding: 0 5px;
+    background-color: #000000;
+
+    color: white;
+    font-size: 12px;
+    font-style: italic;
+    line-height: 16px;
+
+    z-index: 10;
+}
