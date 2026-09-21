@@ -367,9 +367,15 @@ class RowTemplate1(RowTemplate1Template):
 
     def extraire_mots_et(self):
         """
-        Retourne les mots ET saisis dans search.
-        """
+        Retourne une liste de termes de surlignage, éventuellement vide.
 
+        Sans paramètre. En CPV, copie les expressions de l'instantané transmis
+        par search ; sinon conserve l'extraction historique des mots ET.
+        """
+        parent_tag = getattr(self.parent, "tag", None)
+        mots_obligatoires_cpv = getattr(parent_tag, "mots_obligatoires_cpv", None)
+        if mots_obligatoires_cpv is not None:
+            return list(mots_obligatoires_cpv)
         return self.extraire_liste_depuis_parent_tag("mots_et_saisis")
 
     def button_generer_html_click(self, **event_args):
@@ -404,6 +410,11 @@ class RowTemplate1(RowTemplate1Template):
 
         # Mots OU réellement trouvés dans cette offre
         mots_ou_trouves = self.item_value("mots_ou_trouves", [])
+        # Les mots OU restent réservés à l'affichage legacy, même si une
+        # ancienne valeur est encore présente dans les données de l'offre.
+        parent_tag = getattr(self.parent, "tag", None)
+        if getattr(parent_tag, "mots_obligatoires_cpv", None) is not None:
+            mots_ou_trouves = []
 
         if mots_ou_trouves is None:
             mots_ou_trouves = []
@@ -413,10 +424,8 @@ class RowTemplate1(RowTemplate1Template):
 
         mots_ou_a_surligner = list(mots_ou_trouves)
 
-        # Sécurité : si aucun mot à mettre en évidence
-        if not mots_cles and not mots_ou_a_surligner:
-            alert("Aucun mot-clé à mettre en évidence !")
-            return
+        # Le surlignage est facultatif : des listes vides permettent simplement
+        # d'afficher le contenu sans remettre en cause la sélection du moteur.
 
         # Mise en forme simple du texte avant envoi au composant HTML
         texte = self.format_search_text_for_display(texte_source)

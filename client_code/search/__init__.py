@@ -555,6 +555,10 @@ class search(searchTemplate):
             Notification("Recherche déjà en cours...", timeout=2).show()
             return
 
+        if bool(self.cpv_selectionnes):
+            self.lancer_recherche_offres_cpv()
+            return
+
         # --- Lecture des champs ---
         mots_obligatoires_texte = self.text_box_mots_obligatoires_cpv.text or ""
         mots_ou_texte = self.text_box_mot_ou.text or ""
@@ -679,6 +683,183 @@ class search(searchTemplate):
 
         self.timer_recherche_progress.interval = 1
         return
+
+    def decouper_saisie_recherche_cpv(self, saisie):
+        """Adapte une saisie str en list[str] pour la frontière Uplink.
+
+        Sépare uniquement virgules, points-virgules et retours à la ligne.
+        Retourne les expressions non vides, sans déduplication, matching,
+        changement de casse ou découpage des mots de liaison.
+        """
+        expressions = []
+        for fragment in re.split(r"[,;\r\n]+", saisie or ""):
+            expression = fragment.strip()
+            if expression:
+                expressions.append(expression)
+        return expressions
+
+    def preparer_criteres_recherche_cpv(self):
+        """Collecte les critères manuels CPV sans validation métier officielle.
+
+        Aucun paramètre. Retour : dict d'arguments pour le callable.
+        Lève ValueError si CPV/sources absents ou période non entière.
+        La période conserve les bornes manuelles 1 à 365 jours.
+        """
+        if not self.cpv_selectionnes:
+            raise ValueError("Sélectionnez au moins une prestation CPV.")
+        sources = list(self.multi_select_drop_down_platformes.selected or [])
+        if not sources:
+            raise ValueError("Sélectionnez au moins une plateforme.")
+        try:
+            periode = int(str(self.text_box_nb_jours.text).strip())
+        except (ValueError, TypeError):
+            raise ValueError("Le nombre de jours doit être un nombre entier.")
+        periode = max(1, min(periode, 365))
+        self.text_box_nb_jours.text = str(periode)
+        codes_cpv = []
+        for cpv_selectionne in self.cpv_selectionnes:
+            codes_cpv.append(cpv_selectionne["code"])
+        return {
+            "cpv_selectionnes": codes_cpv,
+            "departements": self.decouper_saisie_recherche_cpv(self.text_box_departements.text),
+            "filtre_jours": periode,
+            "sources": sources,
+            "mots_obligatoires": self.decouper_saisie_recherche_cpv(self.text_box_mots_obligatoires_cpv.text),
+            "mots_exclus": self.decouper_saisie_recherche_cpv(self.text_box_mots_exclus.text),
+        }
+
+    def lancer_recherche_offres_cpv(self):
+        """Lance la tâche CPV avec un instantané indépendant des composants.
+
+        Aucun paramètre. Retour : None. Les erreurs de saisie sont présentées ;
+        les exceptions techniques sont propagées après déverrouillage.
+        Aucun appel d'historique ou de sauvegarde de veille.
+        """
+        try:
+            criteres = self.preparer_criteres_recherche_cpv()
+        except ValueError as erreur:
+            afficher_avertissement(str(erreur), titre="Recherche CPV")
+            return
+
+        contexte_recherche: dict = {"mode_recherche": "cpv"}
+        self._ctx_recherche = contexte_recherche
+        for nom_critere, valeur in criteres.items():
+            if isinstance(valeur, list):
+                self._ctx_recherche[nom_critere] = list(valeur)
+            else:
+                self._ctx_recherche[nom_critere] = valeur
+        # Les libellés servent seulement au résumé, jamais à la requête moteur.
+        self._ctx_recherche["prestations_cpv"] = []
+        for cpv_selectionne in self.cpv_selectionnes:
+            self._ctx_recherche["prestations_cpv"].append(dict(cpv_selectionne))
+
+        self.button_daily_survey_creation.visible = False
+        self.histo_id = None
+        self.list_offres = []
+        self.afficher_offres([])
+        self.checkbox_on_off.visible = False
+        self._annulation_recherche_demandee = False
+        self.verrouiller_recherche()
+        self.display_param_summary()
+        lancement_termine = False
+        try:
+            with anvil.server.no_loading_indicator:
+                self.task_recherche = anvil.server.call(
+                    "lancer_recherche_cpv_background",
+                    cpv_selectionnes=criteres["cpv_selectionnes"],
+                    departements=criteres["departements"],
+                    filtre_jours=criteres["filtre_jours"],
+                    sources=criteres["sources"],
+                    mots_obligatoires=criteres["mots_obligatoires"],
+                    mots_exclus=criteres["mots_exclus"],
+                )
+            self.timer_recherche_progress.interval = 1
+            lancement_termine = True
+        finally:
+            if not lancement_termine:
+                self.deverrouiller_recherche(cacher_bouton=False)
+                self.afficher_progression_recherche(
+                    ligne_1="Recherche CPV indisponible",
+                    etat="error", afficher_jauges=False,
+                )
+
+    def traiter_offres_cpv_apres_background(self, resultat):
+        """Affiche un résultat CPV dict déjà traité par le moteur.
+
+        Retour : None. ok=False est une erreur contrôlée, jamais un résultat
+        partiel. Une réponse mal formée lève ValueError ; zéro offre est un
+        succès. Les champs métier sont copiés sans filtrage ni dédoublonnage.
+        """
+        self.button_daily_survey_creation.visible = False
+        try:
+            if not isinstance(resultat, dict) or type(resultat.get("ok")) is not bool:
+                raise ValueError("Réponse de recherche CPV invalide.")
+            if not resultat["ok"]:
+                self.list_offres = []
+                self.afficher_offres([])
+                self.checkbox_on_off.visible = False
+                self.display_param_summary()
+                self.afficher_progression_recherche(
+                    ligne_1="Échec de la recherche CPV",
+                    ligne_2=resultat.get("message") or "La recherche CPV n’a pas abouti.",
+                    etat="error", afficher_jauges=False,
+                )
+                print("Erreurs recherche CPV :", resultat.get("errors", []))
+                return
+            offres = resultat["offres"]
+            if not isinstance(offres, list):
+                raise ValueError("Liste d'offres CPV invalide.")
+            offres_affichees = []
+            for numero, offre in enumerate(offres, start=1):
+                offre_affichee = dict(offre)
+                offre_affichee["vu"] = False
+                offre_affichee["numero_offre"] = numero
+                offre_affichee["nb_offres_total"] = len(offres)
+                if not offre_affichee.get("lien_source"):
+                    offre_affichee["lien_source"] = offre_affichee.get("lien", "")
+                offres_affichees.append(offre_affichee)
+            self.list_offres = offres_affichees
+            self.afficher_offres(self.list_offres)
+            self.checkbox_on_off.visible = bool(offres_affichees)
+            self.display_param_summary()
+            message_complementaire = ""
+            nombre_metier = resultat.get("nb_resultats_metier")
+            nombre_retour = resultat.get("nb_retour_client")
+            if nombre_metier is not None and nombre_retour is not None:
+                message_complementaire = f"{nombre_metier} offres correspondent aux critères ; {nombre_retour} retournées."
+            if resultat.get("errors"):
+                print("Erreurs partielles CPV :", resultat["errors"])
+                message_complementaire += "\nCertaines sources ont signalé une erreur."
+            self.afficher_progression_recherche(
+                ligne_1=self.format_nb_offres(len(offres_affichees), "retenue", "retenues"),
+                ligne_2=message_complementaire.strip(),
+                etat="success", progress_global=100, progress_source=100,
+                afficher_jauges=False,
+            )
+            if resultat.get("recherche_limitee") and resultat.get("message_limite"):
+                afficher_information(resultat["message_limite"], titre="Recherche limitée")
+        finally:
+            self.deverrouiller_recherche(cacher_bouton=False)
+
+    def construire_resume_recherche_cpv(self):
+        """Retourne un résumé str borné des critères figés au lancement.
+
+        Aucun paramètre. Les composants actuels ne sont pas relus.
+        Au maximum dix prestations sont détaillées.
+        """
+        contexte = self._ctx_recherche
+        prestations = contexte["prestations_cpv"]
+        lignes = ["CPV :"]
+        for prestation in prestations[:10]:
+            lignes.append(prestation["code"] + " — " + prestation["libelle"])
+        if len(prestations) > 10:
+            lignes.append(f"Et {len(prestations) - 10} autre(s) prestation(s).")
+        lignes.append("Mots obligatoires : " + (", ".join(contexte["mots_obligatoires"]) or "-"))
+        lignes.append("Mots exclus : " + (", ".join(contexte["mots_exclus"]) or "-"))
+        lignes.append("Plateformes : " + ", ".join(contexte["sources"]))
+        lignes.append(f"Période : {contexte['filtre_jours']} jours")
+        lignes.append("Départements : " + (", ".join(contexte["departements"]) or "-"))
+        return "\n".join(lignes)
 
     def traiter_offres_recuperees_apres_background(self, offres):
         """
@@ -908,6 +1089,11 @@ class search(searchTemplate):
         self.deverrouiller_recherche(cacher_bouton=True)
 
     def display_param_summary(self, **event_args):
+        if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
+            self.text_param_summary.text = self.construire_resume_recherche_cpv()
+            self.text_param_summary.visible = True
+            self.column_panel_progress_recherche.visible = True
+            return
         self.text_param_summary.text = (
             f"Plateformes : {self.multi_select_drop_down_platformes.selected} / "
             f"Obligatoires : {self.get_mots_obligatoires_texte() or '-'} / "
@@ -1150,6 +1336,9 @@ class search(searchTemplate):
         Sauvegarde self.list_offres dans histo['offres'].
         La fonction serveur update_histo_offres est obligatoire.
         """
+        # Les résultats CPV sont temporaires : sélection et retrait restent locaux.
+        if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
+            return True
 
         if not self.histo_id:
             afficher_avertissement(
@@ -1289,7 +1478,14 @@ class search(searchTemplate):
     
         # Important : remettre le tag après chaque réaffichage.
         # RowTemplate1 utilise les mots ET pour le bouton de vérification.
-        self.repeating_panel_offres.tag.mots_et_saisis = self.get_mots_obligatoires_texte()
+        if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
+            self.repeating_panel_offres.tag.mots_et_saisis = ", ".join(self._ctx_recherche["mots_obligatoires"])
+            # Le détail reçoit les expressions de la recherche terminée sans
+            # les reparcourir avec les règles textuelles du legacy.
+            self.repeating_panel_offres.tag.mots_obligatoires_cpv = list(self._ctx_recherche["mots_obligatoires"])
+        else:
+            self.repeating_panel_offres.tag.mots_et_saisis = self.get_mots_obligatoires_texte()
+            self.repeating_panel_offres.tag.mots_obligatoires_cpv = None
         
         items_affiches = []
 
@@ -2223,6 +2419,10 @@ class search(searchTemplate):
             )
             return
     
+        if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
+            self.traiter_offres_cpv_apres_background(result)
+            return
+
         if not result:
             self.afficher_progression_recherche(
                 ligne_1="⚠️ Recherche terminée, mais résultat vide",
@@ -2319,7 +2519,7 @@ class search(searchTemplate):
         has_mots_obligatoires = bool((self.text_box_mots_obligatoires_cpv.text or "").strip())
         has_mots_ou = bool((self.text_box_mot_ou.text or "").strip())
     
-        actif = has_mots_obligatoires or has_mots_ou
+        actif = bool(getattr(self, "cpv_selectionnes", [])) or has_mots_obligatoires or has_mots_ou
     
         try:
             self.f.navigation_link_search_go.visible = True
@@ -2797,6 +2997,7 @@ class search(searchTemplate):
         # susceptible de se désynchroniser après un ajout ou un retrait.
         self.rafraichir_etat_suggestions_cpv()
         self.actualiser_resume_cpv()
+        self.maj_bouton_recherche_visible()
         if self.cpv_selectionnes:
             self.label_message_selection_cpv.text = ""
         else:
