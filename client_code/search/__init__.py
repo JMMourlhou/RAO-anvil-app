@@ -128,6 +128,7 @@ class search(searchTemplate):
         self.task_recherche = None
         self._ctx_recherche = {}
         self._recherche_en_cours = False
+        self._nouvelle_recherche_cpv_en_attente = False
         self._annulation_recherche_demandee = False
     
         self.base_app = ""
@@ -2714,12 +2715,20 @@ class search(searchTemplate):
         self.text_box_mots_obligatoires_cpv.add_event_handler("change", self.actualiser_bouton_veille_cpv)
         self.rafraichir_cpv_selectionnes()
 
-    @handle("button_rechercher_cpv", "click")
-    def button_rechercher_cpv_click(self, **event_args):
-        """Lance la recherche CPV au clic ; event_args contient l'événement Anvil.
 
-        Retour : None. Les erreurs inattendues restent propagées.
+    @handle("timer_recherche_cpv", "tick")
+    def timer_recherche_cpv_tick(self, **event_args):
+        """This method is called Every [interval] seconds. Does not trigger if [interval] is 0."""
+        """Lance la recherche CPV après la pause de saisie.
+
+        Paramètre : event_args (dict), événement Anvil.
+        Retour : None.
         """
+
+        # Arrête immédiatement le timer pour éviter des recherches répétées.
+        self.timer_recherche_cpv.interval = 0
+
+        # Lance la même recherche que le bouton actuel.
         self.rechercher_cpv_depuis_saisie()
 
     @handle("text_box_recherche_cpv", "pressed_enter")
@@ -2733,13 +2742,23 @@ class search(searchTemplate):
 
     @handle("text_box_recherche_cpv", "change")
     def text_box_recherche_cpv_change(self, **event_args):
-        """Efface les suggestions devenues obsolètes sans appeler le serveur.
-
-        Paramètre : event_args (dict), événement Anvil. Retour : None.
-        La sélection demeure intacte, y compris lorsque la saisie devient vide.
+        """Prépare une nouvelle recherche CPV après modification de la saisie.
+    
+        Paramètre : event_args (dict), événement Anvil.
+        Retour : None.
+    
+        La recherche n'est déclenchée qu'après une courte pause de saisie.
+        La sélection CPV existante reste intacte.
         """
+    
+        # Arrête le timer éventuellement lancé par la frappe précédente.
+        self.timer_recherche_cpv.interval = 0
+    
         if self._recherche_cpv_en_cours:
+            self._nouvelle_recherche_cpv_en_attente = True
             return
+    
+        # Efface les anciennes suggestions devenues obsolètes.
         self.repeating_panel_suggestions_cpv.items = []
         self.label_message_recherche_cpv.text = ""
         self.terme_recherche_cpv_courant = ""
@@ -2747,6 +2766,15 @@ class search(searchTemplate):
         self.total_resultats_cpv = 0
         self.button_voir_moins_cpv.visible = False
         self.button_voir_plus_cpv.visible = False
+    
+        terme_recherche = (self.text_box_recherche_cpv.text or "").strip()
+    
+        # Pas de recherche avec moins de 2 caractères.
+        if len(terme_recherche) < 2:
+            return
+    
+        # Attend 0,4 seconde avant de lancer réellement la recherche.
+        self.timer_recherche_cpv.interval = 0.4
 
     @handle("button_voir_plus_cpv", "click")
     def button_voir_plus_cpv_click(self, **event_args):
@@ -2820,8 +2848,10 @@ class search(searchTemplate):
         self.terme_recherche_cpv_courant = ""
         self.button_voir_moins_cpv.visible = False
         self.button_voir_plus_cpv.visible = False
-        if not terme_recherche:
+        
+        if len(terme_recherche) < 2:
             return
+            
         if len(terme_recherche) > 200:
             self.label_message_recherche_cpv.text = "La recherche est limitée à 200 caractères."
             return
@@ -2854,12 +2884,9 @@ class search(searchTemplate):
         resultats_precedents = list(self.repeating_panel_suggestions_cpv.items or [])
         voir_plus_etait_visible = self.button_voir_plus_cpv.visible
 
-        # Un seul appel explicite à la fois évite les réponses concurrentes
-        # et les requêtes envoyées pour chaque caractère saisi.
+        # Un seul appel explicite à la fois
         self._recherche_cpv_en_cours = True
         self.panel_selecteur_cpv.visible = True
-        self.button_rechercher_cpv.enabled = False
-        self.text_box_recherche_cpv.enabled = False
         self.button_voir_plus_cpv.enabled = False
         self.button_voir_moins_cpv.enabled = False
         self.label_message_recherche_cpv.text = "Recherche des CPV…"
@@ -2868,6 +2895,27 @@ class search(searchTemplate):
         
         try:
             reponse_recherche = anvil.server.call("rechercher_cpv", terme_recherche, limite_demandee)
+            # Vérifie que la réponse correspond toujours au texte actuellement saisi.
+            #    Sinon, va ignorer une réponse devenue obsolète pendant la saisie.
+            terme_actuel = str(self.text_box_recherche_cpv.text or "").strip()
+            
+            if terme_actuel != terme_recherche:
+                # La réponse reçue est devenue obsolète : on ne l'affiche pas.
+                self.repeating_panel_suggestions_cpv.items = []
+                self.label_message_recherche_cpv.text = ""
+                self.terme_recherche_cpv_courant = ""
+                self.limite_resultats_cpv = 10
+                self.total_resultats_cpv = 0
+                self.button_voir_moins_cpv.visible = False
+                self.button_voir_plus_cpv.visible = False
+            
+                # Une nouvelle recherche sera lancée si la saisie reste suffisante.
+                self._nouvelle_recherche_cpv_en_attente = len(terme_actuel) >= 2
+            
+                # Ce n'est pas une erreur technique : la réponse est simplement périmée.
+                recherche_terminee = True
+                return
+                
             if not reponse_recherche["ok"]:
                 self.label_message_recherche_cpv.text = reponse_recherche["message"]
                 if conserver_resultats_en_cas_erreur:
@@ -2890,11 +2938,9 @@ class search(searchTemplate):
                 self.mettre_a_jour_boutons_navigation_cpv(len(resultats_cpv), limite_demandee)
             recherche_terminee = True
         finally:
-            # Rétablir l'interface même en cas de panne, sans masquer l'erreur
-            # technique ni toucher aux CPV déjà retenus.
+            # Rétablir l'interface même en cas de panne, sans masquer l'erreur technique
+            # ni toucher aux CPV déjà retenus.
             self._recherche_cpv_en_cours = False
-            self.button_rechercher_cpv.enabled = True
-            self.text_box_recherche_cpv.enabled = True
             if not recherche_terminee:
                 if conserver_resultats_en_cas_erreur:
                     self.repeating_panel_suggestions_cpv.items = self.preparer_suggestions_cpv(resultats_precedents)
@@ -2902,6 +2948,16 @@ class search(searchTemplate):
                 self.label_message_recherche_cpv.text = "La recherche CPV est indisponible. Réessayez."
             self.button_voir_moins_cpv.enabled = self.button_voir_moins_cpv.visible
             self.button_voir_plus_cpv.enabled = self.button_voir_plus_cpv.visible
+
+            # Si l'utilisateur a modifié sa saisie pendant l'appel serveur,
+            # programme automatiquement une nouvelle recherche.
+            if self._nouvelle_recherche_cpv_en_attente:
+                self._nouvelle_recherche_cpv_en_attente = False
+            
+                terme_actuel = str(self.text_box_recherche_cpv.text or "").strip()
+            
+                if len(terme_actuel) >= 2:
+                    self.timer_recherche_cpv.interval = 0.4
 
     def mettre_a_jour_boutons_navigation_cpv(self, nombre_resultats, limite_demandee):
         """Détermine les commandes pertinentes après une réponse réussie.
@@ -2985,6 +3041,17 @@ class search(searchTemplate):
                 cpv_conserves.append(cpv_selectionne)
         self.cpv_selectionnes = cpv_conserves
         self.rafraichir_cpv_selectionnes()
+        self.mettre_a_jour_affichage_selection_cpv()
+
+    def mettre_a_jour_affichage_selection_cpv(self):
+        """Affiche le titre 'Secteur(s) sélectionné(s):' uniquement si au moins un CPV est sélectionné."""
+        cpv_selectionnes = list(self.repeating_panel_cpv_selectionnes.items or [])
+        nb_cpv_selectionnes = len(cpv_selectionnes)
+        if nb_cpv_selectionnes == 1:
+            self.label_titre_selection_cpv.text = "Secteur sélectionné:"
+        else:
+            self.label_titre_selection_cpv.text = "Secteurs sélectionnés:"
+        self.label_titre_selection_cpv.visible = bool(cpv_selectionnes)
 
     def rafraichir_cpv_selectionnes(self):
         """Rafraîchit les CPV sélectionnés et synchronise les suggestions visibles.
@@ -2998,10 +3065,7 @@ class search(searchTemplate):
         self.rafraichir_etat_suggestions_cpv()
         self.actualiser_resume_cpv()
         self.maj_bouton_recherche_visible()
-        if self.cpv_selectionnes:
-            self.label_message_selection_cpv.text = ""
-        else:
-            self.label_message_selection_cpv.text = "Aucun CPV sélectionné."
+        self.mettre_a_jour_affichage_selection_cpv()
         self.actualiser_bouton_veille_cpv()
 
     def actualiser_resume_cpv(self):
@@ -3314,3 +3378,4 @@ class search(searchTemplate):
             result.get("message")
             or "La veille quotidienne est maintenant active."
         )
+
