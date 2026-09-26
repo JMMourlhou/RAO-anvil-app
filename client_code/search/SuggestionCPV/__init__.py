@@ -13,19 +13,21 @@ class SuggestionCPV(SuggestionCPVTemplate):
         Aucun paramètre. Retour : None. La méthode ne modifie ni la suggestion
         ni la sélection ; elle applique uniquement leur état visuel dérivé.
         """
+        self.button_ajouter_cpv.font_size = 9
+        self.button_ajouter_cpv.spacing_below = 'small'
         cpv_est_selectionne = bool(self.item.get("est_selectionne", False))
         if cpv_est_selectionne:
-            self.button_ajouter_cpv.text = "Ajouté"
+            #self.button_ajouter_cpv.text = "Ajouté"
             self.button_ajouter_cpv.icon = "fa:check"
             self.button_ajouter_cpv.background = "#2e7d32"
-            self.button_ajouter_cpv.foreground = "white"
+            #self.button_ajouter_cpv.foreground = "white"
             self.button_ajouter_cpv.enabled = False
             return
 
-        self.button_ajouter_cpv.text = "Ajouter"
+        #self.button_ajouter_cpv.text = "Ajouter"
         self.button_ajouter_cpv.icon = "fa:plus-square"
-        self.button_ajouter_cpv.background = ""
-        self.button_ajouter_cpv.foreground = ""
+        self.button_ajouter_cpv.background = "Transparent"
+        #self.button_ajouter_cpv.foreground = ""
         self.button_ajouter_cpv.enabled = True
 
     @handle("button_ajouter_cpv", "click")

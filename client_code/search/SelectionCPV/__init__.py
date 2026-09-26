@@ -5,7 +5,9 @@ from ._anvil_designer import SelectionCPVTemplate
 class SelectionCPV(SelectionCPVTemplate):
     def __init__(self, **properties):
         self.init_components(**properties)
-
+        self.button_retirer_cpv.font_size = 8
+        self.button_retirer_cpv.spacing_below = 'small'
+        
     @handle("button_retirer_cpv", "click")
     def button_retirer_cpv_click(self, **event_args):
         """Demande le retrait de ce seul code dans la sélection du parent.
