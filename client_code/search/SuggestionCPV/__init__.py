@@ -13,7 +13,7 @@ class SuggestionCPV(SuggestionCPVTemplate):
         Aucun paramètre. Retour : None. La méthode ne modifie ni la suggestion
         ni la sélection ; elle applique uniquement leur état visuel dérivé.
         """
-        self.button_ajouter_cpv.font_size = 9
+        self.button_ajouter_cpv.font_size = 12
         self.button_ajouter_cpv.spacing_below = 'small'
         cpv_est_selectionne = bool(self.item.get("est_selectionne", False))
         if cpv_est_selectionne:

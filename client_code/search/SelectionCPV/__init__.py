@@ -5,7 +5,7 @@ from ._anvil_designer import SelectionCPVTemplate
 class SelectionCPV(SelectionCPVTemplate):
     def __init__(self, **properties):
         self.init_components(**properties)
-        self.button_retirer_cpv.font_size = 8
+        self.button_retirer_cpv.font_size = 12
         self.button_retirer_cpv.spacing_below = 'small'
         
     @handle("button_retirer_cpv", "click")
