@@ -1,6 +1,7 @@
 """Fonctions d'affichage des RepeatingPanel encadrés."""
-
-from anvil.js import get_dom_node
+from anvil import app
+import anvil.js
+from anvil.js import get_dom_node, window
 
 
 CLASSE_ROLE = "anvil-role-repeating-panel-rounded"
@@ -12,24 +13,21 @@ def obtenir_noeud_cadre(repeating_panel):
 
     noeud = get_dom_node(repeating_panel)
 
-    # Cas où le rôle est directement porté par le nœud Anvil.
     if noeud.classList.contains(CLASSE_ROLE):
         return noeud
 
-    # Cas où Anvil place le rôle sur un conteneur parent.
     noeud_cadre = noeud.closest(SELECTEUR_ROLE)
 
     if noeud_cadre is not None:
         return noeud_cadre
 
-    # Sécurité si le rôle se trouve sur un élément interne.
     noeud_cadre = noeud.querySelector(SELECTEUR_ROLE)
 
     return noeud_cadre
 
 
-def definir_titre_repeating_panel(repeating_panel, titre):
-    """Définit le titre intégré au cadre d'un RepeatingPanel."""
+def definir_titre_repeating_panel(repeating_panel, titre, icone=""):
+    """Définit le titre et l'icône intégrés au cadre d'un RepeatingPanel."""
 
     noeud_cadre = obtenir_noeud_cadre(repeating_panel)
 
@@ -38,10 +36,14 @@ def definir_titre_repeating_panel(repeating_panel, titre):
         return
 
     noeud_cadre.setAttribute("data-titre", str(titre or ""))
+    noeud_cadre.setAttribute("data-icone", str(icone or ""))
+
+    couleur_icone = app.theme_colors["Light Green"]
+    noeud_cadre.style.setProperty("--couleur-icone-repeating-panel", str(couleur_icone))
 
 
 def supprimer_titre_repeating_panel(repeating_panel):
-    """Supprime le titre intégré au cadre d'un RepeatingPanel."""
+    """Supprime le titre et l'icône intégrés au cadre d'un RepeatingPanel."""
 
     noeud_cadre = obtenir_noeud_cadre(repeating_panel)
 
@@ -49,3 +51,4 @@ def supprimer_titre_repeating_panel(repeating_panel):
         return
 
     noeud_cadre.removeAttribute("data-titre")
+    noeud_cadre.removeAttribute("data-icone")

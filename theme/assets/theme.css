@@ -945,6 +945,7 @@ Bouton Vérification - niveau d'intérêt
 
 .anvil-role-repeating-panel-rounded {
     position: relative;
+    overflow: visible !important;
 
     border: 1px solid #8d9a9a;
     border-radius: 6px;
@@ -953,19 +954,42 @@ Bouton Vérification - niveau d'intérêt
     margin-top: 10px;
 }
 
+.anvil-role-repeating-panel-rounded::after {
+    content: attr(data-icone);
+
+    position: absolute;
+    top: -10px;
+    left: 14px;
+
+    padding: 0 3px;
+    background-color: #000000;
+
+    color: var(--couleur-icone-repeating-panel);
+    font-family: "Material Symbols Outlined";
+    font-size: 19px;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 21px;
+    font-feature-settings: "liga";
+
+    z-index: 10;
+}
+
 .anvil-role-repeating-panel-rounded::before {
     content: attr(data-titre);
 
     position: absolute;
     top: -8px;
-    left: 14px;
+    left: 36px;
 
     padding: 0 5px;
     background-color: #000000;
 
-    color: white;
+    color: rgba(255, 255, 255, 0.78);
+    font-family: inherit;
     font-size: 12px;
     font-style: italic;
+    font-weight: normal;
     line-height: 16px;
 
     z-index: 10;

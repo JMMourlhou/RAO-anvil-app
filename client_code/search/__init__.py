@@ -422,8 +422,14 @@ class search(searchTemplate):
         # ================================================================
         # Définition du titre des repeating panels (à partir du module definir_titre_repeating_panel)
         # ================================================================
-        definir_titre_repeating_panel(self.repeating_panel_cpv_selectionnes, "Secteur sélectionné :")
+        #definir_titre_repeating_panel(self.repeating_panel_cpv_selectionnes, "Secteur sélectionné :", icone="factory")
         definir_titre_repeating_panel(self.repeating_panel_suggestions_cpv, "Secteurs à sélectionner :")
+
+    # Pour Initialiser le curseur sur text_box_recherche_cpv
+    @handle("", "show")
+    def form_show(self, **event_args):
+        """This method is called when the form is shown on the page"""
+        self.text_box_recherche_cpv.focus()
         
 
     def verrouiller_recherche(self):
@@ -2711,6 +2717,10 @@ class search(searchTemplate):
         self.terme_recherche_cpv_courant = ""
         self._sauvegarde_veille_cpv_en_cours = False
         self._criteres_veille_cpv_actifs = None
+
+        self.repeating_panel_cpv_selectionnes.role = "repeating-panel-rounded"
+        self.repeating_panel_suggestions_cpv.role = "repeating-panel-rounded"
+        
         self.repeating_panel_suggestions_cpv.items = []
         self.button_voir_plus_cpv.visible = False
         self.button_voir_moins_cpv.visible = False
@@ -3050,19 +3060,31 @@ class search(searchTemplate):
                 cpv_conserves.append(cpv_selectionne)
         self.cpv_selectionnes = cpv_conserves
         self.rafraichir_cpv_selectionnes()
-        self.mettre_a_jour_affichage_selection_cpv()
+        #self.mettre_a_jour_affichage_selection_cpv()
 
     def mettre_a_jour_affichage_selection_cpv(self):
-        """Affiche le titre 'Secteur(s) sélectionné(s):' uniquement si au moins un CPV est sélectionné."""
+        """Met à jour l'affichage et le titre des CPV sélectionnés."""
+    
         cpv_selectionnes = list(self.repeating_panel_cpv_selectionnes.items or [])
         nb_cpv_selectionnes = len(cpv_selectionnes)
+    
+        self.repeating_panel_cpv_selectionnes.visible = bool(cpv_selectionnes)
+        self.button_cacher_cpv.visible = bool(cpv_selectionnes)
+    
+        if not cpv_selectionnes:
+            return
+    
         if nb_cpv_selectionnes == 1:
-            titre = "Secteur sélectionné"
+            titre = "Secteur sélectionné :"
         else:
-             titre = "Secteurs sélectionnés"
-        definir_titre_repeating_panel(self.repeating_panel_cpv_selectionnes, titre)
-        self.repeating_panel_cpv_selectionnes.visible = bool(cpv_selectionnes) 
-        self.button_cacher_cpv.visible = bool(cpv_selectionnes) 
+            titre = "Secteurs sélectionnés :"
+    
+        definir_titre_repeating_panel(
+            self.repeating_panel_cpv_selectionnes,
+            titre,
+            icone="factory"
+        )
+        
 
     def rafraichir_cpv_selectionnes(self):
         """Rafraîchit les CPV sélectionnés et synchronise les suggestions visibles.
@@ -3375,4 +3397,5 @@ class search(searchTemplate):
             result.get("message")
             or "La veille quotidienne est maintenant active."
         )
+
 
