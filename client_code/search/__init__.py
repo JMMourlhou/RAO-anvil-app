@@ -2726,8 +2726,14 @@ class search(searchTemplate):
         self.button_voir_moins_cpv.visible = False
         self.bloc_selecteur_cpv_complet.visible = True
         self.zone_resume_cpv.visible = False
+        
+        # Une suggestion peut maintenant être ajoutée ou retirée directement.
         self.repeating_panel_suggestions_cpv.set_event_handler("x-ajouter-cpv", self.ajouter_cpv)
+        self.repeating_panel_suggestions_cpv.set_event_handler("x-retirer-cpv", self.retirer_cpv)
+        
+        # La liste des CPV sélectionnés permet également leur retrait.
         self.repeating_panel_cpv_selectionnes.set_event_handler("x-retirer-cpv", self.retirer_cpv)
+        
         # Ajouter nos événements sans remplacer ceux de la recherche legacy.
         self.multi_select_drop_down_platformes.add_event_handler("change", self.actualiser_bouton_veille_cpv)
         self.text_box_departements.add_event_handler("change", self.actualiser_bouton_veille_cpv)

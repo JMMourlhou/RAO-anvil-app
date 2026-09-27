@@ -8,35 +8,33 @@ class SuggestionCPV(SuggestionCPVTemplate):
         self.actualiser_etat_bouton()
 
     def actualiser_etat_bouton(self):
-        """Présente le bouton selon l'état calculé par la Form ``search``.
+        """Présente le bouton selon l'état calculé par la Form search.
 
-        Aucun paramètre. Retour : None. La méthode ne modifie ni la suggestion
-        ni la sélection ; elle applique uniquement leur état visuel dérivé.
+        Aucun paramètre. Retour : None.
+        Le bouton reste actif dans les deux états :
+        - non sélectionné : ajout ;
+        - sélectionné : retrait.
         """
         self.button_ajouter_cpv.font_size = 12
-        self.button_ajouter_cpv.spacing_below = 'small'
+        self.button_ajouter_cpv.spacing_below = "small"
+
         cpv_est_selectionne = bool(self.item.get("est_selectionne", False))
+
         if cpv_est_selectionne:
-            #self.button_ajouter_cpv.text = "Ajouté"
             self.button_ajouter_cpv.icon = "fa:check"
             self.button_ajouter_cpv.background = "#2e7d32"
-            #self.button_ajouter_cpv.foreground = "white"
-            self.button_ajouter_cpv.enabled = False
+            self.button_ajouter_cpv.enabled = True
             return
 
-        #self.button_ajouter_cpv.text = "Ajouter"
         self.button_ajouter_cpv.icon = "fa:plus-square"
         self.button_ajouter_cpv.background = "Transparent"
-        #self.button_ajouter_cpv.foreground = ""
         self.button_ajouter_cpv.enabled = True
 
     @handle("button_ajouter_cpv", "click")
     def button_ajouter_cpv_click(self, **event_args):
-        """Transmet la suggestion officielle au parent, sans appel serveur.
+        """Ajoute ou retire le CPV selon son état actuel."""
 
-        Paramètre : event_args (dict Anvil). Retour : None. self.item contient
-        code et libelle (str) issus des résultats de l'API CPV.
-        """
         if self.item.get("est_selectionne", False):
-            return
-        self.parent.raise_event("x-ajouter-cpv", cpv_propose=self.item)
+            self.parent.raise_event("x-retirer-cpv", code_cpv=self.item["code"])
+        else:
+            self.parent.raise_event("x-ajouter-cpv", cpv_propose=self.item)
