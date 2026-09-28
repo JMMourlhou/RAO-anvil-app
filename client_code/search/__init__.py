@@ -2783,7 +2783,7 @@ class search(searchTemplate):
         """
         self.rechercher_cpv_depuis_saisie()
 
-@handle("text_box_recherche_cpv", "change")
+    @handle("text_box_recherche_cpv", "change")
     def text_box_recherche_cpv_change(self, **event_args):
         """Programme une nouvelle recherche CPV après une courte pause de saisie."""
     
@@ -2837,7 +2837,7 @@ class search(searchTemplate):
             )
             return
 
-    self.executer_recherche_cpv(terme_recherche)
+
 
     def executer_recherche_cpv(self, terme_recherche):
         """Recherche les CPV et transmet les résultats au DataGrid.
