@@ -859,6 +859,8 @@ class search(searchTemplate):
             )
             if resultat.get("recherche_limitee") and resultat.get("message_limite"):
                 afficher_information(resultat["message_limite"], titre="Recherche limitée")
+            self.button_creer_veille_cpv.visible = True
+            self.actualiser_bouton_veille_cpv()
         finally:
             self.deverrouiller_recherche(cacher_bouton=False)
 
@@ -1287,11 +1289,11 @@ class search(searchTemplate):
         # Affichage du résumé des paramètres de la requête
         self.display_param_summary()
         
-        
         self.checkbox_on_off.visible = False
         self.f.navigation_link_search_go.visible = True
         self.f.navigation_link_search_go.enabled = True
         self.button_daily_survey_creation.visible = False
+        self.button_creer_veille_cpv.visible = False
         
     def button_del_before_modif_param(self, **event_args):
         """
@@ -3353,4 +3355,3 @@ class search(searchTemplate):
             result.get("message")
             or "La veille quotidienne est maintenant active."
         )
-
