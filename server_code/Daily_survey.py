@@ -410,6 +410,22 @@ def normaliser_mots_obligatoires_cpv(mots_obligatoires):
     verifier_saisie_textuelle_cpv(valeur_a_valider, "Mots obligatoires")
     return extraire_elements(valeur_a_valider)
 
+def normaliser_mots_ou_cpv(mots_ou):
+    """Nettoie les mots OU facultatifs sans modifier la saisie fournie.
+
+    Paramètre : mots_ou (None, str, list[str] ou tuple[str, ...]).
+    Retour : nouvelle list[str], première graphie et ordre conservés.
+    Séparateurs : virgule, point-virgule et retour à la ligne.
+    """
+    valeur_a_valider = mots_ou
+
+    if isinstance(mots_ou, tuple):
+        valeur_a_valider = list(mots_ou)
+
+    verifier_saisie_textuelle_cpv(valeur_a_valider, "Mots OU")
+
+    return extraire_elements(valeur_a_valider)
+
 
 def normaliser_expression_pour_cle_cpv(expression):
     """Normalise uniquement l'identité technique d'une expression validée.
@@ -427,7 +443,7 @@ def normaliser_expression_pour_cle_cpv(expression):
     return nettoyer_espace("".join(caracteres_conserves))
 
 
-def creer_cle_requete_cpv(email_utilisateur, codes_cpv_valides, sources, departements, mots_exclus, mots_obligatoires=None):
+def creer_cle_requete_cpv(email_utilisateur, codes_cpv_valides, sources, departements, mots_exclus, mots_obligatoires=None, mots_ou=None):
     """Calcule l'empreinte SHA-256 v2 sans affinage, v3 avec affinage des critères CPV déjà normalisés.
 
     Paramètres : email_utilisateur (str), codes_cpv_valides (list[str]),
@@ -456,6 +472,16 @@ def creer_cle_requete_cpv(email_utilisateur, codes_cpv_valides, sources, departe
             expressions_canoniques.add(normaliser_expression_pour_cle_cpv(expression))
         contenu_canonique["version"] = 3
         contenu_canonique["mots_obligatoires"] = sorted(expressions_canoniques)
+    if mots_ou:
+        expressions_ou_canoniques = set()
+
+        for expression in mots_ou:
+            expressions_ou_canoniques.add(
+                normaliser_expression_pour_cle_cpv(expression)
+            )
+    
+        contenu_canonique["version"] = 4
+        contenu_canonique["mots_ou"] = sorted(expressions_ou_canoniques)    
     texte_canonique = json.dumps(contenu_canonique, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(texte_canonique.encode("utf-8")).hexdigest()
 
@@ -471,7 +497,7 @@ def rechercher_doublon_cpv(utilisateur, cle_requete):
     return next(iter(lignes_existantes), None)
 
 
-def creer_ligne_veille_cpv(utilisateur, codes_cpv_valides, sources, departements, mots_exclus, cle_requete, mots_obligatoires=None):
+def creer_ligne_veille_cpv(utilisateur, codes_cpv_valides, sources, departements, mots_exclus, cle_requete, mots_obligatoires=None,  mots_ou=None):
     """Insère une veille CPV dont tous les critères ont déjà été validés.
 
     Paramètres : utilisateur (ligne Users), codes_cpv_valides et sources
@@ -484,7 +510,7 @@ def creer_ligne_veille_cpv(utilisateur, codes_cpv_valides, sources, departements
         "email": utilisateur,
         "sources": sources,
         "mots_cles": "",
-        "mots_ou": "",
+        "mots_ou": texte_depuis_elements(mots_ou or []),
         "mots_exclus": mots_exclus,
         "nb_jours": 1,
         "departements": departements,
@@ -512,7 +538,7 @@ def repondre_erreur_veille_cpv(message):
 
 
 @anvil.server.callable(require_user=True)
-def enregistrer_daily_survey_cpv(cpv_selectionnes, sources, departements=None, mots_exclus=None, mots_obligatoires=None):
+def enregistrer_daily_survey_cpv(cpv_selectionnes, sources, departements=None, mots_exclus=None, mots_obligatoires=None, mots_ou=None):
     """Crée ou réactive une veille quotidienne CPV pour l'utilisateur connecté.
 
     Paramètres
@@ -556,12 +582,18 @@ def enregistrer_daily_survey_cpv(cpv_selectionnes, sources, departements=None, m
         departements_normalises = normaliser_departements_cpv(departements)
         exclusions_normalisees = normaliser_exclusions_cpv(mots_exclus)
         obligations_normalisees = normaliser_mots_obligatoires_cpv(mots_obligatoires)
+        mots_ou_normalises = normaliser_mots_ou_cpv(mots_ou)
     except (CPV_Metier.ErreurValidationCPV, ErreurValidationVeilleCPV) as erreur:
         return repondre_erreur_veille_cpv(str(erreur))
 
     cle_requete = creer_cle_requete_cpv(
-        email_utilisateur, codes_cpv_valides, sources_normalisees,
-        departements_normalises, exclusions_normalisees, obligations_normalisees
+        email_utilisateur,
+        codes_cpv_valides,
+        sources_normalisees,
+        departements_normalises,
+        exclusions_normalisees,
+        obligations_normalisees,
+        mots_ou_normalises
     )
     ligne_existante = rechercher_doublon_cpv(utilisateur, cle_requete)
     if ligne_existante is not None:
@@ -585,8 +617,14 @@ def enregistrer_daily_survey_cpv(cpv_selectionnes, sources, departements=None, m
         }
 
     nouvelle_ligne = creer_ligne_veille_cpv(
-        utilisateur, codes_cpv_valides, sources_normalisees,
-        departements_normalises, exclusions_normalisees, cle_requete, obligations_normalisees
+        utilisateur,
+        codes_cpv_valides,
+        sources_normalisees,
+        departements_normalises,
+        exclusions_normalisees,
+        cle_requete,
+        obligations_normalisees,
+        mots_ou_normalises
     )
     return {
         "ok": True,

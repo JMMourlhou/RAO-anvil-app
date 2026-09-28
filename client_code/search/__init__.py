@@ -2341,6 +2341,7 @@ class search(searchTemplate):
 
     def text_box_mot_ou_change(self, **event_args):
         self.maj_bouton_recherche_visible()
+        self.actualiser_bouton_veille_cpv()
 
     def text_box_mots_exclus_pressed_enter(self, **event_args):
         if self._recherche_en_cours is True:
@@ -3060,27 +3061,33 @@ class search(searchTemplate):
 
 
     def preparer_criteres_veille_cpv(self):
-        """Copie les cinq critères CPV, sans normalisation métier côté client.
-
+        """Copie les six critères CPV, sans normalisation métier côté client.
+    
         Aucun paramètre. Retour : dict contenant cpv_selectionnes (list[str]),
-        sources (list[str]), departements, mots_exclus et mots_obligatoires (str).
+        sources (list[str]), departements, mots_exclus, mots_obligatoires
+        et mots_ou.
         Les libellés restent dans la Form ; aucune valeur locale n'est modifiée.
         """
         codes_cpv = []
         for cpv_selectionne in self.cpv_selectionnes:
             codes_cpv.append(cpv_selectionne["code"])
+    
         sources_selectionnees = list(self.multi_select_drop_down_platformes.selected or [])
         departements = str(self.text_box_departements.text or "").strip()
         mots_exclus = str(self.text_box_mots_exclus.text or "").strip()
-        # Ce champ reste partagé avec le manuel ; le serveur CPV normalise
-        # sa saisie indépendamment du parsing legacy.
+    
+        # Ces champs restent partagés avec la recherche manuelle ;
+        # le serveur CPV normalise leur saisie.
         mots_obligatoires = self.text_box_mots_obligatoires_cpv.text or ""
+        mots_ou = self.text_box_mot_ou.text or ""
+    
         return {
             "cpv_selectionnes": codes_cpv,
             "sources": sources_selectionnees,
             "departements": departements,
             "mots_exclus": mots_exclus,
             "mots_obligatoires": mots_obligatoires,
+            "mots_ou": mots_ou,
         }
 
     def valider_criteres_veille_cpv(self, criteres):
@@ -3118,6 +3125,8 @@ class search(searchTemplate):
         lignes_resume.append("Sources : " + ", ".join(criteres["sources"]))
         mots_obligatoires_affiches = criteres["mots_obligatoires"].strip() or "aucun"
         lignes_resume.append("Mots obligatoires : " + mots_obligatoires_affiches)
+        mots_ou_affiches = criteres["mots_ou"].strip() or "aucun"
+        lignes_resume.append("Au moins un de ces mots : " + mots_ou_affiches)
         lignes_resume.append("Mots exclus : " + (criteres["mots_exclus"] or "aucun"))
         lignes_resume.append("Fréquence : veille quotidienne, sur les publications du dernier jour.")
         return "\n".join(lignes_resume)
@@ -3173,7 +3182,7 @@ class search(searchTemplate):
     def button_creer_veille_cpv_click(self, **event_args):
         """Confirme puis sauvegarde une veille CPV sans dépendre des offres trouvées.
 
-        Paramètre : event_args (dict Anvil). Retour : None. Seuls les cinq
+        Paramètre : event_args (dict Anvil). Retour : None. Seuls les six
         critères CPV sont envoyés. Annulation et validation refusée préservent
         la saisie. Toute erreur inattendue reste propagée après remise en état
         du bouton et affichage d'un message générique.
@@ -3212,6 +3221,7 @@ class search(searchTemplate):
                     departements=criteres["departements"],
                     mots_exclus=criteres["mots_exclus"],
                     mots_obligatoires=criteres["mots_obligatoires"],
+                    mots_ou=criteres["mots_ou"],
                 )
                 message_retour, retour_informatif = self.traiter_reponse_veille_cpv(reponse, criteres)
             operation_terminee = True
