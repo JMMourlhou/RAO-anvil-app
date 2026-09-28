@@ -39,6 +39,8 @@ class search(searchTemplate):
         # Création des composants
         # ================================================================
 
+        self.data_grid_2.rows_per_page = 5
+
         t = window.performance.now()
         self.init_components(**properties)
         self.initialiser_selecteur_cpv()
@@ -2836,6 +2838,9 @@ class search(searchTemplate):
                 "La recherche est limitée à 200 caractères."
             )
             return
+
+        # la recherche CPV.
+        self.executer_recherche_cpv(terme_recherche)
 
 
 
