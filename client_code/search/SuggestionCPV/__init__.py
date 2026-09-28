@@ -1,5 +1,5 @@
-from anvil import *
 from ._anvil_designer import SuggestionCPVTemplate
+from anvil import *
 
 
 class SuggestionCPV(SuggestionCPVTemplate):

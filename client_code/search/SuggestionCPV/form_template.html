@@ -1,7 +1,7 @@
-<anvil-form container="FlowPanel" prop:vertical_align="middle" prop:spacing='{"margin":["2",null,"2",null]}' prop:foreground="">
-    <anvil-component type="ColumnPanel" name="column_panel_1" prop:col_widths='"{\"TMTKTG\":36,\"KJLZHN\":14,\"IZKMVA\":12}"' prop:wrap_on="never" prop:col_spacing="small" prop:spacing='{"margin":["0",null,"0",null]}' prop:border="1px solid Grey" container:width="927.3117446289062" container:expand="true">
-        <anvil-component type="Label" name="label_libelle_cpv" prop:bold="true" prop:font_size="12" prop:spacing_below="none" prop:spacing='{"margin":["0",null,null,"5"],"padding":["8",null,"0",null]}' bind:text="self.item['libelle']" container:grid_position="ECJDXH,TMTKTG"></anvil-component>
-        <anvil-component type="Label" name="label_code_cpv" prop:font_size="12" prop:spacing_above="none" prop:spacing='{"margin":["0",null,"0",null],"padding":["8",null,"0",null]}' bind:text="self.item['code']" container:grid_position="ECJDXH,IZKMVA"></anvil-component>
+<anvil-form container="DataRowPanel">
+    <anvil-component type="ColumnPanel" name="column_panel_1" prop:col_widths='"{\"TMTKTG\":40,\"KJLZHN\":12,\"IZKMVA\":10}"' prop:wrap_on="never" prop:col_spacing="small" prop:spacing='{"margin":["0",null,"0",null]}' prop:border="1px solid Grey">
+        <anvil-component type="Label" name="label_libelle_cpv" prop:bold="true" prop:font_size="14" prop:spacing_below="none" prop:spacing='{"margin":["0",null,null,"5"],"padding":["8",null,"0","10"]}' bind:text="self.item['libelle']" container:grid_position="ECJDXH,TMTKTG"></anvil-component>
+        <anvil-component type="Label" name="label_code_cpv" prop:font_size="14" prop:spacing_above="none" prop:spacing='{"margin":["0",null,"0",null],"padding":["8",null,"0",null]}' bind:text="self.item['code']" container:grid_position="ECJDXH,IZKMVA"></anvil-component>
         <anvil-component type="Button" name="button_ajouter_cpv" prop:text="" prop:icon="fa:plus-square" prop:border="" prop:spacing='{"padding":["2","15","2","15"],"margin":["0",null,"0",null]}' prop:background="theme:Transparent" prop:foreground="theme:Yellow" prop:icon_align="top" container:grid_position="ECJDXH,KJLZHN"></anvil-component>
     </anvil-component>
 </anvil-form>
