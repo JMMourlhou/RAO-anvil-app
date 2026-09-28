@@ -410,11 +410,6 @@ class RowTemplate1(RowTemplate1Template):
 
         # Mots OU réellement trouvés dans cette offre
         mots_ou_trouves = self.item_value("mots_ou_trouves", [])
-        # Les mots OU restent réservés à l'affichage legacy, même si une
-        # ancienne valeur est encore présente dans les données de l'offre.
-        parent_tag = getattr(self.parent, "tag", None)
-        if getattr(parent_tag, "mots_obligatoires_cpv", None) is not None:
-            mots_ou_trouves = []
 
         if mots_ou_trouves is None:
             mots_ou_trouves = []
