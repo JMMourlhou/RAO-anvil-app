@@ -791,6 +791,7 @@ class search(searchTemplate):
                     filtre_jours=criteres["filtre_jours"],
                     sources=criteres["sources"],
                     mots_obligatoires=criteres["mots_obligatoires"],
+                    mots_ou=criteres["mots_ou"],
                     mots_exclus=criteres["mots_exclus"],
                 )
             self.timer_recherche_progress.interval = 1
