@@ -744,6 +744,7 @@ class search(searchTemplate):
             "filtre_jours": periode,
             "sources": sources,
             "mots_obligatoires": self.decouper_saisie_recherche_cpv(self.text_box_mots_obligatoires_cpv.text),
+            "mots_ou": self.decouper_saisie_recherche_cpv(self.text_box_mot_ou.text),
             "mots_exclus": self.decouper_saisie_recherche_cpv(self.text_box_mots_exclus.text),
         }
 
@@ -874,6 +875,7 @@ class search(searchTemplate):
         if len(prestations) > 10:
             lignes.append(f"Et {len(prestations) - 10} autre(s) prestation(s).")
         lignes.append("Mots obligatoires : " + (", ".join(contexte["mots_obligatoires"]) or "-"))
+        lignes.append("Au moins un de ces mots : " + (", ".join(contexte["mots_ou"]) or "-"))
         lignes.append("Mots exclus : " + (", ".join(contexte["mots_exclus"]) or "-"))
         lignes.append("Plateformes : " + ", ".join(contexte["sources"]))
         lignes.append(f"Période : {contexte['filtre_jours']} jours")
@@ -3350,5 +3352,4 @@ class search(searchTemplate):
             result.get("message")
             or "La veille quotidienne est maintenant active."
         )
-
 
