@@ -2704,41 +2704,58 @@ class search(searchTemplate):
             print("Erreur réglage jauge :", e)
 
     def initialiser_selecteur_cpv(self):
-        """Initialise les listes CPV locales et leurs événements, sans appel serveur.
-
-        Aucun paramètre. Retour : None. La sélection est propre à cette instance
-        de search ; elle ne provient pas d'une veille. La sauvegarde demande
-        un clic explicite et une confirmation dans le parcours CPV.
-        """
+        """Initialise le sélecteur CPV et ses événements, sans appel serveur."""
+    
         self.cpv_selectionnes = []
         self._recherche_cpv_en_cours = False
-        self.limite_resultats_cpv = 10
-        self.total_resultats_cpv = 0
-        self.terme_recherche_cpv_courant = ""
+    
+        # Nombre maximal de suggestions récupérées depuis le serveur.
+        # Le DataGrid se charge ensuite de les afficher par pages de 5.
+        self.nombre_max_suggestions_cpv = 100
+    
         self._sauvegarde_veille_cpv_en_cours = False
         self._criteres_veille_cpv_actifs = None
-
+    
         self.repeating_panel_cpv_selectionnes.role = "repeating-panel-rounded"
-        self.repeating_panel_suggestions_cpv.role = "repeating-panel-rounded"
-        
+    
         self.repeating_panel_suggestions_cpv.items = []
-        self.button_voir_plus_cpv.visible = False
-        self.button_voir_moins_cpv.visible = False
+    
         self.bloc_selecteur_cpv_complet.visible = True
         self.zone_resume_cpv.visible = False
-        
-        # Une suggestion peut maintenant être ajoutée ou retirée directement.
-        self.repeating_panel_suggestions_cpv.set_event_handler("x-ajouter-cpv", self.ajouter_cpv)
-        self.repeating_panel_suggestions_cpv.set_event_handler("x-retirer-cpv", self.retirer_cpv)
-        
+    
+        # Une suggestion peut être ajoutée ou retirée directement.
+        self.repeating_panel_suggestions_cpv.set_event_handler(
+            "x-ajouter-cpv",
+            self.ajouter_cpv
+        )
+        self.repeating_panel_suggestions_cpv.set_event_handler(
+            "x-retirer-cpv",
+            self.retirer_cpv
+        )
+    
         # La liste des CPV sélectionnés permet également leur retrait.
-        self.repeating_panel_cpv_selectionnes.set_event_handler("x-retirer-cpv", self.retirer_cpv)
-        
-        # Ajouter nos événements sans remplacer ceux de la recherche legacy.
-        self.multi_select_drop_down_platformes.add_event_handler("change", self.actualiser_bouton_veille_cpv)
-        self.text_box_departements.add_event_handler("change", self.actualiser_bouton_veille_cpv)
-        self.text_box_mots_exclus.add_event_handler("change", self.actualiser_bouton_veille_cpv)
-        self.text_box_mots_obligatoires_cpv.add_event_handler("change", self.actualiser_bouton_veille_cpv)
+        self.repeating_panel_cpv_selectionnes.set_event_handler(
+            "x-retirer-cpv",
+            self.retirer_cpv
+        )
+    
+        self.multi_select_drop_down_platformes.add_event_handler(
+            "change",
+            self.actualiser_bouton_veille_cpv
+        )
+        self.text_box_departements.add_event_handler(
+            "change",
+            self.actualiser_bouton_veille_cpv
+        )
+        self.text_box_mots_exclus.add_event_handler(
+            "change",
+            self.actualiser_bouton_veille_cpv
+        )
+        self.text_box_mots_obligatoires_cpv.add_event_handler(
+            "change",
+            self.actualiser_bouton_veille_cpv
+        )
+    
         self.rafraichir_cpv_selectionnes()
 
 
@@ -2766,82 +2783,27 @@ class search(searchTemplate):
         """
         self.rechercher_cpv_depuis_saisie()
 
-    @handle("text_box_recherche_cpv", "change")
+@handle("text_box_recherche_cpv", "change")
     def text_box_recherche_cpv_change(self, **event_args):
-        """Prépare une nouvelle recherche CPV après modification de la saisie.
+        """Programme une nouvelle recherche CPV après une courte pause de saisie."""
     
-        Paramètre : event_args (dict), événement Anvil.
-        Retour : None.
-    
-        La recherche n'est déclenchée qu'après une courte pause de saisie.
-        La sélection CPV existante reste intacte.
-        """
-    
-        # Arrête le timer éventuellement lancé par la frappe précédente.
         self.timer_recherche_cpv.interval = 0
     
         if self._recherche_cpv_en_cours:
             self._nouvelle_recherche_cpv_en_attente = True
             return
     
-        # Efface les anciennes suggestions devenues obsolètes.
+        # Les anciennes suggestions ne correspondent plus à la saisie.
         self.repeating_panel_suggestions_cpv.items = []
         self.label_message_recherche_cpv.text = ""
-        self.terme_recherche_cpv_courant = ""
-        self.limite_resultats_cpv = 10
-        self.total_resultats_cpv = 0
-        self.button_voir_moins_cpv.visible = False
-        self.button_voir_plus_cpv.visible = False
     
         terme_recherche = (self.text_box_recherche_cpv.text or "").strip()
     
-        # Pas de recherche avec moins de 2 caractères.
         if len(terme_recherche) < 2:
             return
     
-        # Attend 0,4 seconde avant de lancer réellement la recherche.
         self.timer_recherche_cpv.interval = 0.4
 
-    @handle("button_voir_plus_cpv", "click")
-    def button_voir_plus_cpv_click(self, **event_args):
-        """Demande dix résultats de plus. event_args : dict Anvil. Retour : None."""
-        self.changer_limite_resultats_cpv(10)
-
-    @handle("button_voir_moins_cpv", "click")
-    def button_voir_moins_cpv_click(self, **event_args):
-        """Demande dix résultats de moins. event_args : dict Anvil. Retour : None."""
-        self.changer_limite_resultats_cpv(-10)
-
-    def changer_limite_resultats_cpv(self, variation):
-        """Rejoue la recherche courante par pas de dix, jusqu’au total réel.
-
-        Paramètre : variation (int), pas de 10 ou -10. Retour : None.
-        Une saisie modifiée ou un appel en cours interdit la navigation.
-        La limite effective ne change qu'après une réponse serveur réussie.
-        """
-        if self._recherche_cpv_en_cours:
-            return
-        terme_saisi = str(self.text_box_recherche_cpv.text or "").strip()
-        if not self.terme_recherche_cpv_courant or terme_saisi != self.terme_recherche_cpv_courant:
-            self.button_voir_plus_cpv.visible = False
-            self.button_voir_moins_cpv.visible = False
-            return
-        nouvelle_limite = max(10, self.limite_resultats_cpv + variation)
-        if variation > 0:
-            # La dernière tranche peut être partielle, sans dépasser le catalogue.
-            if len(self.repeating_panel_suggestions_cpv.items) >= self.total_resultats_cpv:
-                return
-            nouvelle_limite = max(10, min(nouvelle_limite, self.total_resultats_cpv))
-        elif self.limite_resultats_cpv % 10:
-            # Après 73/73, revenir au palier inférieur : 70, puis 60.
-            nouvelle_limite = max(10, (self.limite_resultats_cpv // 10) * 10)
-        if nouvelle_limite == self.limite_resultats_cpv:
-            return
-        self.executer_recherche_cpv(
-            self.terme_recherche_cpv_courant,
-            nouvelle_limite,
-            conserver_resultats_en_cas_erreur=True,
-        )
 
     @handle("button_cacher_cpv", "click")
     def button_cacher_cpv_click(self, **event_args):
@@ -2856,147 +2818,127 @@ class search(searchTemplate):
         self.zone_resume_cpv.visible = False
 
     def rechercher_cpv_depuis_saisie(self):
-        """Démarre une nouvelle recherche CPV limitée à dix résultats.
-
-        Aucun paramètre. Retour : None. Une saisie vide efface les suggestions.
-        Les refus attendus de l'API sont affichés ; une panne laisse un message
-        simple et propage l'erreur pour diagnostic, sans perdre la sélection.
-        """
+        """Démarre une nouvelle recherche de suggestions CPV."""
+    
         if self._recherche_cpv_en_cours:
             return
-
+    
         terme_recherche = str(self.text_box_recherche_cpv.text or "").strip()
+    
         self.repeating_panel_suggestions_cpv.items = []
         self.label_message_recherche_cpv.text = ""
-        self.limite_resultats_cpv = 10
-        self.total_resultats_cpv = 0
-        self.terme_recherche_cpv_courant = ""
-        self.button_voir_moins_cpv.visible = False
-        self.button_voir_plus_cpv.visible = False
-        
+    
         if len(terme_recherche) < 2:
             return
-            
+    
         if len(terme_recherche) > 200:
-            self.label_message_recherche_cpv.text = "La recherche est limitée à 200 caractères."
+            self.label_message_recherche_cpv.text = (
+                "La recherche est limitée à 200 caractères."
+            )
             return
 
-        self.terme_recherche_cpv_courant = terme_recherche
-        self.executer_recherche_cpv(terme_recherche, 10)
+    self.executer_recherche_cpv(terme_recherche)
 
-    def executer_recherche_cpv(
-        self,
-        terme_recherche,
-        limite_demandee,
-        conserver_resultats_en_cas_erreur=False,
-    ):
-        """Interroge le serveur et remplace les suggestions par les mieux classées.
-
-        Paramètres
-        ----------
+    def executer_recherche_cpv(self, terme_recherche):
+        """Recherche les CPV et transmet les résultats au DataGrid.
+    
         terme_recherche : str
-            Terme effectivement recherché.
-        limite_demandee : int
-            Nombre maximal demandé, borné par le total connu après la première recherche.
-        conserver_resultats_en_cas_erreur : bool
-            Conserve la liste visible lorsque l'extension échoue.
-
-        Retour
-        ------
-        None
-            Met à jour les suggestions et l'état du bouton « Voir plus ».
+            Texte saisi par l'utilisateur.
+    
+        Retour : None.
+    
+        Le serveur renvoie au maximum nombre_max_suggestions_cpv résultats.
+        Le DataGrid assure ensuite lui-même la pagination par pages de 5.
         """
-        resultats_precedents = list(self.repeating_panel_suggestions_cpv.items or [])
-        voir_plus_etait_visible = self.button_voir_plus_cpv.visible
-
-        # Un seul appel explicite à la fois
+    
         self._recherche_cpv_en_cours = True
         self.panel_selecteur_cpv.visible = True
-        self.button_voir_plus_cpv.enabled = False
-        self.button_voir_moins_cpv.enabled = False
         self.label_message_recherche_cpv.text = "Recherche des CPV…"
-        
+    
         recherche_terminee = False
-        
+    
         try:
-            reponse_recherche = anvil.server.call("rechercher_cpv", terme_recherche, limite_demandee)
-            # Vérifie que la réponse correspond toujours au texte actuellement saisi.
-            #    Sinon, va ignorer une réponse devenue obsolète pendant la saisie.
+            reponse_recherche = anvil.server.call(
+                "rechercher_cpv",
+                terme_recherche,
+                self.nombre_max_suggestions_cpv
+            )
+    
+            # Vérifie que l'utilisateur n'a pas changé la saisie
+            # pendant l'appel serveur.
             terme_actuel = str(self.text_box_recherche_cpv.text or "").strip()
-            
+    
             if terme_actuel != terme_recherche:
-                # La réponse reçue est devenue obsolète : on ne l'affiche pas.
                 self.repeating_panel_suggestions_cpv.items = []
                 self.label_message_recherche_cpv.text = ""
-                self.terme_recherche_cpv_courant = ""
-                self.limite_resultats_cpv = 10
-                self.total_resultats_cpv = 0
-                self.button_voir_moins_cpv.visible = False
-                self.button_voir_plus_cpv.visible = False
-            
-                # Une nouvelle recherche sera lancée si la saisie reste suffisante.
-                self._nouvelle_recherche_cpv_en_attente = len(terme_actuel) >= 2
-            
-                # Ce n'est pas une erreur technique : la réponse est simplement périmée.
+    
+                self._nouvelle_recherche_cpv_en_attente = (
+                    len(terme_actuel) >= 2
+                )
+    
                 recherche_terminee = True
                 return
-                
+    
             if not reponse_recherche["ok"]:
-                self.label_message_recherche_cpv.text = reponse_recherche["message"]
-                if conserver_resultats_en_cas_erreur:
-                    self.repeating_panel_suggestions_cpv.items = self.preparer_suggestions_cpv(resultats_precedents)
-                    self.button_voir_plus_cpv.visible = voir_plus_etait_visible
-                else:
-                    self.button_voir_plus_cpv.visible = False
-            else:
-                resultats_cpv = reponse_recherche["resultats"]
-                resultats_limites = resultats_cpv[:limite_demandee]
-                self.repeating_panel_suggestions_cpv.items = self.preparer_suggestions_cpv(
-                    resultats_limites
+                self.repeating_panel_suggestions_cpv.items = []
+                self.label_message_recherche_cpv.text = (
+                    reponse_recherche["message"]
                 )
-                self.limite_resultats_cpv = limite_demandee
-                self.total_resultats_cpv = reponse_recherche["total_resultats"]
-                if resultats_cpv:
-                    self.label_message_recherche_cpv.text = f"{len(resultats_limites)} résultats affichés sur {self.total_resultats_cpv}"
+    
+            else:
+                resultats_cpv = list(
+                    reponse_recherche["resultats"] or []
+                )
+    
+                total_resultats = int(
+                    reponse_recherche["total_resultats"] or 0
+                )
+    
+                self.repeating_panel_suggestions_cpv.items = (
+                    self.preparer_suggestions_cpv(resultats_cpv)
+                )
+    
+                nombre_resultats = len(resultats_cpv)
+    
+                if nombre_resultats == 0:
+                    self.label_message_recherche_cpv.text = (
+                        "Aucun CPV trouvé"
+                    )
+    
+                elif nombre_resultats < total_resultats:
+                    self.label_message_recherche_cpv.text = (
+                        f"{nombre_resultats} premiers résultats "
+                        f"sur {total_resultats}"
+                    )
+    
                 else:
-                    self.label_message_recherche_cpv.text = "Aucun CPV trouvé"
-                self.mettre_a_jour_boutons_navigation_cpv(len(resultats_cpv), limite_demandee)
+                    self.label_message_recherche_cpv.text = (
+                        f"{nombre_resultats} résultats"
+                    )
+    
             recherche_terminee = True
+    
         finally:
-            # Rétablir l'interface même en cas de panne, sans masquer l'erreur technique
-            # ni toucher aux CPV déjà retenus.
             self._recherche_cpv_en_cours = False
+    
             if not recherche_terminee:
-                if conserver_resultats_en_cas_erreur:
-                    self.repeating_panel_suggestions_cpv.items = self.preparer_suggestions_cpv(resultats_precedents)
-                    self.button_voir_plus_cpv.visible = voir_plus_etait_visible
-                self.label_message_recherche_cpv.text = "La recherche CPV est indisponible. Réessayez."
-            self.button_voir_moins_cpv.enabled = self.button_voir_moins_cpv.visible
-            self.button_voir_plus_cpv.enabled = self.button_voir_plus_cpv.visible
-
-            # Si l'utilisateur a modifié sa saisie pendant l'appel serveur,
-            # programme automatiquement une nouvelle recherche.
+                self.repeating_panel_suggestions_cpv.items = []
+                self.label_message_recherche_cpv.text = (
+                    "La recherche CPV est indisponible. Réessayez."
+                )
+    
+            # Si la saisie a changé pendant l'appel serveur,
+            # une nouvelle recherche est programmée.
             if self._nouvelle_recherche_cpv_en_attente:
                 self._nouvelle_recherche_cpv_en_attente = False
-            
-                terme_actuel = str(self.text_box_recherche_cpv.text or "").strip()
-            
+    
+                terme_actuel = str(
+                    self.text_box_recherche_cpv.text or ""
+                ).strip()
+    
                 if len(terme_actuel) >= 2:
                     self.timer_recherche_cpv.interval = 0.4
 
-    def mettre_a_jour_boutons_navigation_cpv(self, nombre_resultats, limite_demandee):
-        """Détermine les commandes pertinentes après une réponse réussie.
-
-        Paramètres : nombre_resultats (int), résultats reçus ; limite_demandee
-        (int), limite envoyée au serveur. Retour : None.
-        """
-        terme_saisi = str(self.text_box_recherche_cpv.text or "").strip()
-        terme_inchange = terme_saisi == self.terme_recherche_cpv_courant
-        self.button_voir_moins_cpv.visible = terme_inchange and limite_demandee > 10
-        resultats_restants = nombre_resultats < self.total_resultats_cpv
-        self.button_voir_plus_cpv.visible = (
-            terme_inchange and resultats_restants
-        )
 
     def preparer_suggestions_cpv(self, resultats_cpv):
         """Ajoute à chaque suggestion son état dérivé de la sélection courante.
