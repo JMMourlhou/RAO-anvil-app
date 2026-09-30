@@ -699,6 +699,7 @@ class search(searchTemplate):
         self.column_panel_select.visible = False
         self.text_nb_offres.visible = False
         self.checkbox_on_off.visible = False
+        self.bloc_selecteur_cpv_complet.visible = False
 
         self.timer_recherche_progress.interval = 1
         return
@@ -1292,6 +1293,7 @@ class search(searchTemplate):
         self.checkbox_on_off.visible = False
         self.f.navigation_link_search_go.visible = True
         self.f.navigation_link_search_go.enabled = True
+        self.bloc_selecteur_cpv_complet.visible = True
         self.button_daily_survey_creation.visible = False
         self.button_creer_veille_cpv.visible = False
         
@@ -2973,15 +2975,18 @@ class search(searchTemplate):
         return suggestions_preparees
 
     def rafraichir_etat_suggestions_cpv(self):
-        """Resynchronise les boutons visibles sans nouvel appel serveur.
-
-        Aucun paramètre. Retour : None. Les suggestions restent dans leur ordre
-        actuel ; seul leur état dérivé de ``self.cpv_selectionnes`` est recalculé.
-        """
-        suggestions_visibles = self.repeating_panel_suggestions_cpv.items or []
-        self.repeating_panel_suggestions_cpv.items = self.preparer_suggestions_cpv(
-            suggestions_visibles
-        )
+        """Actualise l'état des suggestions sans réinitialiser la pagination."""
+    
+        codes_cpv_selectionnes = {
+            cpv_selectionne["code"]
+            for cpv_selectionne in self.cpv_selectionnes
+        }
+    
+        for ligne_suggestion in self.repeating_panel_suggestions_cpv.get_components():
+            ligne_suggestion.item["est_selectionne"] = (
+                ligne_suggestion.item["code"] in codes_cpv_selectionnes
+            )
+            ligne_suggestion.actualiser_etat_bouton()
 
     def ajouter_cpv(self, cpv_propose, **event_args):
         """Ajoute une suggestion officielle à la sélection locale, sans écriture.
