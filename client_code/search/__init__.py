@@ -921,6 +921,7 @@ class search(searchTemplate):
                 "Désolé, aucune offre n’a été trouvée.",
                 titre="Résultat de la recherche"
             )
+            self.bloc_selecteur_cpv_complet.visible = True
             return
 
         self.label_progress_recherche.text = "Vérification des critères positifs..."
@@ -1118,6 +1119,7 @@ class search(searchTemplate):
             self.text_param_summary.text = self.construire_resume_recherche_cpv()
             self.text_param_summary.visible = True
             self.column_panel_progress_recherche.visible = True
+            #self.bloc_selecteur_cpv_complet.visible = False
             return
         self.text_param_summary.text = (
             f"Plateformes : {self.multi_select_drop_down_platformes.selected} / "
@@ -1530,6 +1532,7 @@ class search(searchTemplate):
             self.column_panel_select.visible = False
             self.button_selection_mailed.visible = False
             self.column_panel_params.visible = True
+            self.bloc_selecteur_cpv_complet.visible = True
             return
     
         if nb == 1:
