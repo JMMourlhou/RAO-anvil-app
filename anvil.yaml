@@ -37,7 +37,7 @@ db_schema:
   daily_survey:
     client: none
     columns:
-    - admin_ui: {order: 0, width: 211}
+    - admin_ui: {order: -2, width: 169}
       client_hidden: false
       name: email
       target: users
@@ -46,23 +46,23 @@ db_schema:
       client_hidden: false
       name: sources
       type: simpleObject
-    - admin_ui: {order: 2, width: 200}
+    - admin_ui: {order: 2, width: 141}
       client_hidden: false
       name: mots_cles
       type: string
-    - admin_ui: {order: 3, width: 200}
+    - admin_ui: {order: 3, width: 123}
       client_hidden: false
       name: mots_ou
       type: string
-    - admin_ui: {order: 4, width: 200}
+    - admin_ui: {order: 4, width: 134}
       client_hidden: false
       name: mots_exclus
       type: string
-    - admin_ui: {order: 5, width: 95}
+    - admin_ui: {order: 1.5, width: 95}
       client_hidden: false
       name: nb_jours
       type: number
-    - admin_ui: {order: 6, width: 120}
+    - admin_ui: {order: 6, width: 92}
       client_hidden: false
       name: departements
       type: string
@@ -82,7 +82,7 @@ db_schema:
       client_hidden: false
       name: dernier_statut
       type: string
-    - admin_ui: {order: -0.03125, width: 152}
+    - admin_ui: {order: -0.03125, width: 124}
       client_hidden: false
       name: derniere_erreur
       type: string
@@ -90,7 +90,7 @@ db_schema:
       client_hidden: false
       name: cle_requete
       type: string
-    - admin_ui: {order: 8, width: 237}
+    - admin_ui: {order: 8, width: 93}
       client_hidden: false
       name: nb_offres_derniere_recherche
       type: number
