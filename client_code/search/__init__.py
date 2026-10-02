@@ -1301,6 +1301,7 @@ class search(searchTemplate):
         self.f.navigation_link_search_go.enabled = True
         self.button_daily_survey_creation.visible = False
         self.button_creer_veille_cpv.visible = False
+        self.text_box_recherche_cpv.focus()
         
     def button_del_before_modif_param(self, **event_args):
         """
