@@ -17,7 +17,7 @@ def context_screen():
     else:
         screen_type = "large"
 
-    ctx = {
+    context = {
         "width": w,
         "height": h,
         "landscape": landscape,
@@ -26,4 +26,4 @@ def context_screen():
     }
     #print(f"Ecran {ctx['screen_type']}, ({ctx['width']} x {ctx['height']})")
 
-    return ctx
+    return context

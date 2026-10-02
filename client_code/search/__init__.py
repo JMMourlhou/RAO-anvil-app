@@ -79,6 +79,9 @@ class search(searchTemplate):
             # Le contenu interne prend toute la largeur disponible
             self.multi_select_drop_down_platformes._dd._dom_node.style.width = "100%"
             self.multi_select_drop_down_platformes._dd._dom_node.style.minWidth = "100%"
+
+            # Afficher cadré à gauche du résumé des param
+            self.text_param_summary.align = "left"
     
         else:
     
@@ -92,7 +95,7 @@ class search(searchTemplate):
             self.multi_select_drop_down_platformes._dd._dom_node.style.width = "60%"
             self.multi_select_drop_down_platformes._dd._dom_node.style.minWidth = "60%"
     
-        afficher_temps("Context_ecran et adaptation affichage", t)
+        # afficher_temps("Context_ecran et adaptation affichage", t)
     
         # ================================================================
         # Form principale
@@ -781,6 +784,7 @@ class search(searchTemplate):
         self.checkbox_on_off.visible = False
         self._annulation_recherche_demandee = False
         self.verrouiller_recherche()
+        self.bloc_selecteur_cpv_complet.visible = False
         self.display_param_summary()
         lancement_termine = False
         try:
@@ -800,6 +804,7 @@ class search(searchTemplate):
         finally:
             if not lancement_termine:
                 self.deverrouiller_recherche(cacher_bouton=False)
+                self.bloc_selecteur_cpv_complet.visible = True
                 self.afficher_progression_recherche(
                     ligne_1="Recherche CPV indisponible",
                     etat="error", afficher_jauges=False,
@@ -873,7 +878,7 @@ class search(searchTemplate):
         """
         contexte = self._ctx_recherche
         prestations = contexte["prestations_cpv"]
-        lignes = ["CPV :"]
+        lignes = ["Secteurs :"]
         for prestation in prestations[:10]:
             lignes.append(prestation["code"] + " — " + prestation["libelle"])
         if len(prestations) > 10:
@@ -1119,7 +1124,6 @@ class search(searchTemplate):
             self.text_param_summary.text = self.construire_resume_recherche_cpv()
             self.text_param_summary.visible = True
             self.column_panel_progress_recherche.visible = True
-            #self.bloc_selecteur_cpv_complet.visible = False
             return
         self.text_param_summary.text = (
             f"Plateformes : {self.multi_select_drop_down_platformes.selected} / "
@@ -1295,7 +1299,6 @@ class search(searchTemplate):
         self.checkbox_on_off.visible = False
         self.f.navigation_link_search_go.visible = True
         self.f.navigation_link_search_go.enabled = True
-        self.bloc_selecteur_cpv_complet.visible = True
         self.button_daily_survey_creation.visible = False
         self.button_creer_veille_cpv.visible = False
         
