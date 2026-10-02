@@ -2854,7 +2854,6 @@ class search(searchTemplate):
         self.executer_recherche_cpv(terme_recherche)
 
 
-
     def executer_recherche_cpv(self, terme_recherche):
         """Recherche les CPV et transmet les résultats au DataGrid.
     
