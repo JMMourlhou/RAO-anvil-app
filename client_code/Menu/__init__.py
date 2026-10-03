@@ -212,7 +212,15 @@ class Menu(MenuTemplate):
         """This method is called when the component is clicked"""
     
         # Annuler la recherche avant de fermer
-        self.arreter_recherche_active()
+        result = self.arreter_recherche_active()
+
+        if not isinstance(result, dict) or result.get("ok") is not True:
+            message = "La terminaison de la recherche n'est pas confirmée."
+            if isinstance(result, dict):
+                message = result.get("message") or message
+
+            alert(message, title="Recherche encore suivie")
+            return
     
         self.content_panel.clear()
         anvil.users.logout()
@@ -253,7 +261,15 @@ class Menu(MenuTemplate):
         """This method is called when the component is clicked"""
     
         # 1. Annuler la background task si la recherche est en cours
-        self.arreter_recherche_active()
+        result = self.arreter_recherche_active()
+
+        if not isinstance(result, dict) or result.get("ok") is not True:
+            message = "La terminaison de la recherche n'est pas confirmée."
+            if isinstance(result, dict):
+                message = result.get("message") or message
+
+            alert(message, title="Recherche encore suivie")
+            return
     
         # 2. Réaffichage des boutons du menu
         self.navigation_link_user_contact.visible = True

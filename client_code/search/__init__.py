@@ -488,69 +488,84 @@ class search(searchTemplate):
         except Exception as e:
             print("Erreur déverrouillage UI :", e)
 
-    def annuler_recherche_depuis_menu(self):
-        """
-        Appelée par la Form mère Menu avant de quitter la page search.
-        Arrête le timer client et tue la background task si elle existe.
-        """
+    def lire_statut_tache_recherche(self, task):
+        """Lit le statut serveur ; les erreurs remontent à l'appelant."""
+        with anvil.server.no_loading_indicator:
+            return anvil.server.call("statut_tache_recherche", task)
 
+    def annuler_recherche_depuis_menu(self):
+        """Demande l'arrêt et conserve la Task jusqu'à confirmation.
+
+        Retour : dict avec ok=True seulement si aucune Task ne reste
+        à suivre. Les erreurs techniques remontent à Menu.
+        """
         print("Demande d'annulation de la recherche depuis Menu")
 
         self._annulation_recherche_demandee = True
-
-        # 1. Arrêter immédiatement le timer côté client
-        try:
-            self.timer_recherche_progress.interval = 0
-        except Exception as e:
-            print("Erreur arrêt timer_recherche_progress :", e)
-
-        # 2. Récupérer la task avant de la remettre à None
+        self.timer_recherche_progress.interval = 0
         task = self.task_recherche
 
         if task is None:
-            print("Aucune task_recherche à tuer")
             self.deverrouiller_recherche(cacher_bouton=False)
             return {
                 "ok": True,
                 "message": "Aucune recherche en cours"
             }
 
-        # 3. Tuer la task côté serveur
+        self._recherche_en_cours = True
+
         try:
             with anvil.server.no_loading_indicator:
                 result = anvil.server.call("task_killer", task)
 
             print("Résultat task_killer :", result)
 
-        except Exception as e:
-            print("Erreur pendant task_killer :", e)
-            result = {
-                "ok": False,
-                "message": str(e)
-            }
+            if not isinstance(result, dict):
+                raise ValueError("Réponse de task_killer invalide.")
 
-        # 4. Nettoyer l'état local de search
-        self.task_recherche = None
-        self._recherche_en_cours = False
+            if result.get("ok") is not True:
+                return {
+                    "ok": False,
+                    "message": (
+                        "Annulation non confirmée. "
+                        "La référence est conservée ; vous pouvez réessayer."
+                    )
+                }
 
-        try:
+            # Vérifier aussi après kill_requested :
+            # la réponse à la demande d'arrêt ne suffit pas.
+            statut = self.lire_statut_tache_recherche(task)
+
+            if statut not in ("completed", "failed", "killed"):
+                return {
+                    "ok": False,
+                    "status": statut,
+                    "message": (
+                        "La terminaison n'est pas confirmée. "
+                        "Le suivi reste actif ; vous pouvez réessayer."
+                    )
+                }
+
+            self.deverrouiller_recherche(cacher_bouton=False)
             self.afficher_progression_recherche(
-                ligne_1="⛔ Recherche annulée",
+                ligne_1="⛔ Recherche arrêtée",
                 ligne_2="Retour au menu.",
                 etat="error",
                 progress_global=0,
                 progress_source=0,
                 afficher_jauges=False
             )
-        except Exception as e:
-            print("Erreur affichage annulation :", e)
+            return {
+                "ok": True,
+                "status": statut,
+                "message": "Terminaison confirmée par Anvil"
+            }
 
-        try:
-            self.deverrouiller_recherche(cacher_bouton=False)
-        except Exception as e:
-            print("Erreur déverrouillage après annulation :", e)
-
-        return result
+        finally:
+            # Si l'arrêt n'est pas confirmé, conserver la référence
+            # et reprendre les vérifications, même après une exception.
+            if self.task_recherche is task:
+                self.timer_recherche_progress.interval = 1
 
     # =========================================================================
     # Recherche
@@ -2418,38 +2433,76 @@ class search(searchTemplate):
         """
         
         if self._annulation_recherche_demandee:
-            self.timer_recherche_progress.interval = 0
-            self.task_recherche = None
-            self._recherche_en_cours = False
+            task = self.task_recherche
+            if task is None:
+                self.deverrouiller_recherche(cacher_bouton=False)
+                return
+
+            try:
+                statut = self.lire_statut_tache_recherche(task)
+            except Exception as erreur:
+                print("Statut d'annulation inconnu :", erreur)
+                return
+
+            # Un autre appel peut avoir nettoyé la tâche pendant la lecture.
+            if self.task_recherche is not task:
+                return
+
+            if statut in ("completed", "failed", "killed"):
+                self.deverrouiller_recherche(cacher_bouton=False)
+
+            # None, missing ou statut inattendu : conserver le suivi.
+            # Aucun résultat n'est traité dans cette branche.
             return
-            
+
         if self.task_recherche is None:
             self.deverrouiller_recherche(cacher_bouton=False)
             return
-    
+
+        task = self.task_recherche
+
         try:
             with anvil.server.no_loading_indicator:
-                state = self.task_recherche.get_state() or {}
-                task_completed = self.task_recherche.is_completed()
-        except Exception as e:
-            print(f"Impossible de lire la progression : {e}")
-    
-            self.afficher_progression_recherche(
-                ligne_1="⚠️ Erreur de lecture de la progression",
-                ligne_2="Le bouton Rechercher est à nouveau disponible",
-                etat="error",
-                progress_global=0,
-                progress_source=0,
-                afficher_jauges=False
-            )
-    
-            self.deverrouiller_recherche(cacher_bouton=False)
-            afficher_information(
-                f"Impossible de lire la progression :\n\n{e}",
-                titre="Erreur de progression"
-            )
+                state = task.get_state() or {}
+                task_completed = task.is_completed()
+
+        except Exception as erreur:
+            print("Erreur de suivi de la recherche :", erreur)
+
+            # is_completed() peut aussi lever si la tâche a échoué
+            # ou a été tuée : vérifier son statut avant tout nettoyage.
+            try:
+                statut = self.lire_statut_tache_recherche(task)
+            except Exception as erreur_statut:
+                print("Statut de la tâche inconnu :", erreur_statut)
+                return
+
+            if self.task_recherche is not task:
+                return
+
+            # Une annulation demandée pendant la lecture sera suivie
+            # par la branche d'annulation au prochain tick.
+            if self._annulation_recherche_demandee:
+                return
+
+            if statut in ("failed", "killed"):
+                self.deverrouiller_recherche(cacher_bouton=False)
+                afficher_information(
+                    f"La tâche est terminée avec le statut {statut}.\n\n"
+                    f"{erreur}",
+                    titre="Erreur de recherche"
+                )
+
+            # completed : retenter le parcours normal au prochain tick.
+            # None ou missing : conserver référence et verrouillage.
             return
-    
+
+        if self.task_recherche is not task:
+            return
+
+        if self._annulation_recherche_demandee:
+            return
+
         progress = state.get("progress", 0)
         source_progress = state.get("source_progress", 0)
         source_en_cours = state.get("source_en_cours", "")

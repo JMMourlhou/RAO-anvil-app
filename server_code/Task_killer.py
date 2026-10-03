@@ -58,3 +58,21 @@ def task_killer(task=None, timing="0"):
             "ok": False,
             "message": str(e)
         }
+
+
+@anvil.server.callable
+def statut_tache_recherche(task):
+    """Lit le statut Anvil d'une Task sans modifier son exécution.
+
+    Paramètre : objet Task transmis par le client.
+    Retour : None, completed, failed, killed ou missing.
+    Les arguments invalides et erreurs de lecture lèvent une exception.
+    """
+    if task is None:
+        raise ValueError("Aucune Task fournie.")
+
+    lire_statut = getattr(task, "get_termination_status", None)
+    if not callable(lire_statut):
+        raise TypeError("L'objet fourni ne permet pas de lire un statut de Task.")
+
+    return lire_statut()
