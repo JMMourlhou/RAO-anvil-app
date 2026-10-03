@@ -541,8 +541,8 @@ class search(searchTemplate):
                     "ok": False,
                     "status": statut,
                     "message": (
-                        "La terminaison n'est pas confirmée. "
-                        "Le suivi reste actif ; vous pouvez réessayer."
+                        "La recherche est encore en cours d'arrêt.  "
+                        "Réessayez dans quelques instants."
                     )
                 }
 

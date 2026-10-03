@@ -215,11 +215,11 @@ class Menu(MenuTemplate):
         result = self.arreter_recherche_active()
 
         if not isinstance(result, dict) or result.get("ok") is not True:
-            message = "La terminaison de la recherche n'est pas confirmée."
+            message = "Merci de patienter quelques instants puis de cliquer de nouveau sur Retour."
             if isinstance(result, dict):
                 message = result.get("message") or message
 
-            alert(message, title="Recherche encore suivie")
+            alert(message, title="Recherche en cours")
             return
     
         self.content_panel.clear()
@@ -264,11 +264,11 @@ class Menu(MenuTemplate):
         result = self.arreter_recherche_active()
 
         if not isinstance(result, dict) or result.get("ok") is not True:
-            message = "La terminaison de la recherche n'est pas confirmée."
+            message = "Merci de patienter quelques instants puis de cliquer de nouveau sur Retour."
             if isinstance(result, dict):
                 message = result.get("message") or message
 
-            alert(message, title="Recherche encore suivie")
+            alert(message, title="Recherche en cours")
             return
     
         # 2. Réaffichage des boutons du menu
