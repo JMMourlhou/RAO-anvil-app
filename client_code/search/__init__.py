@@ -645,13 +645,14 @@ class search(searchTemplate):
             mots_ou=mots_ou
         )
 
-        # --- Lancement de la recherche brute en tâche de fond ---
+        # Figer les critères du lancement pour le traitement, l'historique et le résumé.
         self._ctx_recherche = {
-            "mots_obligatoires": mots_obligatoires,
-            "mots_ou": mots_ou,
-            "mots_exclus": mots_exclus,
+            "mots_obligatoires": list(mots_obligatoires),
+            "mots_ou": list(mots_ou),
+            "mots_exclus": list(mots_exclus),
             "periode": periode,
-            "selected_platformes": selected_platformes,
+            "selected_platformes": list(selected_platformes),
+            "departements": list(depts),
         }
 
         self._annulation_recherche_demandee = False
@@ -1061,14 +1062,15 @@ class search(searchTemplate):
 
         try:
             with anvil.server.no_loading_indicator:
+                # Sauvegarder les critères figés, même si les champs ont changé.
                 result = anvil.server.call(
                     "backup_requete",
-                    sources=selected_platformes,
-                    mots_cles=self.get_mots_obligatoires_texte(),
-                    mots_ou=self.get_mots_ou_texte(),
-                    mots_exclus=self.get_mots_exclus_texte(),
-                    nb_jours=self.text_box_nb_jours.text,
-                    departements=self.text_box_departements.text,
+                    sources=ctx["selected_platformes"],
+                    mots_cles=", ".join(ctx["mots_obligatoires"]),
+                    mots_ou=", ".join(ctx["mots_ou"]),
+                    mots_exclus=", ".join(ctx["mots_exclus"]),
+                    nb_jours=str(ctx["periode"]),
+                    departements=", ".join(ctx["departements"]),
                     date_heure=date_heure,
                     offres=offres_finales
                 )
@@ -1148,13 +1150,34 @@ class search(searchTemplate):
             self.text_param_summary.visible = True
             self.column_panel_progress_recherche.visible = True
             return
+
+        ctx = self._ctx_recherche or {}
+        cles_requises = (
+            "mots_obligatoires",
+            "mots_ou",
+            "mots_exclus",
+            "periode",
+            "selected_platformes",
+            "departements",
+        )
+        for cle in cles_requises:
+            if cle not in ctx:
+                self.text_param_summary.text = ""
+                return
+
+        # Décrire la recherche lancée, sans relire les champs de saisie.
+        mots_obligatoires = ", ".join(ctx["mots_obligatoires"])
+        mots_ou = ", ".join(ctx["mots_ou"])
+        mots_exclus = ", ".join(ctx["mots_exclus"])
+        departements = ", ".join(ctx["departements"])
+
         self.text_param_summary.text = (
-            f"Plateformes : {self.multi_select_drop_down_platformes.selected} / "
-            f"Obligatoires : {self.get_mots_obligatoires_texte() or '-'} / "
-            f"Au moins un : {self.get_mots_ou_texte() or '-'} / "
-            f"Exclus : {self.get_mots_exclus_texte() or '-'} / "
-            f"sur les {self.text_box_nb_jours.text} derniers jours / "
-            f"Départements : {self.text_box_departements.text or '-'}"
+            f"Plateformes : {ctx['selected_platformes']} / "
+            f"Obligatoires : {mots_obligatoires or '-'} / "
+            f"Au moins un : {mots_ou or '-'} / "
+            f"Exclus : {mots_exclus or '-'} / "
+            f"sur les {ctx['periode']} derniers jours / "
+            f"Départements : {departements or '-'}"
         )
 
     # =========================================================================
