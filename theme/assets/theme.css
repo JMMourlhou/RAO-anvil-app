@@ -834,8 +834,8 @@ CORRECTIF TERMINAL JM - TextBox blanc / Dropdown transparent
 
     background: linear-gradient(
         to right,
-        #3CD9ED 0%,
-        #3CD9ED var(--progress-value, 0%),
+        #00FF00 0%,
+        #00FF00 var(--progress-value, 0%),
         #dceff5 var(--progress-value, 0%),
         #dceff5 100%
     );

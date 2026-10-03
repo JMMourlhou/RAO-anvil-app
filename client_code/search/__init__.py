@@ -112,9 +112,7 @@ class search(searchTemplate):
         t = window.performance.now()
     
         self.column_panel_progress_recherche.role = "progress-search-box"
-        self.label_progress_recherche.role = "progress-search-main"
         self.label_jauge_globale.role = "progress-gauge-global"
-        self.label_jauge_source.role = "progress-gauge-source"
     
         self.column_panel_progress_recherche.visible = False
     
@@ -130,7 +128,6 @@ class search(searchTemplate):
         self.histo_id = None
         self.list_offres = []
     
-        self.label_progress_recherche.visible = False
         self.timer_recherche_progress.interval = 0
     
         self.task_recherche = None
@@ -146,7 +143,6 @@ class search(searchTemplate):
         self._last_progress_role = None
     
         self.label_jauge_globale.visible = False
-        self.label_jauge_source.visible = False
         self.text_param_summary.visible = False
     
         self.button_daily_survey_creation.visible = False
@@ -679,7 +675,14 @@ class search(searchTemplate):
 
         except Exception as e:
             print(f"Erreur au lancement de la recherche background sur Pi5 : {e}")
-            self.label_progress_recherche.text = "Erreur au lancement de la recherche."
+            self.afficher_progression_recherche(
+                ligne_1="⚠️ Erreur au lancement de la recherche",
+                ligne_2=str(e),
+                etat="error",
+                progress_global=0,
+                progress_source=0,
+                afficher_jauges=False
+            )
             self.deverrouiller_recherche(cacher_bouton=False)
             afficher_avertissement(
                 f"Erreur pendant le lancement de la recherche :\n\n{e}",
@@ -918,7 +921,14 @@ class search(searchTemplate):
             self.column_panel_select.visible = False
             self.text_nb_offres.visible = False
 
-            self.label_progress_recherche.text = "Recherche terminée : aucune offre trouvée."
+            self.afficher_progression_recherche(
+                ligne_1="Recherche terminée",
+                ligne_2="Aucune offre trouvée",
+                etat="error",
+                progress_global=0,
+                progress_source=0,
+                afficher_jauges=False
+            )
 
             self.deverrouiller_recherche(cacher_bouton=False)
 
@@ -929,7 +939,7 @@ class search(searchTemplate):
             self.bloc_selecteur_cpv_complet.visible = True
             return
 
-        self.label_progress_recherche.text = "Vérification des critères positifs..."
+        self.afficher_etape_traitement_final("Vérification des critères positifs...")
         
         # Les trois premiers mots obligatoires sont déjà contrôlés
         # par les modules sources sur le texte complet.
@@ -963,7 +973,14 @@ class search(searchTemplate):
             self.column_panel_select.visible = False
             self.text_nb_offres.visible = False
 
-            self.label_progress_recherche.text = "Aucune offre après filtrage positif."
+            self.afficher_progression_recherche(
+                ligne_1="Recherche terminée",
+                ligne_2="Aucune offre ne contient les mots demandés",
+                etat="error",
+                progress_global=0,
+                progress_source=0,
+                afficher_jauges=False
+            )
 
             self.deverrouiller_recherche(cacher_bouton=False)
 
@@ -978,7 +995,7 @@ class search(searchTemplate):
         # =====================================================
         # 2. Filtrage local des mots exclus
         # =====================================================
-        self.label_progress_recherche.text = "Application des mots exclus..."
+        self.afficher_etape_traitement_final("Application des mots exclus...")
 
         offres = self.filtrer_offres_exclues(offres, mots_exclus)
         print(
@@ -991,7 +1008,14 @@ class search(searchTemplate):
             self.column_panel_select.visible = False
             self.text_nb_offres.visible = False
 
-            self.label_progress_recherche.text = "Aucune offre après exclusion."
+            self.afficher_progression_recherche(
+                ligne_1="Recherche terminée",
+                ligne_2="Aucune offre ne correspond à tous vos critères",
+                etat="error",
+                progress_global=0,
+                progress_source=0,
+                afficher_jauges=False
+            )
 
             self.deverrouiller_recherche(cacher_bouton=False)
             afficher_avertissement(
@@ -1002,7 +1026,7 @@ class search(searchTemplate):
             return
 
         # --- Génération de la liste des offres ---
-        self.label_progress_recherche.text = "Préparation des offres..."
+        self.afficher_etape_traitement_final("Préparation des offres...")
 
         offres_preparees = self.build_offres_list(
             offres,
@@ -1015,7 +1039,7 @@ class search(searchTemplate):
         )
         
         # --- Calcul automatique de la correspondance des mots OU ---
-        self.label_progress_recherche.text = "Évaluation de la correspondance des offres..."
+        self.afficher_etape_traitement_final("Évaluation de la correspondance des offres...")
 
         offres_finales = self.ajouter_correspondance_mots_ou(
             offres_preparees,
@@ -1032,7 +1056,7 @@ class search(searchTemplate):
         nb_offres = len(offres_finales)
 
         # --- Sauvegarde de la requête et des offres ---
-        self.label_progress_recherche.text = "Sauvegarde de la recherche..."
+        self.afficher_etape_traitement_final("Sauvegarde de la recherche...")
 
         date_heure = Time.french_zone_time()
 
@@ -2614,10 +2638,20 @@ class search(searchTemplate):
         afficher_jauges=True
     ):
         """
-        Affiche la progression sur deux lignes
-        + deux jauges.
+        Affichage simplifié de la progression.
+    
+        Objectif :
+        - une seule ligne visible ;
+        - plus de redondance entre le message et la jauge source ;
+        - conservation de la même signature pour ne pas modifier les appels existants.
+    
+        Affichage attendu :
+        🔎 Recherche en cours — Lecture des offres TED — 42 %
         """
     
+        # =====================================================
+        # 1. Rôle CSS du bloc
+        # =====================================================
         if etat == "success":
             role = "progress-search-box-success"
         elif etat == "error":
@@ -2626,69 +2660,102 @@ class search(searchTemplate):
             role = "progress-search-box"
     
         try:
-            if not self.column_panel_progress_recherche.visible:
-                self.column_panel_progress_recherche.visible = True
+            self.column_panel_progress_recherche.visible = True
     
             if self._last_progress_role != role:
                 self.column_panel_progress_recherche.role = role
                 self._last_progress_role = role
+    
+                # Force la prochaine mise à jour CSS de la jauge
+                self._last_progress_global = None
+    
         except Exception:
             pass
     
-        if not self.label_progress_recherche.visible:
-            self.label_progress_recherche.visible = True
-    
-        texte = ligne_1 or "Recherche en cours..."
-    
-        if ligne_2:
-            texte = f"{texte}\n{ligne_2}"
-    
-        if self.label_progress_recherche.text != texte:
-            self.label_progress_recherche.text = texte
-    
-        if not afficher_jauges:
-            if self.label_jauge_globale.visible:
-                self.label_jauge_globale.visible = False
-            if self.label_jauge_source.visible:
-                self.label_jauge_source.visible = False
-            return
-    
-        if not self.label_jauge_globale.visible:
+        # =====================================================
+        # 2. Une seule ligne visible
+        # =====================================================
+            
+        try:
             self.label_jauge_globale.visible = True
-        if not self.label_jauge_source.visible:
-            self.label_jauge_source.visible = True
+        except Exception:
+            pass
     
+        # =====================================================
+        # 3. Sécurisation du pourcentage
+        # =====================================================
         try:
             progress_global = int(progress_global or 0)
         except Exception:
             progress_global = 0
     
-        try:
-            progress_source = int(progress_source or 0)
-        except Exception:
-            progress_source = 0
-    
         progress_global = max(0, min(100, progress_global))
-        progress_source = max(0, min(100, progress_source))
     
-        texte_global = f"{progress_global} %"
-    
+        # =====================================================
+        # 4. Construction du texte unique
+        # =====================================================
+        ligne_1 = str(ligne_1 or "").strip()
+        ligne_2 = str(ligne_2 or "").strip()
         source_nom = str(source_nom or "").strip()
-        libelle_source = self.libelle_jauge_source(source_nom)
-        
-        if source_current is not None and source_total:
-            texte_source = f"{libelle_source} — {source_current}/{source_total}"
+    
+        if source_nom:
+            libelle_etape = self.libelle_jauge_source(source_nom)
+        elif ligne_2:
+            libelle_etape = ligne_2
         else:
-            texte_source = f"{libelle_source} — {progress_source} %"
-            
-        if self.label_jauge_globale.text != texte_global:
-            self.label_jauge_globale.text = texte_global
+            libelle_etape = ""
     
-        if self.label_jauge_source.text != texte_source:
-            self.label_jauge_source.text = texte_source
+        if etat == "success":
+            if ligne_2:
+                texte = f"{ligne_1 or '✅ Recherche terminée'} — {ligne_2}"
+            else:
+                texte = ligne_1 or "✅ Recherche terminée"
     
-        self.regler_jauge(self.label_jauge_globale, progress_global, "global")
-        self.regler_jauge(self.label_jauge_source, progress_source, "source")
+        elif etat == "error":
+            if ligne_2:
+                texte = f"{ligne_1 or '⚠️ Erreur'} — {ligne_2}"
+            else:
+                texte = ligne_1 or "⚠️ Erreur"
+    
+        else:
+            titre = ligne_1 or "🔎 Recherche en cours"
+    
+            if libelle_etape:
+                texte = f"{titre} — {libelle_etape} — {progress_global} %"
+            else:
+                texte = f"{titre} — {progress_global} %"
+    
+        # =====================================================
+        # 5. Mise à jour du texte
+        # =====================================================
+        if self.label_jauge_globale.text != texte:
+            self.label_jauge_globale.text = texte
+    
+        # =====================================================
+        # 6. Mise à jour visuelle de la barre
+        # =====================================================
+        if afficher_jauges:
+            self.regler_jauge(self.label_jauge_globale, progress_global, "global")
+        else:
+            if etat == "success":
+                self.regler_jauge(self.label_jauge_globale, 100, "global")
+            else:
+                self.regler_jauge(self.label_jauge_globale, progress_global, "global")
+
+    def afficher_etape_traitement_final(self, message, progress=100):
+        """
+        Affiche une étape du traitement final dans la ligne unique de progression.
+        """
+    
+        self.afficher_progression_recherche(
+            ligne_1="🔎 Préparation des résultats",
+            ligne_2=message,
+            etat="running",
+            progress_global=progress,
+            progress_source=progress,
+            source_nom="",
+            afficher_jauges=True
+        )
     
     
     def regler_jauge(self, composant, pourcentage, nom=""):
