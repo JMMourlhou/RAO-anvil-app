@@ -266,7 +266,6 @@ class search(searchTemplate):
         self.multi_select_drop_down_platformes.placeholder = "Sélectionnez les plateformes"
         self.multi_select_drop_down_platformes.width = "100%"
         self.multi_select_drop_down_platformes.background = "#3CD9ED"
-        self.multi_select_drop_down_platformes.spacing_above = "1"
     
         # ------------------------------------------------------------
         # Texte affiché quand la DropDown est fermée :
@@ -581,7 +580,7 @@ class search(searchTemplate):
         mots_obligatoires_texte = self.text_box_mots_obligatoires_cpv.text or ""
         mots_ou_texte = self.text_box_mot_ou.text or ""
         mots_exclus_texte = self.text_box_mots_exclus.text or ""
-        deps_texte = self.text_box_departements.text or ""
+        deps_texte = str(self.text_box_departements.text or "")
 
         # --- Conversion en listes propres ---
         mots_obligatoires = self.extraire_liste_mots_saisie(mots_obligatoires_texte)
@@ -1128,7 +1127,7 @@ class search(searchTemplate):
         self.text_param_summary.visible = True
 
         self.afficher_progression_recherche(
-            ligne_1="✅ Recherche terminée",
+            ligne_1="✔ Recherche terminée",
             ligne_2=self.format_nb_offres(
                 nb_offres,
                 "retenue",
@@ -2575,8 +2574,8 @@ class search(searchTemplate):
         - ou mots OU
         """
     
-        has_mots_obligatoires = bool((self.text_box_mots_obligatoires_cpv.text or "").strip())
-        has_mots_ou = bool((self.text_box_mot_ou.text or "").strip())
+        has_mots_obligatoires = bool(str(self.text_box_mots_obligatoires_cpv.text or "").strip())
+        has_mots_ou = bool(str(self.text_box_mot_ou.text or "").strip())
     
         actif = bool(getattr(self, "cpv_selectionnes", [])) or has_mots_obligatoires or has_mots_ou
     
@@ -2722,15 +2721,14 @@ class search(searchTemplate):
     
         if etat == "success":
             if ligne_2:
-                texte = f"{ligne_1 or '✅ Recherche terminée'} — {ligne_2}"
+                texte = f"{ligne_1 or '✔ Recherche terminée'} — {ligne_2}"
             else:
-                texte = ligne_1 or "✅ Recherche terminée"
-    
+                texte = ligne_1 or "✔ Recherche terminée"
         elif etat == "error":
             if ligne_2:
-                texte = f"{ligne_1 or '⚠️ Erreur'} — {ligne_2}"
+                texte = f"{ligne_1 or '⚠ Erreur'} — {ligne_2}"
             else:
-                texte = ligne_1 or "⚠️ Erreur"
+                texte = ligne_1 or "⚠ Erreur"
     
         else:
             titre = ligne_1 or "🔎 Recherche en cours"
@@ -2896,7 +2894,7 @@ class search(searchTemplate):
         self.repeating_panel_suggestions_cpv.items = []
         self.label_message_recherche_cpv.text = ""
     
-        terme_recherche = (self.text_box_recherche_cpv.text or "").strip()
+        terme_recherche = str(self.text_box_recherche_cpv.text or "").strip()
     
         if len(terme_recherche) < 2:
             return
@@ -3084,14 +3082,10 @@ class search(searchTemplate):
         au-delà de 100 codes, un message invite à réduire la sélection.
         """
         code_cpv = cpv_propose["code"]
-        for cpv_selectionne in self.cpv_selectionnes:
-            if cpv_selectionne["code"] == code_cpv:
-                self.label_message_selection_cpv.text = "Ce CPV est déjà sélectionné."
-                return
 
         # Respecter la borne de résolution et de validation définie en 10C.
-        if len(self.cpv_selectionnes) >= 100:
-            self.label_message_selection_cpv.text = "Vous pouvez sélectionner jusqu’à 100 CPV."
+        if len(self.cpv_selectionnes) >= 5:
+            alert("Vous pouvez sélectionner jusqu’à 5 CPV.")
             return
 
         self.cpv_selectionnes.append({
@@ -3450,8 +3444,8 @@ class search(searchTemplate):
         self.button_daily_survey_creation.text = (
             "Veille quotidienne active"
         )
-        self.button_daily_survey_creation.background_color = "red"
-        self.button_daily_survey_creation.foreground_color = "yellow"
+        self.button_daily_survey_creation.background = "red"
+        self.button_daily_survey_creation.foreground = "yellow"
         self.button_daily_survey_creation.enabled = False
     
         afficher_reussite(
