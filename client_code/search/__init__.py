@@ -2433,10 +2433,11 @@ class search(searchTemplate):
         source_en_cours = state.get("source_en_cours", "")
         source_current = state.get("source_current", None)
         source_total = state.get("source_total", None)
+        message_progression = state.get("message", "")
     
         self.afficher_progression_recherche(
             ligne_1="🔎 Recherche en cours",
-            ligne_2="",
+            ligne_2=message_progression,
             etat="running",
             progress_global=progress,
             progress_source=source_progress,
@@ -2646,7 +2647,7 @@ class search(searchTemplate):
         - conservation de la même signature pour ne pas modifier les appels existants.
     
         Affichage attendu :
-        🔎 Recherche en cours — Lecture des offres TED — 42 %
+        🔎 Recherche en cours — TED — 137/500 — 54 %
         """
     
         # =====================================================
@@ -2682,14 +2683,20 @@ class search(searchTemplate):
             pass
     
         # =====================================================
-        # 3. Sécurisation du pourcentage
+        # 3. Sécurisation des pourcentages
         # =====================================================
         try:
             progress_global = int(progress_global or 0)
-        except Exception:
+        except (TypeError, ValueError, OverflowError):
             progress_global = 0
     
         progress_global = max(0, min(100, progress_global))
+        try:
+            progress_source = int(progress_source or 0)
+        except (TypeError, ValueError, OverflowError):
+            progress_source = 0
+
+        progress_source = max(0, min(100, progress_source))
     
         # =====================================================
         # 4. Construction du texte unique
@@ -2698,7 +2705,15 @@ class search(searchTemplate):
         ligne_2 = str(ligne_2 or "").strip()
         source_nom = str(source_nom or "").strip()
     
-        if source_nom:
+        progress_affiche = progress_global
+        if afficher_jauges and source_nom:
+            progress_affiche = progress_source
+            libelle_etape = source_nom
+            if source_current is not None and source_total is not None:
+                libelle_etape += f" — {source_current}/{source_total}"
+            elif ligne_2:
+                libelle_etape += f" — {ligne_2}"
+        elif source_nom:
             libelle_etape = self.libelle_jauge_source(source_nom)
         elif ligne_2:
             libelle_etape = ligne_2
@@ -2721,9 +2736,9 @@ class search(searchTemplate):
             titre = ligne_1 or "🔎 Recherche en cours"
     
             if libelle_etape:
-                texte = f"{titre} — {libelle_etape} — {progress_global} %"
+                texte = f"{titre} — {libelle_etape} — {progress_affiche} %"
             else:
-                texte = f"{titre} — {progress_global} %"
+                texte = f"{titre} — {progress_affiche} %"
     
         # =====================================================
         # 5. Mise à jour du texte
@@ -2735,7 +2750,7 @@ class search(searchTemplate):
         # 6. Mise à jour visuelle de la barre
         # =====================================================
         if afficher_jauges:
-            self.regler_jauge(self.label_jauge_globale, progress_global, "global")
+            self.regler_jauge(self.label_jauge_globale, progress_affiche, "global")
         else:
             if etat == "success":
                 self.regler_jauge(self.label_jauge_globale, 100, "global")
