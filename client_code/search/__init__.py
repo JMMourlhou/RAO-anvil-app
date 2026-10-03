@@ -671,58 +671,88 @@ class search(searchTemplate):
         }
 
         self._annulation_recherche_demandee = False
-        self.verrouiller_recherche()
+        task_recue = None
+        erreur_lancement = None
 
         try:
-            with anvil.server.no_loading_indicator:
-                self.task_recherche = anvil.server.call(
-                    "lancer_recherche_multi_sources_background",
-                    mots=mots_clefs,
-                    departements=depts,
-                    rows=100,
-                    pages=1,
-                    filtre_jours=periode,
-                    sources=selected_platformes,
-                    operateur="ET",
-                    mots_ou=mots_ou,
-                    mots_exclus=mots_exclus
+            self.verrouiller_recherche()
+
+            try:
+                with anvil.server.no_loading_indicator:
+                    task_recue = anvil.server.call(
+                        "lancer_recherche_multi_sources_background",
+                        mots=mots_clefs,
+                        departements=depts,
+                        rows=100,
+                        pages=1,
+                        filtre_jours=periode,
+                        sources=selected_platformes,
+                        operateur="ET",
+                        mots_ou=mots_ou,
+                        mots_exclus=mots_exclus
+                    )
+                    self.task_recherche = task_recue
+
+            except (
+                anvil.server.AppOfflineError,
+                anvil.server.SessionExpiredError,
+                anvil.server.UplinkDisconnectedError,
+                anvil.server.TimeoutError,
+                anvil.server.RuntimeUnavailableError,
+                anvil.server.NoServerFunctionError,
+            ) as erreur:
+                # Présenter les échecs Anvil attendus sans masquer
+                # les erreurs de programmation inattendues.
+                if task_recue is not None:
+                    raise
+
+                erreur_lancement = erreur
+                print(
+                    "Erreur au lancement de la recherche background sur Pi5 :",
+                    erreur
                 )
 
-        except Exception as e:
-            print(f"Erreur au lancement de la recherche background sur Pi5 : {e}")
+            if erreur_lancement is None:
+                self.display_param_summary()
+
+                self.afficher_progression_recherche(
+                    ligne_1="🔎 Recherche lancée",
+                    ligne_2="Lecture des offres en cours...",
+                    etat="running",
+                    progress_global=0,
+                    progress_source=0
+                )
+
+                self.data_grid_1.visible = False
+                self.column_panel_select.visible = False
+                self.text_nb_offres.visible = False
+                self.checkbox_on_off.visible = False
+                self.bloc_selecteur_cpv_complet.visible = False
+
+        finally:
+            if task_recue is not None:
+                # Préserver la référence reçue par ce lancement.
+                self.task_recherche = task_recue
+                self.timer_recherche_progress.interval = 1
+            else:
+                self.deverrouiller_recherche(cacher_bouton=False)
+
+        if erreur_lancement is not None:
+            # L'interface est déjà déverrouillée avant le message.
             self.afficher_progression_recherche(
                 ligne_1="⚠️ Erreur au lancement de la recherche",
-                ligne_2=str(e),
+                ligne_2=str(erreur_lancement),
                 etat="error",
                 progress_global=0,
                 progress_source=0,
                 afficher_jauges=False
             )
-            self.deverrouiller_recherche(cacher_bouton=False)
             afficher_avertissement(
-                f"Erreur pendant le lancement de la recherche :\n\n{e}",
+                "Erreur pendant le lancement de la recherche :\n\n"
+                f"{erreur_lancement}",
                 titre="Erreur de recherche"
             )
-            return
 
-        # afficher les paramètres 
-        self.display_param_summary()
-
-        self.afficher_progression_recherche(
-            ligne_1="🔎 Recherche lancée",
-            ligne_2="Lecture des offres en cours...",
-            etat="running",
-            progress_global=0,
-            progress_source=0
-        )
-
-        self.data_grid_1.visible = False
-        self.column_panel_select.visible = False
-        self.text_nb_offres.visible = False
-        self.checkbox_on_off.visible = False
-        self.bloc_selecteur_cpv_complet.visible = False
-
-        self.timer_recherche_progress.interval = 1
         return
 
     def decouper_saisie_recherche_cpv(self, saisie):
@@ -801,13 +831,15 @@ class search(searchTemplate):
         self.afficher_offres([])
         self.checkbox_on_off.visible = False
         self._annulation_recherche_demandee = False
-        self.verrouiller_recherche()
-        self.bloc_selecteur_cpv_complet.visible = False
-        self.display_param_summary()
-        lancement_termine = False
+        task_recue = None
+
         try:
+            self.verrouiller_recherche()
+            self.bloc_selecteur_cpv_complet.visible = False
+            self.display_param_summary()
+
             with anvil.server.no_loading_indicator:
-                self.task_recherche = anvil.server.call(
+                task_recue = anvil.server.call(
                     "lancer_recherche_cpv_background",
                     cpv_selectionnes=criteres["cpv_selectionnes"],
                     departements=criteres["departements"],
@@ -817,15 +849,20 @@ class search(searchTemplate):
                     mots_ou=criteres["mots_ou"],
                     mots_exclus=criteres["mots_exclus"],
                 )
-            self.timer_recherche_progress.interval = 1
-            lancement_termine = True
+                self.task_recherche = task_recue
+
         finally:
-            if not lancement_termine:
+            if task_recue is not None:
+                # Préserver la référence reçue par ce lancement.
+                self.task_recherche = task_recue
+                self.timer_recherche_progress.interval = 1
+            else:
                 self.deverrouiller_recherche(cacher_bouton=False)
                 self.bloc_selecteur_cpv_complet.visible = True
                 self.afficher_progression_recherche(
                     ligne_1="Recherche CPV indisponible",
-                    etat="error", afficher_jauges=False,
+                    etat="error",
+                    afficher_jauges=False
                 )
 
     def traiter_offres_cpv_apres_background(self, resultat):
