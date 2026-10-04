@@ -149,6 +149,7 @@ class search(searchTemplate):
     
         self.button_daily_survey_creation.visible = False
         self.button_daily_survey_creation.enabled = True
+        self.button_creer_veille_cpv.text = "Créer une veille quotidienne"
     
         # Évite les événements indésirables lors d'une modification par code
         self._ignore_checkbox_on_off_change = False
@@ -450,6 +451,7 @@ class search(searchTemplate):
         # Temps total
         # ================================================================
     
+        self.actualiser_bouton_veille_cpv()
         afficher_temps("TOTAL __init__", t_total)
 
         # ================================================================
@@ -472,6 +474,7 @@ class search(searchTemplate):
         """
 
         self._recherche_en_cours = True
+        self.actualiser_bouton_veille_cpv()
 
         try:
             self.f.navigation_link_search_go.visible = True
@@ -520,6 +523,8 @@ class search(searchTemplate):
             self.text_box_mot_ou.enabled = True
         except Exception as e:
             print("Erreur déverrouillage UI :", e)
+
+        self.actualiser_bouton_veille_cpv()
 
     def lire_statut_tache_recherche(self, task):
         """Lit le statut serveur ; les erreurs remontent à l'appelant."""
@@ -963,7 +968,6 @@ class search(searchTemplate):
             )
             if resultat.get("recherche_limitee") and resultat.get("message_limite"):
                 afficher_information(resultat["message_limite"], titre="Recherche limitée")
-            self.button_creer_veille_cpv.visible = True
             self.actualiser_bouton_veille_cpv()
         finally:
             self.deverrouiller_recherche(cacher_bouton=False)
@@ -1195,10 +1199,6 @@ class search(searchTemplate):
 
         self.afficher_offres(self.list_offres)
         
-        # La veille journalière ne peut être créée qu’après une recherche ayant trouvé des offres.
-        
-        self.button_daily_survey_creation.enabled = True
-        self.button_daily_survey_creation.visible = True
 
         
         self.f.navigation_link_search_go.enabled = False
@@ -1633,6 +1633,7 @@ class search(searchTemplate):
             self.list_offres = self.normaliser_liste_offres_vu(offres)
     
         nb = len(self.list_offres)
+        self.actualiser_bouton_veille_cpv()
     
         # Important : remettre le tag après chaque réaffichage.
         # RowTemplate1 utilise les mots ET pour le bouton de vérification.
@@ -3023,23 +3024,23 @@ class search(searchTemplate):
 
     @handle("text_box_recherche_cpv", "change")
     def text_box_recherche_cpv_change(self, **event_args):
-        """Programme une nouvelle recherche CPV après une courte pause de saisie."""
-    
+        """Masque les suggestions sous deux caractères, sans changer la sélection."""
         self.timer_recherche_cpv.interval = 0
-    
+        terme_recherche = str(self.text_box_recherche_cpv.text or "").strip()
+
+        if len(terme_recherche) < 2:
+            self.panel_selecteur_cpv.visible = False
+            self.repeating_panel_suggestions_cpv.items = []
+            self.label_message_recherche_cpv.text = ""
+            self._nouvelle_recherche_cpv_en_attente = False
+            return
+
         if self._recherche_cpv_en_cours:
             self._nouvelle_recherche_cpv_en_attente = True
             return
-    
-        # Les anciennes suggestions ne correspondent plus à la saisie.
+
         self.repeating_panel_suggestions_cpv.items = []
         self.label_message_recherche_cpv.text = ""
-    
-        terme_recherche = str(self.text_box_recherche_cpv.text or "").strip()
-    
-        if len(terme_recherche) < 2:
-            return
-    
         self.timer_recherche_cpv.interval = 0.4
 
 
@@ -3359,25 +3360,95 @@ class search(searchTemplate):
         lignes_resume.append("Fréquence : veille quotidienne, sur les publications du dernier jour.")
         return "\n".join(lignes_resume)
 
-    def actualiser_bouton_veille_cpv(self, **event_args):
-        """Affiche l'état actif uniquement pour les critères confirmés par le serveur.
+    def preparer_criteres_veille(self):
+        """Copie les critères figés de la recherche ayant produit les offres."""
+        ctx = getattr(self, "_ctx_recherche", {}) or {}
+        mode = ctx.get("mode_recherche")
 
-        Paramètre : event_args (dict Anvil facultatif). Retour : None.
-        Un changement de critères permet une nouvelle création. Pendant une
-        confirmation ou un appel, le bouton reste désactivé contre les doubles clics.
-        """
-        if self._sauvegarde_veille_cpv_en_cours:
-            self.button_creer_veille_cpv.enabled = False
-            return
-        criteres_actuels = self.preparer_criteres_veille_cpv()
-        veille_active = criteres_actuels == self._criteres_veille_cpv_actifs
-        self.button_creer_veille_cpv.enabled = not veille_active
-        self.button_creer_veille_cpv.bold = veille_active
-        if veille_active:
-            self.button_creer_veille_cpv.text = "Veille quotidienne CPV active"
+        if mode == "classique":
+            sources = ctx["selected_platformes"]
+            periode = ctx["periode"]
+            codes_cpv = []
+            prestations_cpv = []
+        elif mode == "cpv":
+            sources = ctx["sources"]
+            periode = ctx["filtre_jours"]
+            codes_cpv = list(ctx["cpv_selectionnes"])
+            prestations_cpv = [
+                dict(prestation)
+                for prestation in ctx.get("prestations_cpv", [])
+            ]
         else:
-            self.button_creer_veille_cpv.text = "Créer une veille quotidienne CPV"
-            self.label_statut_veille_cpv.text = ""
+            return None
+
+        return {
+            "mode_recherche": mode,
+            "sources": list(sources),
+            "departements": list(ctx["departements"]),
+            "mots_obligatoires": list(ctx["mots_obligatoires"]),
+            "mots_ou": list(ctx["mots_ou"]),
+            "mots_exclus": list(ctx["mots_exclus"]),
+            "cpv_selectionnes": codes_cpv,
+            "prestations_cpv": prestations_cpv,
+            "periode": periode,
+        }
+
+    def construire_resume_veille(self, criteres):
+        """Présente les critères de la recherche ayant réellement trouvé les offres."""
+        message = (
+            "Créer une veille quotidienne à partir des paramètres de cette recherche ?\n\n"
+            "Cette veille vérifiera chaque jour les nouvelles offres publiées.\n\n"
+            "Lorsqu'une ou plusieurs offres correspondent à vos critères,\n"
+            "un mail vous sera envoyé.\n\n"
+            "La première veille est offerte."
+        )
+        lignes = []
+        if criteres["mode_recherche"] == "cpv":
+            lignes.append("CPV sélectionnés : " + str(len(criteres["cpv_selectionnes"])))
+            libelles = {}
+            for prestation in criteres["prestations_cpv"]:
+                libelles[prestation["code"]] = prestation["libelle"]
+            # Limiter le détail du dialogue comme dans le résumé CPV existant.
+            for code in criteres["cpv_selectionnes"][:10]:
+                libelle = libelles.get(code)
+                lignes.append("- " + code + (" — " + libelle if libelle else ""))
+            nombre_non_affiche = len(criteres["cpv_selectionnes"]) - 10
+            if nombre_non_affiche > 0:
+                lignes.append("Et " + str(nombre_non_affiche) + " autre(s) prestation(s).")
+
+        lignes.extend([
+            "Mots obligatoires : " + (", ".join(criteres["mots_obligatoires"]) or "aucun"),
+            "Au moins un de ces mots : " + (", ".join(criteres["mots_ou"]) or "aucun"),
+            "Mots exclus : " + (", ".join(criteres["mots_exclus"]) or "aucun"),
+            "Départements : " + (", ".join(criteres["departements"]) or "tous"),
+            "Sources : " + ", ".join(criteres["sources"]),
+            "Période de la recherche ayant validé les critères : " + str(criteres["periode"]) + " jour(s)",
+            "La veille quotidienne vérifiera les publications du dernier jour.",
+        ])
+        return message + "\n\n" + "\n".join(lignes)
+
+    def actualiser_bouton_veille_cpv(self, **event_args):
+        """Actualise le bouton commun depuis la dernière recherche réussie."""
+        self.button_daily_survey_creation.visible = False
+        criteres = self.preparer_criteres_veille()
+        sauvegarde_en_cours = getattr(self, "_sauvegarde_veille_cpv_en_cours", False)
+        # Le sélecteur appelle ce helper avant l'initialisation de ces attributs.
+        recherche_valide = (
+            criteres is not None
+            and bool(getattr(self, "list_offres", []))
+            and getattr(self, "_offres_correspondent_histo", False)
+            and not getattr(self, "_recherche_en_cours", False)
+            and not sauvegarde_en_cours
+        )
+        veille_active = (
+            criteres is not None
+            and criteres == getattr(self, "_criteres_veille_cpv_actifs", None)
+        )
+        self.button_creer_veille_cpv.visible = recherche_valide
+        self.button_creer_veille_cpv.enabled = recherche_valide and not veille_active
+        self.button_creer_veille_cpv.bold = veille_active
+        if not sauvegarde_en_cours:
+            self.button_creer_veille_cpv.text = "Créer une veille quotidienne"
 
     def traiter_reponse_veille_cpv(self, reponse, criteres):
         """Interprète explicitement le statut serveur sans vider les critères.
@@ -3408,40 +3479,70 @@ class search(searchTemplate):
 
     @handle("button_creer_veille_cpv", "click")
     def button_creer_veille_cpv_click(self, **event_args):
-        """Confirme puis sauvegarde une veille CPV sans dépendre des offres trouvées.
+        """Confirme puis crée une veille classique ou CPV depuis les critères figés.
 
-        Paramètre : event_args (dict Anvil). Retour : None. Seuls les six
-        critères CPV sont envoyés. Annulation et validation refusée préservent
-        la saisie. Toute erreur inattendue reste propagée après remise en état
-        du bouton et affichage d'un message générique.
+        Les refus fonctionnels sont affichés. Les erreurs techniques remontent
+        après restauration de l'état du bouton dans finally.
         """
+        if not self.list_offres:
+            afficher_avertissement(
+                "La veille quotidienne peut être créée uniquement "
+                "après une recherche ayant trouvé au moins une offre.\n\n"
+                "Si aucun résultat n'est trouvé, essayez d'élargir temporairement "
+                "la période de recherche, jusqu'à 365 jours, afin de vérifier que "
+                "vos critères correspondent bien à des appels d'offres existants.",
+                titre="Veille quotidienne",
+            )
+            return
+
         if self._sauvegarde_veille_cpv_en_cours:
             return
-        criteres = self.preparer_criteres_veille_cpv()
-        if not self.valider_criteres_veille_cpv(criteres):
+        if self._recherche_en_cours or not self._offres_correspondent_histo:
+            afficher_avertissement(
+                "Terminez une recherche avec succès avant de créer une veille.",
+                titre="Veille quotidienne",
+            )
             return
 
+        criteres = self.preparer_criteres_veille()
+        if criteres is None:
+            raise ValueError("Mode de recherche invalide pour la veille.")
+
         self._sauvegarde_veille_cpv_en_cours = True
-        self.button_creer_veille_cpv.enabled = False
-        self.button_creer_veille_cpv.text = "Confirmation de la veille CPV…"
-        operation_terminee = False
-        message_retour = ""
-        retour_informatif = False
+        self.actualiser_bouton_veille_cpv()
         try:
             confirmation = demander_choix(
-                titre="Veille quotidienne CPV",
-                message=self.construire_resume_veille_cpv(criteres),
+                titre="Veille quotidienne",
+                message=self.construire_resume_veille(criteres),
                 autoriser_html=False,
             )
             if confirmation is not True:
-                operation_terminee = True
                 return
-            # Une confirmation ne doit jamais autoriser des critères différents
-            # de ceux effectivement présentés dans le dialogue.
-            if self.preparer_criteres_veille_cpv() != criteres:
-                message_retour = "Les critères ont changé. Vérifiez-les puis confirmez à nouveau."
+
+            # Ne jamais envoyer les critères d'une autre recherche que celle confirmée.
+            if (
+                self._recherche_en_cours
+                or not self._offres_correspondent_histo
+                or not self.list_offres
+                or self.preparer_criteres_veille() != criteres
+            ):
+                afficher_avertissement(
+                    "La recherche a changé. Vérifiez-la puis confirmez à nouveau.",
+                    titre="Veille quotidienne",
+                )
+                return
+
+            self.button_creer_veille_cpv.text = "Création de la veille…"
+            if criteres["mode_recherche"] == "classique":
+                reponse = anvil.server.call(
+                    "enregistrer_daily_survey",
+                    sources=criteres["sources"],
+                    mots_cles=criteres["mots_obligatoires"],
+                    mots_ou=criteres["mots_ou"],
+                    mots_exclus=criteres["mots_exclus"],
+                    departements=criteres["departements"],
+                )
             else:
-                self.button_creer_veille_cpv.text = "Création de la veille CPV…"
                 reponse = anvil.server.call(
                     "enregistrer_daily_survey_cpv",
                     cpv_selectionnes=criteres["cpv_selectionnes"],
@@ -3451,19 +3552,25 @@ class search(searchTemplate):
                     mots_obligatoires=criteres["mots_obligatoires"],
                     mots_ou=criteres["mots_ou"],
                 )
-                message_retour, retour_informatif = self.traiter_reponse_veille_cpv(reponse, criteres)
-            operation_terminee = True
+
+            if not isinstance(reponse, dict):
+                raise ValueError("Réponse de sauvegarde de veille invalide.")
+            statut = reponse.get("statut")
+            message = reponse.get("message")
+            if not isinstance(message, str) or not message:
+                raise ValueError("Message de sauvegarde de veille manquant.")
+
+            # Un doublon actif est informatif même lorsque ok vaut False.
+            if statut in ("creee", "cree", "reactivee", "deja_active"):
+                self._criteres_veille_cpv_actifs = criteres
+                afficher_information(message, titre="Veille quotidienne")
+            elif statut == "erreur":
+                afficher_avertissement(message, titre="Veille quotidienne")
+            else:
+                raise ValueError("Statut de sauvegarde de veille inconnu.")
         finally:
             self._sauvegarde_veille_cpv_en_cours = False
             self.actualiser_bouton_veille_cpv()
-            if not operation_terminee:
-                self.label_statut_veille_cpv.text = "Impossible de confirmer la sauvegarde CPV. Réessayez."
-
-        self.label_statut_veille_cpv.text = message_retour
-        if retour_informatif:
-            afficher_information(message_retour, titre="Veille quotidienne CPV")
-        else:
-            afficher_avertissement(message_retour, titre="Veille quotidienne CPV")
 
     def go_up(self, **event_args):
         self.scroll_into_view(smooth=True, align="start")
@@ -3473,123 +3580,5 @@ class search(searchTemplate):
 
 
     def button_daily_survey_creation_click(self, **event_args):
-        """
-        Enregistre les critères de la recherche actuelle comme veille quotidienne.
-        """
-    
-        if self._recherche_en_cours:
-            Notification(
-                "Attendez la fin de la recherche.",
-                timeout=3
-            ).show()
-            return
-    
-        if not self.list_offres:
-            self.button_daily_survey_creation.visible = False
-    
-            afficher_avertissement(
-                "La veille quotidienne peut être créée uniquement "
-                "après une recherche ayant trouvé au moins une offre.",
-                titre="Veille quotidienne"
-            )
-            return
-    
-        try:
-            sources = list(
-                self.multi_select_drop_down_platformes.selected or []
-            )
-        except Exception:
-            sources = []
-    
-        if not sources:
-            afficher_avertissement(
-                "Aucune plateforme n’est sélectionnée.",
-                titre="Plateforme requise"
-            )
-            return
-    
-        confirmation = demander_choix(
-            titre="Création d’une veille quotidienne",
-            message=(
-                " ... créer une veille quotidienne à partir des paramètres "
-                "de cette recherche ?\n\n"
-                "     Cette veille vérifiera <u><strong>chaque jour</strong></u> toutes les offres "
-                "qui ont éventuellemnt été publiées la veille.\n\n"
-                "Dans le cas où une ou plusieurs offres répondent aux critères, \n"
-                "  un mail vous sera envoyé ! \n\n"
-                "<span style=\"background-color:#FFF1A8;\">La première veille est offerte.</span>"
-            ),
-            autoriser_html=True
-        )
-
-        if confirmation is not True:
-            return
-    
-        texte_bouton_initial = self.button_daily_survey_creation.text
-
-        self.button_daily_survey_creation.enabled = False
-        self.button_daily_survey_creation.text = (
-            "Création de la veille..."
-        )
-        try:
-            result = anvil.server.call(
-                "enregistrer_daily_survey",
-                sources=sources,
-                mots_cles=self.get_mots_obligatoires_texte(),
-                mots_ou=self.get_mots_ou_texte(),
-                mots_exclus=self.get_mots_exclus_texte(),
-                departements=(
-                    self.text_box_departements.text or ""
-                )
-            )
-    
-        except Exception as e:
-            print(
-                "Erreur création de la veille quotidienne :",
-                repr(e)
-            )
-    
-            self.button_daily_survey_creation.enabled = True
-            self.button_daily_survey_creation.text = texte_bouton_initial
-
-            afficher_avertissement(
-                "Impossible de créer la veille quotidienne.\n\n"
-                f"{e}",
-                titre="Erreur de création"
-            )
-            return
-    
-        if not isinstance(result, dict):
-            self.button_daily_survey_creation.enabled = True
-            self.button_daily_survey_creation.text = texte_bouton_initial
-
-            afficher_avertissement(
-                "Le serveur n’a pas renvoyé la réponse attendue.",
-                titre="Erreur de création"
-            )
-            return
-    
-        if not result.get("ok"):
-            self.button_daily_survey_creation.enabled = True
-            self.button_daily_survey_creation.text = texte_bouton_initial
-
-            afficher_avertissement(
-                result.get("message")
-                or "La veille quotidienne n’a pas pu être créée.",
-                titre="Nouvelle veille non crée."
-            )
-            return
-    
-        # Ce traitement convient aux trois statuts :
-        # creee, deja_active et reactivee.
-        self.button_daily_survey_creation.text = (
-            "Veille quotidienne active"
-        )
-        self.button_daily_survey_creation.background = "red"
-        self.button_daily_survey_creation.foreground = "yellow"
-        self.button_daily_survey_creation.enabled = False
-    
-        afficher_reussite(
-            result.get("message")
-            or "La veille quotidienne est maintenant active."
-        )
+        """Compatibilité temporaire avec l'ancien événement Designer."""
+        self.button_creer_veille_cpv_click(**event_args)
