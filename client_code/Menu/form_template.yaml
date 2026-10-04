@@ -113,6 +113,11 @@ components_by_slot:
     name: navigation_link_search_go
     properties: {icon: 'mi:logout', icon_color: 'theme:Light Green', icon_size: '30', text: Lance recherche, text_color: 'theme:Light Green', visible: false}
     type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
+  - event_bindings: {click: navigation_link_search_go_click}
+    layout_properties: {}
+    name: navigation_link_user_derniere_recherche
+    properties: {icon: 'mi:logout', icon_color: 'theme:Light Green', icon_size: '30', text: Dernière recherche, text_color: 'theme:Light Green', visible: false}
+    type: form:dep_lin1x4oec0ytd:_Components.NavigationLink
   - event_bindings: {click: navigation_link_retour_click}
     layout_properties: {}
     name: navigation_link_retour

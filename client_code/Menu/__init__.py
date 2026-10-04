@@ -19,6 +19,10 @@ class Menu(MenuTemplate):
     def __init__(self, first_entry=False, **properties):
         # Set Form properties and Data Bindings.
         self.init_components(**properties)
+        # Remplacer la liaison Designer existante sans modifier le template.
+        self.navigation_link_user_derniere_recherche.set_event_handler(
+            "click", self.navigation_link_user_derniere_recherche_click
+        )
         # Any code you write here will run before the form opens.
         self.form_search = None
         
@@ -83,6 +87,7 @@ class Menu(MenuTemplate):
             self.bt_se_connecter.visible = False
             self.bt_deconnect.visible = True
             self.navigation_link_user_appels_offres.visible = True
+            self.navigation_link_user_derniere_recherche.visible = True
             self.navigation_link_user_parametres.visible = True
             self.navigation_link_user_contact.visible = True
             
@@ -114,6 +119,7 @@ class Menu(MenuTemplate):
         self.bt_sign_in.visible = True
         self.bt_deconnect.visible = False
         self.navigation_link_user_appels_offres.visible = False
+        self.navigation_link_user_derniere_recherche.visible = False
         self.timer_ping.interval = 0
         
     """ ***********************************************************************************************"""
@@ -151,8 +157,13 @@ class Menu(MenuTemplate):
             self.label_role.text = self.user['role']   # affichage du role
 
 
-    def navigation_link_user_appels_offres_click(self, **event_args):
-        """This method is called when the component is clicked"""
+    def navigation_link_user_appels_offres_click(self, origine="", **event_args):
+        """Ouvre une nouvelle Form search dans le mode demandé."""
+        if self.form_search is not None:
+            self.navigation_link_retour_click()
+            if self.form_search is not None:
+                return
+
         t0 = window.performance.now()
     
         self.bt_deconnect.visible = False
@@ -163,6 +174,7 @@ class Menu(MenuTemplate):
         self.navigation_link_user_contact.visible = False
         self.navigation_link_user_parametres.visible = False
         self.navigation_link_user_appels_offres.visible = False
+        self.navigation_link_user_derniere_recherche.visible = False
     
         self.navigation_link_retour.visible = True
     
@@ -181,9 +193,8 @@ class Menu(MenuTemplate):
     
         t2 = window.performance.now()
 
-        # ne créer l'instance de la form search qu'à l'ouverture (initialisé en init)
-        if self.form_search is None:
-            self.form_search = search()
+        # Créer le mode demandé sans réutiliser l'état précédent.
+        self.form_search = search(origine=origine)
             
     
         print(
@@ -207,6 +218,10 @@ class Menu(MenuTemplate):
             f"{(window.performance.now() - t0) / 1000:.3f} s"
         )
         
+
+    def navigation_link_user_derniere_recherche_click(self, **event_args):
+        """Affiche la dernière recherche sauvegardée."""
+        self.navigation_link_user_appels_offres_click(origine="check")
 
     def navigation_link_fermer_click(self, **event_args):
         """This method is called when the component is clicked"""
@@ -275,6 +290,7 @@ class Menu(MenuTemplate):
         self.navigation_link_user_contact.visible = True
         self.navigation_link_user_parametres.visible = True
         self.navigation_link_user_appels_offres.visible = True
+        self.navigation_link_user_derniere_recherche.visible = True
         self.navigation_link_fermer.visible = True
         self.Titre.visible = True
         self.bt_user_mail.visible = True
