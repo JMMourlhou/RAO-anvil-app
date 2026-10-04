@@ -134,7 +134,8 @@ db_schema:
     - admin_ui: {order: 1, width: 200}
       name: mots_cles
       type: simpleObject
-    - admin_ui: {order: -2, width: 200}
+    - admin_ui: {order: -2, width: 250}
+      client_hidden: false
       name: email
       type: string
     - admin_ui: {order: 3, width: 86}
@@ -148,7 +149,7 @@ db_schema:
       client_hidden: false
       name: departements
       type: simpleObject
-    - admin_ui: {order: -0.25, width: 160}
+    - admin_ui: {order: -0.25, width: 258}
       client_hidden: false
       name: sources
       type: simpleObject
@@ -160,7 +161,7 @@ db_schema:
       client_hidden: false
       name: nb_offres
       type: number
-    - admin_ui: {order: 2, width: 200}
+    - admin_ui: {order: 2, width: 263}
       client_hidden: false
       name: mots_ou
       type: string
