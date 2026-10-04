@@ -168,6 +168,18 @@ db_schema:
       client_hidden: false
       name: mots_exclus
       type: string
+    - admin_ui: {order: 7, width: 200}
+      client_hidden: false
+      name: mode_recherche
+      type: string
+    - admin_ui: {order: 8, width: 200}
+      client_hidden: false
+      name: cpv_selectionnes
+      type: simpleObject
+    - admin_ui: {order: 9, width: 200}
+      client_hidden: false
+      name: revision_recherche
+      type: number
     indexes: []
     server: full
     title: histo
