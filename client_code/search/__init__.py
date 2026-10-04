@@ -388,48 +388,18 @@ class search(searchTemplate):
         # ================================================================
     
         if inclure_offres and derniere_ligne is not None:
-    
             t_offres = window.performance.now()
-    
-            offres_chargees = self.normaliser_liste_offres_vu(
+
+            # Les offres sauvegardées sont déjà finales.
+            # Conserver leur ordre et leurs informations métier.
+            self.list_offres = self.normaliser_liste_offres_vu(
                 derniere_ligne.get("offres") or []
             )
-    
-            mots_obligatoires = self.extraire_liste_mots_saisie(
-                self.text_box_mots_obligatoires_cpv.text or ""
-            )
-    
-            mots_ou = self.extraire_liste_mots_saisie(
-                self.text_box_mot_ou.text or ""
-            )
-    
-            mots_exclus = self.extraire_liste_mots_saisie(
-                self.text_box_mots_exclus.text or ""
-            )
-    
-            offres_chargees = self.filtrer_offres_criteres_positifs(
-                offres_chargees,
-                mots_obligatoires,
-                mots_ou
-            )
-    
-            offres_chargees = self.filtrer_offres_exclues(
-                offres_chargees,
-                mots_exclus
-            )
-    
-            offres_chargees = self.ajouter_correspondance_mots_ou(
-                offres_chargees,
-                mots_ou
-            )
-    
-            self.list_offres = self.trier_offres_par_interet(offres_chargees)
-    
-            afficher_temps("traitement offres mode check", t_offres)
-    
+
+            afficher_temps("chargement offres mode check", t_offres)
         else:
             self.list_offres = []
-    
+
         # En ouverture normale, les offres sauvegardées ne sont pas chargées.
         self._offres_correspondent_histo = (
             inclure_offres and derniere_ligne is not None
