@@ -75,3 +75,19 @@ def initialiser_form_search(inclure_offres=False):
         "plateformes": plateformes,
         "histo": histo
     }
+
+
+@anvil.server.callable(require_user=True)
+def obtenir_nb_offres_derniere_recherche():
+    """Retourne le nombre d'offres de la dernière recherche de l'utilisateur.
+
+    Retourne zéro si aucune ligne n'existe.
+    Ne charge pas la liste des offres.
+    """
+    user = anvil.users.get_user()
+    row = app_tables.histo.get(email=user["email"])
+
+    if row is None:
+        return 0
+
+    return row["nb_offres"] or 0

@@ -87,7 +87,7 @@ class Menu(MenuTemplate):
             self.bt_se_connecter.visible = False
             self.bt_deconnect.visible = True
             self.navigation_link_user_appels_offres.visible = True
-            self.navigation_link_user_derniere_recherche.visible = True
+            self.actualiser_visibilite_derniere_recherche()
             self.navigation_link_user_parametres.visible = True
             self.navigation_link_user_contact.visible = True
             
@@ -219,6 +219,21 @@ class Menu(MenuTemplate):
         )
         
 
+    def actualiser_visibilite_derniere_recherche(self):
+        """Affiche le lien uniquement si la dernière recherche contient des offres."""
+
+        self.navigation_link_user_derniere_recherche.visible = False
+
+        if not anvil.users.get_user():
+            return
+
+        with anvil.server.no_loading_indicator:
+            nb_offres = anvil.server.call(
+                "obtenir_nb_offres_derniere_recherche"
+            )
+
+        self.navigation_link_user_derniere_recherche.visible = nb_offres > 0
+
     def navigation_link_user_derniere_recherche_click(self, **event_args):
         """Affiche la dernière recherche sauvegardée."""
         self.navigation_link_user_appels_offres_click(origine="check")
@@ -290,7 +305,6 @@ class Menu(MenuTemplate):
         self.navigation_link_user_contact.visible = True
         self.navigation_link_user_parametres.visible = True
         self.navigation_link_user_appels_offres.visible = True
-        self.navigation_link_user_derniere_recherche.visible = True
         self.navigation_link_fermer.visible = True
         self.Titre.visible = True
         self.bt_user_mail.visible = True
@@ -301,6 +315,7 @@ class Menu(MenuTemplate):
         # 3. Nettoyage de la zone centrale
         self.content_panel.clear()
         self.form_search = None
+        self.actualiser_visibilite_derniere_recherche()
         
     # lancement de la requete de la forme search
     def navigation_link_search_go_click(self, **event_args):
