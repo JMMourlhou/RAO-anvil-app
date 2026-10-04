@@ -147,8 +147,6 @@ class search(searchTemplate):
         self.label_jauge_globale.visible = False
         self.text_param_summary.visible = False
     
-        self.button_daily_survey_creation.visible = False
-        self.button_daily_survey_creation.enabled = True
         self.button_creer_veille_cpv.text = "Créer une veille quotidienne"
     
         # Évite les événements indésirables lors d'une modification par code
@@ -686,8 +684,6 @@ class search(searchTemplate):
             
         # --- L’ancienne recherche ne doit plus permettre
         #     la création d’une veille.
-        self.button_daily_survey_creation.visible = False
-        self.button_daily_survey_creation.enabled = True
   
         
         # --- Construction des requêtes envoyées aux sources ---
@@ -866,7 +862,6 @@ class search(searchTemplate):
         for cpv_selectionne in self.cpv_selectionnes:
             self._ctx_recherche["prestations_cpv"].append(dict(cpv_selectionne))
 
-        self.button_daily_survey_creation.visible = False
 
         # L'identifiant et la révision de la dernière sauvegarde sont conservés.
         # Les offres temporaires ne peuvent pas modifier cette sauvegarde.
@@ -917,7 +912,6 @@ class search(searchTemplate):
         partiel. Une réponse mal formée lève ValueError ; zéro offre est un
         succès. Les champs métier sont copiés sans filtrage ni dédoublonnage.
         """
-        self.button_daily_survey_creation.visible = False
         try:
             if not isinstance(resultat, dict) or type(resultat.get("ok")) is not bool:
                 raise ValueError("Réponse de recherche CPV invalide.")
@@ -1429,7 +1423,6 @@ class search(searchTemplate):
         self.checkbox_on_off.visible = False
         self.f.navigation_link_search_go.visible = True
         self.f.navigation_link_search_go.enabled = True
-        self.button_daily_survey_creation.visible = False
         self.button_creer_veille_cpv.visible = False
         self.text_box_recherche_cpv.focus()
         
@@ -2477,7 +2470,6 @@ class search(searchTemplate):
 
     def text_box_mot_ou_change(self, **event_args):
         self.maj_bouton_recherche_visible()
-        self.actualiser_bouton_veille_cpv()
 
     def text_box_mots_exclus_pressed_enter(self, **event_args):
         if self._recherche_en_cours is True:
@@ -2978,22 +2970,6 @@ class search(searchTemplate):
             self.retirer_cpv
         )
     
-        self.multi_select_drop_down_platformes.add_event_handler(
-            "change",
-            self.actualiser_bouton_veille_cpv
-        )
-        self.text_box_departements.add_event_handler(
-            "change",
-            self.actualiser_bouton_veille_cpv
-        )
-        self.text_box_mots_exclus.add_event_handler(
-            "change",
-            self.actualiser_bouton_veille_cpv
-        )
-        self.text_box_mots_obligatoires_cpv.add_event_handler(
-            "change",
-            self.actualiser_bouton_veille_cpv
-        )
     
         self.rafraichir_cpv_selectionnes()
 
@@ -3289,76 +3265,8 @@ class search(searchTemplate):
         self.actualiser_bouton_veille_cpv()
 
 
-    def preparer_criteres_veille_cpv(self):
-        """Copie les six critères CPV, sans normalisation métier côté client.
-    
-        Aucun paramètre. Retour : dict contenant cpv_selectionnes (list[str]),
-        sources (list[str]), departements, mots_exclus, mots_obligatoires
-        et mots_ou.
-        Les libellés restent dans la Form ; aucune valeur locale n'est modifiée.
-        """
-        codes_cpv = []
-        for cpv_selectionne in self.cpv_selectionnes:
-            codes_cpv.append(cpv_selectionne["code"])
-    
-        sources_selectionnees = list(self.multi_select_drop_down_platformes.selected or [])
-        departements = str(self.text_box_departements.text or "").strip()
-        mots_exclus = str(self.text_box_mots_exclus.text or "").strip()
-    
-        # Ces champs restent partagés avec la recherche manuelle ;
-        # le serveur CPV normalise leur saisie.
-        mots_obligatoires = self.text_box_mots_obligatoires_cpv.text or ""
-        mots_ou = self.text_box_mot_ou.text or ""
-    
-        return {
-            "cpv_selectionnes": codes_cpv,
-            "sources": sources_selectionnees,
-            "departements": departements,
-            "mots_exclus": mots_exclus,
-            "mots_obligatoires": mots_obligatoires,
-            "mots_ou": mots_ou,
-        }
 
-    def valider_criteres_veille_cpv(self, criteres):
-        """Vérifie les préconditions locales sans appeler le serveur.
 
-        Paramètre : criteres (dict préparé par la Form). Retour : bool.
-        Une sélection CPV ou des sources vides affichent un avertissement.
-        La validation métier complète reste à la charge du serveur.
-        """
-        if not criteres["cpv_selectionnes"]:
-            afficher_avertissement("Sélectionnez au moins une prestation CPV.", titre="Veille quotidienne CPV")
-            return False
-        if not criteres["sources"]:
-            afficher_avertissement("Sélectionnez au moins une source.", titre="Veille quotidienne CPV")
-            return False
-        return True
-
-    def construire_resume_veille_cpv(self, criteres):
-        """Construit le résumé textuel des critères à confirmer.
-
-        Paramètre : criteres (dict préparé). Retour : str, sans HTML.
-        Au plus dix libellés sont détaillés pour garder le dialogue lisible ;
-        le nombre total de CPV est toujours indiqué. Aucun terme legacy utilisé.
-        """
-        lignes_resume = [
-            "Créer une veille quotidienne CPV ?",
-            "Nombre de CPV sélectionnés : " + str(len(criteres["cpv_selectionnes"])),
-        ]
-        for cpv_selectionne in self.cpv_selectionnes[:10]:
-            lignes_resume.append("- " + cpv_selectionne["libelle"])
-        nombre_non_affiche = len(criteres["cpv_selectionnes"]) - 10
-        if nombre_non_affiche > 0:
-            lignes_resume.append("Et " + str(nombre_non_affiche) + " autre(s) prestation(s).")
-        lignes_resume.append("Départements : " + (criteres["departements"] or "tous"))
-        lignes_resume.append("Sources : " + ", ".join(criteres["sources"]))
-        mots_obligatoires_affiches = criteres["mots_obligatoires"].strip() or "aucun"
-        lignes_resume.append("Mots obligatoires : " + mots_obligatoires_affiches)
-        mots_ou_affiches = criteres["mots_ou"].strip() or "aucun"
-        lignes_resume.append("Au moins un de ces mots : " + mots_ou_affiches)
-        lignes_resume.append("Mots exclus : " + (criteres["mots_exclus"] or "aucun"))
-        lignes_resume.append("Fréquence : veille quotidienne, sur les publications du dernier jour.")
-        return "\n".join(lignes_resume)
 
     def preparer_criteres_veille(self):
         """Copie les critères figés de la recherche ayant produit les offres."""
@@ -3429,7 +3337,6 @@ class search(searchTemplate):
 
     def actualiser_bouton_veille_cpv(self, **event_args):
         """Actualise le bouton commun depuis la dernière recherche réussie."""
-        self.button_daily_survey_creation.visible = False
         criteres = self.preparer_criteres_veille()
         sauvegarde_en_cours = getattr(self, "_sauvegarde_veille_cpv_en_cours", False)
         # Le sélecteur appelle ce helper avant l'initialisation de ces attributs.
@@ -3450,32 +3357,6 @@ class search(searchTemplate):
         if not sauvegarde_en_cours:
             self.button_creer_veille_cpv.text = "Créer une veille quotidienne"
 
-    def traiter_reponse_veille_cpv(self, reponse, criteres):
-        """Interprète explicitement le statut serveur sans vider les critères.
-
-        Paramètres : reponse (dict serveur), criteres (dict envoyé).
-        Retour : tuple[str, bool] : message utilisateur et caractère informatif.
-        'deja_active' est informatif même si ok=False. Une validation refusée
-        est affichée ; une réponse malformée lève ValueError pour diagnostic.
-        """
-        if not isinstance(reponse, dict):
-            raise ValueError("Réponse de sauvegarde CPV invalide.")
-        statut = reponse.get("statut")
-        if statut == "cree":
-            message = "Veille quotidienne CPV créée."
-        elif statut == "reactivee":
-            message = "Cette veille existait déjà et a été réactivée."
-        elif statut == "deja_active":
-            message = "Cette veille quotidienne est déjà active."
-        elif statut == "erreur":
-            message = reponse.get("message")
-            if not isinstance(message, str) or not message:
-                raise ValueError("Message de validation CPV manquant.")
-            return message, False
-        else:
-            raise ValueError("Statut de sauvegarde CPV inconnu.")
-        self._criteres_veille_cpv_actifs = criteres
-        return message, True
 
     @handle("button_creer_veille_cpv", "click")
     def button_creer_veille_cpv_click(self, **event_args):
@@ -3579,6 +3460,3 @@ class search(searchTemplate):
         self.scroll_into_view(smooth=True, align="end")
 
 
-    def button_daily_survey_creation_click(self, **event_args):
-        """Compatibilité temporaire avec l'ancien événement Designer."""
-        self.button_creer_veille_cpv_click(**event_args)

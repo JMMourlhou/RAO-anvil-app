@@ -60,7 +60,7 @@ class TestsRechercheCPV(unittest.TestCase):
         composants = (
             "Titre_2 text_box_mots_obligatoires_cpv text_box_mots_exclus text_box_mot_ou "
             "text_box_nb_jours text_box_departements multi_select_drop_down_platformes "
-            "button_daily_survey_creation timer_recherche_progress repeating_panel_offres "
+            "button_creer_veille_cpv timer_recherche_progress repeating_panel_offres "
             "checkbox_on_off text_nb_offres data_grid_1 column_panel_select "
             "button_selection_mailed column_panel_params text_param_summary "
             "column_panel_progress_recherche label_progress_recherche "
@@ -223,8 +223,7 @@ class TestsRechercheCPV(unittest.TestCase):
     def test_veille_et_historique_inactifs(self):
         self.lancer()
         self.form.traiter_offres_cpv_apres_background(self.resultat([{"titre": "Offre"}]))
-        self.assertFalse(self.form.button_daily_survey_creation.visible)
-        self.assertFalse(self.form.button_daily_survey_creation.visible)
+        self.assertFalse(hasattr(self.form, "button_daily_survey_creation"))
         self.assertIsNone(self.form.histo_id)
         self.assertTrue(self.form.sauver_offres_dans_histo())
         self.assertEqual(self.serveur.call_count, 1)
