@@ -126,6 +126,8 @@ class search(searchTemplate):
     
         self.user = None
         self.histo_id = None
+        self.revision_recherche = None
+        self._offres_correspondent_histo = False
         self.list_offres = []
     
         self.timer_recherche_progress.interval = 0
@@ -325,6 +327,62 @@ class search(searchTemplate):
             else:
                 self.multi_select_drop_down_platformes.selected = liste_ids_plateformes
     
+            self.revision_recherche = derniere_ligne["revision_recherche"]
+            mode_recherche = derniere_ligne["mode_recherche"]
+
+            if mode_recherche == "cpv":
+                self.cpv_selectionnes = [
+                    dict(prestation)
+                    for prestation in derniere_ligne["prestations_cpv"]
+                ]
+                self._ctx_recherche = {
+                    "mode_recherche": "cpv",
+                    "cpv_selectionnes": list(derniere_ligne["cpv_selectionnes"]),
+                    "prestations_cpv": [
+                        dict(prestation)
+                        for prestation in self.cpv_selectionnes
+                    ],
+                    "sources": list(derniere_ligne["sources"]),
+                    "departements": self.decouper_saisie_recherche_cpv(
+                        derniere_ligne["departements"]
+                    ),
+                    "filtre_jours": int(derniere_ligne["nb_jours"]),
+                    "mots_obligatoires": self.decouper_saisie_recherche_cpv(
+                        derniere_ligne["mots_cles"]
+                    ),
+                    "mots_ou": self.decouper_saisie_recherche_cpv(
+                        derniere_ligne["mots_ou"]
+                    ),
+                    "mots_exclus": self.decouper_saisie_recherche_cpv(
+                        derniere_ligne["mots_exclus"]
+                    )
+                }
+            elif mode_recherche == "classique":
+                self.cpv_selectionnes = []
+                self._ctx_recherche = {
+                    "mode_recherche": "classique",
+                    "mots_obligatoires": self.extraire_liste_mots_saisie(
+                        derniere_ligne["mots_cles"]
+                    ),
+                    "mots_ou": self.extraire_liste_mots_saisie(
+                        derniere_ligne["mots_ou"]
+                    ),
+                    "mots_exclus": self.extraire_liste_mots_saisie(
+                        derniere_ligne["mots_exclus"]
+                    ),
+                    "periode": int(derniere_ligne["nb_jours"]),
+                    "selected_platformes": list(derniere_ligne["sources"]),
+                    "departements": [
+                        departement.strip()
+                        for departement in derniere_ligne["departements"].split(",")
+                        if departement.strip()
+                    ]
+                }
+            else:
+                raise ValueError("Mode de recherche sauvegardé invalide.")
+
+            self.rafraichir_cpv_selectionnes()
+
         # ================================================================
         # Offres uniquement pour origine == "check"
         # ================================================================
@@ -372,6 +430,11 @@ class search(searchTemplate):
         else:
             self.list_offres = []
     
+        # En ouverture normale, les offres sauvegardées ne sont pas chargées.
+        self._offres_correspondent_histo = (
+            inclure_offres and derniere_ligne is not None
+        )
+
         afficher_temps("application dernière recherche", t)
     
         # ================================================================
@@ -662,6 +725,8 @@ class search(searchTemplate):
 
         # Figer les critères du lancement pour le traitement, l'historique et le résumé.
         self._ctx_recherche = {
+            "mode_recherche": "classique",
+            "cpv_selectionnes": [],
             "mots_obligatoires": list(mots_obligatoires),
             "mots_ou": list(mots_ou),
             "mots_exclus": list(mots_exclus),
@@ -670,6 +735,7 @@ class search(searchTemplate):
             "departements": list(depts),
         }
 
+        self._offres_correspondent_histo = False
         self._annulation_recherche_demandee = False
         task_recue = None
         erreur_lancement = None
@@ -826,7 +892,11 @@ class search(searchTemplate):
             self._ctx_recherche["prestations_cpv"].append(dict(cpv_selectionne))
 
         self.button_daily_survey_creation.visible = False
-        self.histo_id = None
+
+        # L'identifiant et la révision de la dernière sauvegarde sont conservés.
+        # Les offres temporaires ne peuvent pas modifier cette sauvegarde.
+        self._offres_correspondent_histo = False
+
         self.list_offres = []
         self.afficher_offres([])
         self.checkbox_on_off.visible = False
@@ -900,6 +970,9 @@ class search(searchTemplate):
                 if not offre_affichee.get("lien_source"):
                     offre_affichee["lien_source"] = offre_affichee.get("lien", "")
                 offres_affichees.append(offre_affichee)
+            if not self.sauvegarder_derniere_recherche(offres_affichees):
+                return
+
             self.list_offres = offres_affichees
             self.afficher_offres(self.list_offres)
             self.checkbox_on_off.visible = bool(offres_affichees)
@@ -946,6 +1019,92 @@ class search(searchTemplate):
         lignes.append("Départements : " + (", ".join(contexte["departements"]) or "-"))
         return "\n".join(lignes)
 
+    def sauvegarder_derniere_recherche(self, offres):
+        """Sauvegarde les critères figés et mémorise la nouvelle révision.
+
+        Retourne True après succès, False après refus fonctionnel.
+        Les références précédentes restent intactes si la sauvegarde échoue.
+        Les erreurs techniques remontent après déverrouillage.
+        """
+
+        sauvegarde_terminee = False
+        try:
+            ctx = self._ctx_recherche
+            mode_recherche = ctx["mode_recherche"]
+
+            if mode_recherche == "cpv":
+                sources = ctx["sources"]
+                periode = ctx["filtre_jours"]
+                codes_cpv = ctx["cpv_selectionnes"]
+            elif mode_recherche == "classique":
+                sources = ctx["selected_platformes"]
+                periode = ctx["periode"]
+                codes_cpv = []
+            else:
+                raise ValueError("Mode de recherche invalide.")
+
+            with anvil.server.no_loading_indicator:
+                result = anvil.server.call(
+                    "backup_requete",
+                    sources=list(sources),
+                    mots_cles=", ".join(ctx["mots_obligatoires"]),
+                    mots_ou=", ".join(ctx["mots_ou"]),
+                    mots_exclus=", ".join(ctx["mots_exclus"]),
+                    nb_jours=periode,
+                    departements=", ".join(ctx["departements"]),
+                    date_heure=Time.french_zone_time(),
+                    offres=offres,
+                    mode_recherche=mode_recherche,
+                    cpv_selectionnes=list(codes_cpv)
+                )
+
+            if not result["ok"]:
+                afficher_avertissement(
+                    result["message"],
+                    titre="Erreur de sauvegarde"
+                )
+                return False
+
+            histo_id = result["histo_id"]
+            revision = result["revision_recherche"]
+            if not histo_id or revision is None or revision < 1:
+                raise ValueError("Réponse de sauvegarde invalide.")
+
+            # Remplacer les références uniquement après réponse de succès.
+            self.histo_id = histo_id
+            self.revision_recherche = revision
+            self._offres_correspondent_histo = True
+            sauvegarde_terminee = True
+            return True
+        finally:
+            if not sauvegarde_terminee:
+                self.deverrouiller_recherche(cacher_bouton=False)
+
+    def terminer_recherche_classique_sans_offre(self, message):
+        """Sauvegarde un résultat classique vide et termine son affichage."""
+
+        try:
+            if not self.sauvegarder_derniere_recherche([]):
+                return
+
+            self.list_offres = []
+            self.afficher_offres([])
+            self.set_checkbox_on_off_sans_event(False)
+            self.checkbox_on_off.visible = False
+            self.display_param_summary()
+            self.bloc_selecteur_cpv_complet.visible = True
+
+            self.afficher_progression_recherche(
+                ligne_1="Recherche terminée",
+                ligne_2=message,
+                etat="success",
+                progress_global=100,
+                progress_source=100,
+                afficher_jauges=False
+            )
+        finally:
+            self.deverrouiller_recherche(cacher_bouton=False)
+
     def traiter_offres_recuperees_apres_background(self, offres):
         """
         Suite du traitement après récupération des offres par Background Task :
@@ -969,26 +1128,9 @@ class search(searchTemplate):
         )
 
         if not offres:
-            self.data_grid_1.visible = False
-            self.column_panel_select.visible = False
-            self.text_nb_offres.visible = False
-
-            self.afficher_progression_recherche(
-                ligne_1="Recherche terminée",
-                ligne_2="Aucune offre trouvée",
-                etat="error",
-                progress_global=0,
-                progress_source=0,
-                afficher_jauges=False
+            self.terminer_recherche_classique_sans_offre(
+                "Aucune offre trouvée"
             )
-
-            self.deverrouiller_recherche(cacher_bouton=False)
-
-            afficher_avertissement(
-                "Désolé, aucune offre n’a été trouvée.",
-                titre="Résultat de la recherche"
-            )
-            self.bloc_selecteur_cpv_complet.visible = True
             return
 
         self.afficher_etape_traitement_final("Vérification des critères positifs...")
@@ -1021,26 +1163,8 @@ class search(searchTemplate):
         )
         
         if not offres:
-            self.data_grid_1.visible = False
-            self.column_panel_select.visible = False
-            self.text_nb_offres.visible = False
-
-            self.afficher_progression_recherche(
-                ligne_1="Recherche terminée",
-                ligne_2="Aucune offre ne contient les mots demandés",
-                etat="error",
-                progress_global=0,
-                progress_source=0,
-                afficher_jauges=False
-            )
-
-            self.deverrouiller_recherche(cacher_bouton=False)
-
-            afficher_avertissement(
-                "Des offres ont été récupérées, mais aucune ne respecte les critères :\n\n"
-                f"Obligatoires : {', '.join(mots_obligatoires) or '-'}\n"
-                f"Au moins un : {', '.join(mots_ou) or '-'}",
-                titre="Résultat de la recherche"
+            self.terminer_recherche_classique_sans_offre(
+                "Aucune offre ne contient les mots demandés"
             )
             return
 
@@ -1056,24 +1180,8 @@ class search(searchTemplate):
         )
         
         if not offres:
-            self.data_grid_1.visible = False
-            self.column_panel_select.visible = False
-            self.text_nb_offres.visible = False
-
-            self.afficher_progression_recherche(
-                ligne_1="Recherche terminée",
-                ligne_2="Aucune offre ne correspond à tous vos critères",
-                etat="error",
-                progress_global=0,
-                progress_source=0,
-                afficher_jauges=False
-            )
-
-            self.deverrouiller_recherche(cacher_bouton=False)
-            afficher_avertissement(
-                "Des offres correspondaient aux critères, mais elles contenaient "
-                "toutes au moins un mot exclu.",
-                titre="Résultat de la recherche"
+            self.terminer_recherche_classique_sans_offre(
+                "Aucune offre ne correspond à tous vos critères"
             )
             return
 
@@ -1110,54 +1218,8 @@ class search(searchTemplate):
         # --- Sauvegarde de la requête et des offres ---
         self.afficher_etape_traitement_final("Sauvegarde de la recherche...")
 
-        date_heure = Time.french_zone_time()
-
-        try:
-            with anvil.server.no_loading_indicator:
-                # Sauvegarder les critères figés, même si les champs ont changé.
-                result = anvil.server.call(
-                    "backup_requete",
-                    sources=ctx["selected_platformes"],
-                    mots_cles=", ".join(ctx["mots_obligatoires"]),
-                    mots_ou=", ".join(ctx["mots_ou"]),
-                    mots_exclus=", ".join(ctx["mots_exclus"]),
-                    nb_jours=str(ctx["periode"]),
-                    departements=", ".join(ctx["departements"]),
-                    date_heure=date_heure,
-                    offres=offres_finales
-                )
-
-        except Exception as e:
-            self.deverrouiller_recherche(cacher_bouton=False)
-            afficher_avertissement(
-                f"Erreur pendant la sauvegarde dans l’historique :\n\n{e}",
-                titre="Erreur de sauvegarde"
-            )
+        if not self.sauvegarder_derniere_recherche(offres_finales):
             return
-
-        if not result or not result.get("ok"):
-            message = result.get("message") if result else "Erreur inconnue"
-            self.deverrouiller_recherche(cacher_bouton=False)
-            afficher_avertissement(
-                "La recherche a fonctionné, mais la sauvegarde dans "
-                f"l’historique a échoué.\n\n{message}",
-                titre="Erreur de sauvegarde"
-            )
-            return
-
-        self.histo_id = result.get("histo_id")
-
-        if not self.histo_id:
-            self.deverrouiller_recherche(cacher_bouton=False)
-            afficher_avertissement(
-                "La sauvegarde dans l’historique a été effectuée, "
-                "mais l’identifiant histo_id est manquant.",
-                titre="Erreur de sauvegarde"
-            )
-            return
-
-        print(f"Ligne histo sauvegardée : {self.histo_id}")
-        print(f"Nombre d'offres sauvegardées dans histo : {result.get('nb_offres')}")
 
         self.list_offres = offres_finales
 
@@ -1462,44 +1524,40 @@ class search(searchTemplate):
     # =========================================================================
 
     def sauver_offres_dans_histo(self):
+        """Sauvegarde les offres de la recherche affichée et persistée.
+
+        Refuse les résultats temporaires et les recherches devenues obsolètes.
+        Les erreurs techniques remontent.
         """
-        Sauvegarde self.list_offres dans histo['offres'].
-        La fonction serveur update_histo_offres est obligatoire.
-        """
-        # Les résultats CPV sont temporaires : sélection et retrait restent locaux.
-        if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
-            return True
 
-        if not self.histo_id:
+        if (
+            not self._offres_correspondent_histo
+            or not self.histo_id
+            or self.revision_recherche is None
+        ):
             afficher_avertissement(
-                "Impossible de sauvegarder : histo_id manquant.",
-                titre="Erreur de sauvegarde"
+                "Cet affichage ne correspond pas à une recherche sauvegardée. "
+                "Rechargez la page pour retrouver la dernière recherche.",
+                titre="Sauvegarde refusée"
             )
             return False
 
-        try:
-            with anvil.server.no_loading_indicator:
-                result = anvil.server.call(
-                    "update_histo_offres",
-                    self.histo_id,
-                    self.list_offres
-                )
-        except Exception as e:
+        with anvil.server.no_loading_indicator:
+            result = anvil.server.call(
+                "update_histo_offres",
+                self.histo_id,
+                self.list_offres,
+                self.revision_recherche
+            )
+
+        if not result["ok"]:
             afficher_avertissement(
-                f"Erreur pendant la sauvegarde des offres :\n\n{e}",
-                titre="Erreur de sauvegarde"
+                result["message"],
+                titre="Sauvegarde refusée"
             )
             return False
 
-        if not result or not result.get("ok"):
-            message = result.get("message") if result else "Erreur inconnue"
-            afficher_avertissement(
-                f"Erreur pendant la sauvegarde :\n\n{message}",
-                titre="Erreur de sauvegarde"
-            )
-            return False
-
-        self.list_offres = result.get("offres", self.list_offres)
+        self.list_offres = result["offres"]
         return True
 
     def valeur_int_pour_tri(self, valeur, defaut=0):

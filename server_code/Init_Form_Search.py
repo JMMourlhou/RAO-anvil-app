@@ -3,7 +3,7 @@ import anvil.users
 import anvil.tables as tables
 from anvil.tables import app_tables
 
-from . import Variables_globales
+from . import Variables_globales, CPV_API
 
 
 @anvil.server.callable
@@ -39,12 +39,7 @@ def initialiser_form_search(inclure_offres=False):
         )
     ]
 
-    rows_histo = app_tables.histo.search(
-        tables.order_by("date_heure", ascending=False),
-        email=user["email"]
-    )
-
-    row = next(iter(rows_histo), None)
+    row = app_tables.histo.get(email=user["email"])
     histo = None
 
     if row is not None:
@@ -55,8 +50,21 @@ def initialiser_form_search(inclure_offres=False):
             "mots_exclus": row["mots_exclus"] or "",
             "nb_jours": row["nb_jours"],
             "departements": row["departements"] or "",
-            "sources": list(row["sources"] or [])
+            "sources": list(row["sources"] or []),
+            "mode_recherche": row["mode_recherche"],
+            "cpv_selectionnes": list(row["cpv_selectionnes"]),
+            "revision_recherche": row["revision_recherche"],
+            "prestations_cpv": []
         }
+
+        # Résolution depuis la référence, sans stocker les libellés dans histo.
+        if histo["mode_recherche"] == "cpv":
+            resolution = CPV_API.obtenir_libelles_cpv(
+                histo["cpv_selectionnes"]
+            )
+            if not resolution["ok"]:
+                raise ValueError(resolution["message"])
+            histo["prestations_cpv"] = resolution["resultats"]
 
         if inclure_offres:
             histo["offres"] = list(row["offres"] or [])

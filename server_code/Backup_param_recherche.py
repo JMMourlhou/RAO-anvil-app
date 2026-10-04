@@ -1,6 +1,9 @@
 import anvil.server
 import anvil.users
+import anvil.tables as tables
 from anvil.tables import app_tables
+
+from . import CPV_API
 
 
 def nettoyer_valeur_pour_histo(valeur):
@@ -69,6 +72,7 @@ def nettoyer_sources(sources):
 
 
 @anvil.server.callable(require_user=True)
+@tables.in_transaction
 def backup_requete(
     sources,
     mots_cles,
@@ -77,89 +81,85 @@ def backup_requete(
     nb_jours,
     departements,
     date_heure,
-    offres
+    offres,
+    mode_recherche,
+    cpv_selectionnes
 ):
+    """Enregistre la dernière recherche et incrémente sa révision.
+
+    Reçoit les critères figés, les offres et les codes CPV.
+    Retourne l'identifiant stable, la révision et le nombre d'offres.
+    Une erreur technique annule la transaction.
     """
-    Enregistre une recherche et ses offres dans la table ``histo``.
 
-    L’adresse email provient toujours de l’utilisateur Anvil connecté.
-    Le nombre d’offres est recalculé côté serveur.
-    """
-
-    row = None
-
-    try:
-        user = anvil.users.get_user()
-
-        if not user or not user["email"]:
-            return {
-                "ok": False,
-                "histo_id": None,
-                "nb_offres": 0,
-                "message": "Utilisateur non connecté."
-            }
-
-        sources = nettoyer_sources(sources)
-        offres = nettoyer_offres_pour_histo(offres)
-
-        try:
-            nb_jours = int(nb_jours)
-        except Exception:
-            raise ValueError("Le nombre de jours doit être un entier.")
-
-        if nb_jours < 1:
-            raise ValueError("Le nombre de jours doit être supérieur à zéro.")
-
-        if date_heure is None:
-            raise ValueError("La date et l’heure de la recherche sont manquantes.")
-
-        # Création minimale, puis écriture colonne par colonne. En cas de
-        # problème de type ou de schéma, le message indique la colonne fautive
-        # et la ligne partielle est supprimée dans le bloc except.
-        row = app_tables.histo.add_row(
-            email=user["email"],
-            date_heure=date_heure
-        )
-
-        def definir_colonne(nom, valeur):
-            try:
-                row[nom] = valeur
-            except Exception as erreur:
-                raise ValueError(
-                    f"Erreur sur la colonne histo['{nom}'] : {repr(erreur)}"
-                )
-
-        definir_colonne("sources", sources)
-        definir_colonne("mots_cles", str(mots_cles or ""))
-        definir_colonne("mots_ou", str(mots_ou or ""))
-        definir_colonne("mots_exclus", str(mots_exclus or ""))
-        definir_colonne("nb_jours", nb_jours)
-        definir_colonne("departements", str(departements or ""))
-        definir_colonne("nb_offres", len(offres))
-        definir_colonne("offres", offres)
-
-        return {
-            "ok": True,
-            "histo_id": row.get_id(),
-            "nb_offres": len(offres),
-            "message": f"Requête sauvegardée pour {user['email']}"
-        }
-
-    except Exception as e:
-        print("Erreur backup_requete :", repr(e))
-
-        try:
-            if row is not None:
-                row.delete()
-        except Exception as erreur_suppression:
-            print(
-                "Impossible de supprimer la ligne histo partielle :",
-                repr(erreur_suppression)
-            )
-
+    def refuser(message):
         return {
             "ok": False,
+            "message": message,
             "histo_id": None,
-            "nb_offres": 0,
-            "message": f"Erreur backup_requete : {repr(e)}"
+            "revision_recherche": None
         }
+
+    user = anvil.users.get_user()
+    if not user or not user["email"]:
+        return refuser("Utilisateur non connecté.")
+
+    if mode_recherche not in ("classique", "cpv"):
+        return refuser("Mode de recherche invalide.")
+
+    try:
+        periode = int(nb_jours)
+    except (ValueError, TypeError, OverflowError):
+        return refuser("Le nombre de jours doit être un entier.")
+
+    if periode < 1:
+        return refuser("Le nombre de jours doit être supérieur à zéro.")
+
+    if date_heure is None:
+        return refuser("La date de recherche est manquante.")
+
+    # Une recherche classique efface la sélection CPV précédente.
+    codes_cpv = []
+    if mode_recherche == "cpv":
+        validation = CPV_API.valider_selection_cpv(cpv_selectionnes)
+        if not validation["ok"]:
+            return refuser(validation["message"])
+        codes_cpv = validation["codes"]
+
+    sources_nettoyees = nettoyer_sources(sources)
+    offres_nettoyees = nettoyer_offres_pour_histo(offres)
+
+    # Recherche et création conditionnelle dans une transaction standard.
+    row = app_tables.histo.get(email=user["email"])
+    nouvelle_revision = 1
+    if row is not None:
+        nouvelle_revision = row["revision_recherche"] + 1
+
+    valeurs = {
+        "email": user["email"],
+        "date_heure": date_heure,
+        "sources": sources_nettoyees,
+        "mots_cles": str(mots_cles or ""),
+        "mots_ou": str(mots_ou or ""),
+        "mots_exclus": str(mots_exclus or ""),
+        "nb_jours": periode,
+        "departements": str(departements or ""),
+        "offres": offres_nettoyees,
+        "nb_offres": len(offres_nettoyees),
+        "mode_recherche": mode_recherche,
+        "cpv_selectionnes": codes_cpv,
+        "revision_recherche": nouvelle_revision
+    }
+
+    if row is None:
+        row = app_tables.histo.add_row(**valeurs)
+    else:
+        row.update(**valeurs)
+
+    return {
+        "ok": True,
+        "histo_id": row.get_id(),
+        "revision_recherche": nouvelle_revision,
+        "nb_offres": len(offres_nettoyees),
+        "message": "Dernière recherche sauvegardée."
+    }
