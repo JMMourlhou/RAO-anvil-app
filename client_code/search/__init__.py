@@ -955,8 +955,11 @@ class search(searchTemplate):
                 print("Erreurs partielles CPV :", resultat["errors"])
                 message_complementaire += "\nCertaines sources ont signalé une erreur."
             self.afficher_progression_recherche(
-                ligne_1=self.format_nb_offres(len(offres_affichees), "retenue", "retenues"),
-                ligne_2=message_complementaire.strip(),
+                ligne_1=(
+                    self.format_nb_offres(len(offres_affichees), "retenue", "retenues")
+                    if offres_affichees else "Pas d'offres correspondant aux critères"
+                ),
+                ligne_2=message_complementaire.strip() if offres_affichees else "",
                 etat="success", progress_global=100, progress_source=100,
                 afficher_jauges=False,
             )
@@ -2780,7 +2783,7 @@ class search(searchTemplate):
         - conservation de la même signature pour ne pas modifier les appels existants.
     
         Affichage attendu :
-        🔎 Recherche en cours — TED — 137/500 — 54 %
+        Recherche TED en cours — 54 %
         """
     
         # =====================================================
@@ -2864,6 +2867,9 @@ class search(searchTemplate):
             else:
                 texte = ligne_1 or "⚠ Erreur"
     
+        elif etat == "running" and source_nom.upper() in ("AWS", "BOAMP", "TED", "CARIF", "CARIF-OREF"):
+            # Les plateformes ont un libellé unique, sans répéter le message source.
+            texte = f"Recherche {source_nom} en cours — {progress_affiche} %"
         else:
             titre = ligne_1 or "🔎 Recherche en cours"
     
