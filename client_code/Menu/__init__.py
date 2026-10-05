@@ -10,7 +10,7 @@ from ..z_user_login import z_user_login
 from ..z_user_pw_reset import z_user_pw_reset
 from ..z_user_new_account import z_user_new_account
 
-from anvil.js import window
+from anvil.js import window, get_dom_node
 from ..search import search
 from ..Contact import Contact
 from ..Param import Param
@@ -25,6 +25,7 @@ class Menu(MenuTemplate):
         )
         # Any code you write here will run before the form opens.
         self.form_search = None
+        self._arret_bloque = False
         
         user=anvil.users.get_user()
         if user:
@@ -243,6 +244,8 @@ class Menu(MenuTemplate):
     
         # Annuler la recherche avant de fermer
         result = self.arreter_recherche_active()
+        if isinstance(result, dict) and result.get("pending"):
+            return
 
         if not isinstance(result, dict) or result.get("ok") is not True:
             message = "Merci de patienter quelques instants puis de cliquer de nouveau sur Retour."
@@ -258,7 +261,7 @@ class Menu(MenuTemplate):
         window.close()
 
     
-    def arreter_recherche_active(self):
+    def arreter_recherche_active(self, task_disponible=False):
         """
         Demande à la Form search d'annuler sa background task si elle existe.
         """
@@ -271,7 +274,10 @@ class Menu(MenuTemplate):
     
         try:
             if hasattr(self.form_search, "annuler_recherche_depuis_menu"):
-                result = self.form_search.annuler_recherche_depuis_menu()
+                if task_disponible:
+                    result = self.form_search.envoyer_annulation_recherche()
+                else:
+                    result = self.form_search.annuler_recherche_depuis_menu()
                 print("Annulation recherche depuis Menu :", result)
                 return result
     
@@ -287,20 +293,46 @@ class Menu(MenuTemplate):
                 "message": str(e)
             }
     
+    def activer_bouton_arret(self, actif):
+        """Bloque le lien M3 (sans propriété enabled) et ses interactions clavier."""
+        self._arret_bloque = not actif
+        node = get_dom_node(self.navigation_link_retour)
+        node.setAttribute("aria-disabled", "false" if actif else "true")
+        if actif:
+            node.removeAttribute("inert")
+        else:
+            node.setAttribute("inert", "")
+        node.style.opacity = "" if actif else "0.5"
+
     def navigation_link_retour_click(self, **event_args):
-        """This method is called when the component is clicked"""
-    
-        # 1. Annuler la background task si la recherche est en cours
-        result = self.arreter_recherche_active()
-
-        if not isinstance(result, dict) or result.get("ok") is not True:
-            message = "Merci de patienter quelques instants puis de cliquer de nouveau sur Retour."
-            if isinstance(result, dict):
-                message = result.get("message") or message
-
-            alert(message, title="Recherche en cours")
+        """Demande l'arrêt une fois ; le timer assure le retour si la Task attend."""
+        if self._arret_bloque:
             return
-    
+        form_search = self.form_search
+        result = self.arreter_recherche_active()
+        self.traiter_resultat_arret(result, form_search)
+
+    def traiter_resultat_arret(self, result, form_search):
+        """Distingue l'attente normale des erreurs, y compris après un lancement."""
+        if self.form_search is not form_search:
+            return
+        if isinstance(result, dict) and result.get("ok") is True:
+            if result.get("pending"):
+                self.activer_bouton_arret(False)
+            else:
+                self.revenir_menu_apres_arret(form_search)
+            return
+
+        message = "La demande d'arrêt a échoué. Vous pouvez réessayer."
+        if isinstance(result, dict):
+            message = result.get("message") or message
+        alert(message, title="Erreur d'arrêt de la recherche")
+
+    def revenir_menu_apres_arret(self, form_search):
+        """Retour commun après confirmation immédiate ou différée ; protège les doubles retours."""
+        if self.form_search is not form_search:
+            return
+        self.activer_bouton_arret(True)
         # 2. Réaffichage des boutons du menu
         self.navigation_link_user_contact.visible = True
         self.navigation_link_user_parametres.visible = True

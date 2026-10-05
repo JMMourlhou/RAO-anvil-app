@@ -494,9 +494,14 @@ class search(searchTemplate):
         """
         Déverrouille l'interface après fin, erreur ou interruption de recherche.
         """
+        annulation_demandee = self._annulation_recherche_demandee
         self._recherche_en_cours = False
+        self._annulation_recherche_demandee = False
         self.timer_recherche_progress.interval = 0
         self.task_recherche = None
+        if annulation_demandee:
+            # Réactive aussi Arrêt si le lancement échoue sans remettre de Task.
+            self.f.activer_bouton_arret(True)
 
         try:
             self.f.navigation_link_search_go.visible = True
@@ -530,78 +535,71 @@ class search(searchTemplate):
             return anvil.server.call("statut_tache_recherche", task)
 
     def annuler_recherche_depuis_menu(self):
-        """Demande l'arrêt et conserve la Task jusqu'à confirmation.
+        """Demande une seule annulation ; distingue attente et échec technique."""
+        # Ce garde protège aussi les clics déjà en file pendant un appel serveur.
+        if self._annulation_recherche_demandee:
+            return {"ok": True, "pending": True}
 
-        Retour : dict avec ok=True seulement si aucune Task ne reste
-        à suivre. Les erreurs techniques remontent à Menu.
-        """
-        print("Demande d'annulation de la recherche depuis Menu")
+        if self.task_recherche is None and not self._recherche_en_cours:
+            self.deverrouiller_recherche(cacher_bouton=False)
+            return {"ok": True, "pending": False}
 
         self._annulation_recherche_demandee = True
-        self.timer_recherche_progress.interval = 0
+        self.f.activer_bouton_arret(False)
+        self.afficher_progression_recherche(
+            ligne_1="Arrêt de la recherche en cours…",
+            etat="stopping",
+            afficher_jauges=False
+        )
+
+        # Le lancement suspend le client avant de lui remettre la Task.
+        # Son finally transmettra cette demande dès réception de la référence.
+        if self.task_recherche is None:
+            return {"ok": True, "pending": True}
+
+        return self.envoyer_annulation_recherche()
+
+    def envoyer_annulation_recherche(self):
+        """Envoie l'arrêt d'une Task disponible et conserve son suivi jusqu'à terminaison.
+
+        Les erreurs techniques lèvent ; Menu les affiche. Une demande refusée
+        réinitialise le drapeau pour permettre une nouvelle tentative contrôlée.
+        """
         task = self.task_recherche
-
-        if task is None:
-            self.deverrouiller_recherche(cacher_bouton=False)
-            return {
-                "ok": True,
-                "message": "Aucune recherche en cours"
-            }
-
-        self._recherche_en_cours = True
-
+        self.timer_recherche_progress.interval = 0
+        demande_acceptee = False
         try:
             with anvil.server.no_loading_indicator:
                 result = anvil.server.call("task_killer", task)
-
             print("Résultat task_killer :", result)
-
             if not isinstance(result, dict):
                 raise ValueError("Réponse de task_killer invalide.")
-
             if result.get("ok") is not True:
                 return {
                     "ok": False,
-                    "message": (
-                        "Annulation non confirmée. "
-                        "La référence est conservée ; vous pouvez réessayer."
-                    )
+                    "message": result.get("message") or "La demande d'arrêt a échoué. Vous pouvez réessayer."
                 }
 
-            # Vérifier aussi après kill_requested :
-            # la réponse à la demande d'arrêt ne suffit pas.
+            demande_acceptee = True
             statut = self.lire_statut_tache_recherche(task)
-
-            if statut not in ("completed", "failed", "killed"):
-                return {
-                    "ok": False,
-                    "status": statut,
-                    "message": (
-                        "La recherche est encore en cours d'arrêt.  "
-                        "Réessayez dans quelques instants."
-                    )
-                }
-
-            self.deverrouiller_recherche(cacher_bouton=False)
-            self.afficher_progression_recherche(
-                ligne_1="⛔ Recherche arrêtée",
-                ligne_2="Retour au menu.",
-                etat="error",
-                progress_global=0,
-                progress_source=0,
-                afficher_jauges=False
-            )
-            return {
-                "ok": True,
-                "status": statut,
-                "message": "Terminaison confirmée par Anvil"
-            }
-
+            # Un tick déjà engagé peut avoir confirmé et nettoyé la tâche.
+            if self.task_recherche is not task:
+                return {"ok": True, "pending": False}
+            if statut in ("completed", "failed", "killed"):
+                self.finaliser_annulation_recherche()
+                return {"ok": True, "pending": False, "status": statut}
+            return {"ok": True, "pending": True, "status": statut}
         finally:
-            # Si l'arrêt n'est pas confirmé, conserver la référence
-            # et reprendre les vérifications, même après une exception.
             if self.task_recherche is task:
+                if not demande_acceptee:
+                    self._annulation_recherche_demandee = False
+                    self.f.activer_bouton_arret(True)
                 self.timer_recherche_progress.interval = 1
+
+    def finaliser_annulation_recherche(self):
+        """Nettoie une annulation confirmée et rejoint le menu, quel que soit le lecteur."""
+        self.deverrouiller_recherche(cacher_bouton=False)
+        self.f.revenir_menu_apres_arret(self)
 
     # =========================================================================
     # Recherche
@@ -749,7 +747,7 @@ class search(searchTemplate):
                     erreur
                 )
 
-            if erreur_lancement is None:
+            if erreur_lancement is None and not self._annulation_recherche_demandee:
                 self.display_param_summary()
 
                 self.afficher_progression_recherche(
@@ -771,6 +769,9 @@ class search(searchTemplate):
                 # Préserver la référence reçue par ce lancement.
                 self.task_recherche = task_recue
                 self.timer_recherche_progress.interval = 1
+                if self._annulation_recherche_demandee:
+                    result = self.f.arreter_recherche_active(task_disponible=True)
+                    self.f.traiter_resultat_arret(result, self)
             else:
                 self.deverrouiller_recherche(cacher_bouton=False)
 
@@ -896,6 +897,9 @@ class search(searchTemplate):
                 # Préserver la référence reçue par ce lancement.
                 self.task_recherche = task_recue
                 self.timer_recherche_progress.interval = 1
+                if self._annulation_recherche_demandee:
+                    result = self.f.arreter_recherche_active(task_disponible=True)
+                    self.f.traiter_resultat_arret(result, self)
             else:
                 self.deverrouiller_recherche(cacher_bouton=False)
                 self.bloc_selecteur_cpv_complet.visible = True
@@ -2495,7 +2499,7 @@ class search(searchTemplate):
         if self._annulation_recherche_demandee:
             task = self.task_recherche
             if task is None:
-                self.deverrouiller_recherche(cacher_bouton=False)
+                # La Task n'est pas encore revenue du lancement.
                 return
 
             try:
@@ -2509,7 +2513,7 @@ class search(searchTemplate):
                 return
 
             if statut in ("completed", "failed", "killed"):
-                self.deverrouiller_recherche(cacher_bouton=False)
+                self.finaliser_annulation_recherche()
 
             # None, missing ou statut inattendu : conserver le suivi.
             # Aucun résultat n'est traité dans cette branche.
@@ -2592,9 +2596,11 @@ class search(searchTemplate):
     
         try:
             with anvil.server.no_loading_indicator:
-                result = self.task_recherche.get_return_value()
+                result = task.get_return_value()
     
         except Exception as e:
+            if self.task_recherche is not task or self._annulation_recherche_demandee:
+                return
             print(f"Erreur pendant la tâche background : {e}")
     
             self.afficher_progression_recherche(
@@ -2613,6 +2619,10 @@ class search(searchTemplate):
             )
             return
     
+        # L'arrêt peut avoir été demandé pendant get_return_value().
+        if self.task_recherche is not task or self._annulation_recherche_demandee:
+            return
+
         if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
             self.traiter_offres_cpv_apres_background(result)
             return
@@ -2866,6 +2876,10 @@ class search(searchTemplate):
             else:
                 texte = ligne_1 or "⚠ Erreur"
     
+        elif etat == "stopping":
+            # L'attente d'arrêt n'est pas une progression mesurable en pourcentage.
+            texte = ligne_1
+
         elif etat == "running" and source_nom.upper() in ("AWS", "BOAMP", "TED", "CARIF", "CARIF-OREF"):
             # Les plateformes ont un libellé unique, sans répéter le message source.
             if (self._ctx_recherche or {}).get("mode_recherche") == "cpv" and progress_source == 0:
