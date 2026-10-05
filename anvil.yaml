@@ -1,35 +1,74 @@
 allow_embedding: false
 db_schema:
+  bg_task_ctrl:
+    client: none
+    columns:
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: search_id
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: user
+      target: users
+      type: link_single
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: status
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: created_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: started_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: cancel_requested_at
+      type: datetime
+    - admin_ui: {order: 6, width: 200}
+      client_hidden: false
+      name: finished_at
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: background_task_id
+      type: string
+    indexes: []
+    server: full
+    title: bg_task_ctrl
   contact:
     client: none
     columns:
-    - admin_ui: {order: 0, width: 200}
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: date
+      type: string
+    - admin_ui: {width: 200}
       client_hidden: false
       name: nom
       type: string
-    - admin_ui: {order: 1, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: mail
       type: string
-    - admin_ui: {order: 2, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: tel
       type: string
-    - admin_ui: {order: 3, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: activite
       type: string
-    - admin_ui: {order: 4, width: 200}
-      client_hidden: false
-      name: message
-      type: string
-    - admin_ui: {order: 3.5, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: objet
       type: string
-    - admin_ui: {order: -1, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
-      name: date
+      name: message
       type: string
     indexes: []
     server: full
@@ -37,147 +76,154 @@ db_schema:
   daily_survey:
     client: none
     columns:
-    - admin_ui: {order: -2, width: 169}
+    - admin_ui: {width: 169}
       client_hidden: false
       name: email
       target: users
       type: link_single
-    - admin_ui: {order: 1, width: 158}
-      client_hidden: false
-      name: sources
-      type: simpleObject
-    - admin_ui: {order: 2, width: 141}
-      client_hidden: false
-      name: mots_cles
-      type: string
-    - admin_ui: {order: 3, width: 123}
-      client_hidden: false
-      name: mots_ou
-      type: string
-    - admin_ui: {order: 4, width: 134}
-      client_hidden: false
-      name: mots_exclus
-      type: string
-    - admin_ui: {order: 1.5, width: 95}
-      client_hidden: false
-      name: nb_jours
-      type: number
-    - admin_ui: {order: 6, width: 92}
-      client_hidden: false
-      name: departements
-      type: string
-    - admin_ui: {order: -1, width: 156}
+    - admin_ui: {width: 156}
       client_hidden: false
       name: active
       type: bool
-    - admin_ui: {order: -0.5, width: 209}
+    - admin_ui: {width: 209}
       client_hidden: false
       name: date_creation
       type: datetime
-    - admin_ui: {order: -0.25, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: derniere_recherche
       type: datetime
-    - admin_ui: {order: -0.0625, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: dernier_statut
       type: string
-    - admin_ui: {order: -0.03125, width: 124}
+    - admin_ui: {width: 124}
       client_hidden: false
       name: derniere_erreur
       type: string
-    - admin_ui: {order: 7, width: 200}
+    - admin_ui: {width: 158}
+      client_hidden: false
+      name: sources
+      type: simpleObject
+    - admin_ui: {width: 95}
+      client_hidden: false
+      name: nb_jours
+      type: number
+    - admin_ui: {width: 141}
+      client_hidden: false
+      name: mots_cles
+      type: string
+    - admin_ui: {width: 123}
+      client_hidden: false
+      name: mots_ou
+      type: string
+    - admin_ui: {width: 134}
+      client_hidden: false
+      name: mots_exclus
+      type: string
+    - admin_ui: {width: 92}
+      client_hidden: false
+      name: departements
+      type: string
+    - admin_ui: {width: 200}
       client_hidden: false
       name: cle_requete
       type: string
-    - admin_ui: {order: 8, width: 93}
+    - admin_ui: {width: 93}
       client_hidden: false
       name: nb_offres_derniere_recherche
       type: number
-    - admin_ui: {order: 9, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: mode_recherche
       type: string
-    - admin_ui: {order: 10, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: cpv_selectionnes
       type: simpleObject
-    - {name: mots_obligatoires, type: simpleObject}
+    - admin_ui: {}
+      client_hidden: null
+      name: mots_obligatoires
+      type: simpleObject
     indexes: []
     server: full
     title: daily_survey
   files:
     client: none
     columns: []
+    indexes: []
     server: full
     title: files
   global_variables:
     client: none
     columns:
-    - admin_ui: {order: 0, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: name
       type: string
-    - admin_ui: {order: 1, width: 263}
+    - admin_ui: {width: 263}
       client_hidden: false
       name: value
       type: simpleObject
-    - admin_ui: {order: 2, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: commentaires
       type: string
+    indexes: []
     server: full
     title: global_variables
   histo:
     client: search
     columns:
-    - admin_ui: {order: 1, width: 200}
-      name: mots_cles
-      type: simpleObject
-    - admin_ui: {order: -2, width: 250}
-      client_hidden: false
+    - admin_ui: {width: 250}
+      client_hidden: null
       name: email
       type: string
-    - admin_ui: {order: 3, width: 86}
-      client_hidden: false
-      name: nb_jours
-      type: number
-    - admin_ui: {order: -1.5, width: 200}
+    - admin_ui: {width: 200}
+      client_hidden: null
       name: date_heure
       type: datetime
-    - admin_ui: {order: 4, width: 127}
-      client_hidden: false
-      name: departements
-      type: simpleObject
-    - admin_ui: {order: -0.25, width: 258}
+    - admin_ui: {width: 258}
       client_hidden: false
       name: sources
       type: simpleObject
-    - admin_ui: {order: 6, width: 200}
-      client_hidden: false
-      name: offres
+    - admin_ui: {width: 200}
+      client_hidden: null
+      name: mots_cles
       type: simpleObject
-    - admin_ui: {order: 5.5, width: 87}
-      client_hidden: false
-      name: nb_offres
-      type: number
-    - admin_ui: {order: 2, width: 263}
+    - admin_ui: {width: 263}
       client_hidden: false
       name: mots_ou
       type: string
-    - admin_ui: {order: 4.75, width: 200}
+    - admin_ui: {width: 86}
+      client_hidden: false
+      name: nb_jours
+      type: number
+    - admin_ui: {width: 127}
+      client_hidden: null
+      name: departements
+      type: simpleObject
+    - admin_ui: {width: 200}
       client_hidden: false
       name: mots_exclus
       type: string
-    - admin_ui: {order: 7, width: 200}
+    - admin_ui: {width: 87}
+      client_hidden: false
+      name: nb_offres
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: offres
+      type: simpleObject
+    - admin_ui: {width: 200}
       client_hidden: false
       name: mode_recherche
       type: string
-    - admin_ui: {order: 8, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: cpv_selectionnes
       type: simpleObject
-    - admin_ui: {order: 9, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: revision_recherche
       type: number
@@ -187,21 +233,21 @@ db_schema:
   platformes:
     client: search
     columns:
-    - admin_ui: {order: 0, width: 319}
-      client_hidden: false
-      name: nom
-      type: string
-    - admin_ui: {order: 1, width: 200}
-      client_hidden: false
-      name: url
-      type: string
-    - admin_ui: {order: -1, width: 288}
+    - admin_ui: {width: 288}
       client_hidden: false
       name: id
       type: string
-    - admin_ui: {order: 0.5, width: 406}
+    - admin_ui: {width: 319}
+      client_hidden: false
+      name: nom
+      type: string
+    - admin_ui: {width: 406}
       client_hidden: false
       name: drop_down_display
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: url
       type: string
     indexes: []
     server: full
@@ -209,86 +255,86 @@ db_schema:
   users:
     client: search
     columns:
-    - admin_ui: {order: -2, width: 245}
-      client_hidden: false
+    - admin_ui: {width: 245}
+      client_hidden: null
       name: email
       type: string
-    - admin_ui: {order: 2, width: 200}
-      client_hidden: false
-      name: adresse_rue1
-      type: string
-    - admin_ui: {order: 3, width: 200}
-      client_hidden: false
-      name: adresse_rue2
-      type: string
-    - admin_ui: {order: 4, width: 200}
-      client_hidden: false
-      name: adresse_ville
-      type: string
-    - admin_ui: {order: 5, width: 200}
-      client_hidden: false
-      name: adresse_cp
-      type: string
-    - admin_ui: {order: 0.5, width: 200}
-      client_hidden: false
-      name: confirmed_email
-      type: bool
-    - admin_ui: {order: 0.75, width: 200}
-      client_hidden: false
-      name: enabled
-      type: bool
-    - admin_ui: {order: 0.875, width: 200}
-      client_hidden: false
-      name: signed_up
-      type: datetime
-    - admin_ui: {order: 1.5, width: 200}
-      client_hidden: false
-      name: nom
-      type: string
-    - admin_ui: {order: 1.875, width: 200}
-      client_hidden: false
-      name: entreprise
-      type: string
-    - admin_ui: {order: 6, width: 200}
-      client_hidden: false
-      name: adresse_pays
-      type: string
-    - admin_ui: {order: 0.625, width: 200}
-      client_hidden: true
-      name: password_hash
-      type: string
-    - admin_ui: {order: 0.8125, width: 275}
-      client_hidden: false
-      name: api_key
-      type: string
-    - admin_ui: {order: 1.21875, width: 200}
-      client_hidden: false
-      name: n_password_failures
-      type: number
-    - admin_ui: {order: -1, width: 99}
+    - admin_ui: {width: 99}
       client_hidden: false
       name: role
       type: string
-    - admin_ui: {order: 1.046875, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
-      name: last_login
-      type: datetime
-    - admin_ui: {order: 0.84375, width: 200}
+      name: confirmed_email
+      type: bool
+    - admin_ui: {width: 200}
+      client_hidden: true
+      name: password_hash
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: enabled
+      type: bool
+    - admin_ui: {width: 275}
+      client_hidden: false
+      name: api_key
+      type: string
+    - admin_ui: {width: 200}
       client_hidden: false
       name: api_key_created_at
       type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: signed_up
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: last_login
+      type: datetime
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: n_password_failures
+      type: number
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: nom
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: entreprise
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: adresse_rue1
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: adresse_rue2
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: adresse_ville
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: adresse_cp
+      type: string
+    - admin_ui: {width: 200}
+      client_hidden: false
+      name: adresse_pays
+      type: string
     indexes: []
     server: full
     title: users
   users_parametres:
     client: none
     columns:
-    - admin_ui: {order: 0, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: email
       target: users
       type: link_single
-    - admin_ui: {order: 1, width: 200}
+    - admin_ui: {width: 200}
       client_hidden: false
       name: mail_if_no_result
       type: bool
