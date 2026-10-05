@@ -1209,13 +1209,14 @@ class search(searchTemplate):
 
         self.text_param_summary.visible = True
 
+        if nb_offres == 1:
+            message_final = "1 offre retenue"
+        else:
+            message_final = f"{nb_offres} offres retenues"
+        
         self.afficher_progression_recherche(
-            ligne_1="✔ Recherche terminée",
-            ligne_2=self.format_nb_offres(
-                nb_offres,
-                "retenue",
-                "retenues"
-            ),
+            ligne_1=message_final,
+            ligne_2="",
             etat="success",
             progress_global=100,
             progress_source=100,
