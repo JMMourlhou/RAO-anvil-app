@@ -183,3 +183,23 @@ def finaliser_recherche_rao(search_id, issue):
         valeurs[_COLONNE_FIN] = datetime.now(timezone.utc)
     row.update(**valeurs)
     return _serialize_state(row)
+
+
+@anvil.server.callable
+def diagnostic_origine_appel_rao():
+    """Diagnostic temporaire de l'origine ; aucune identité ni donnée du registre.
+
+    Sans paramètre. Retourne uniquement les types de contexte, la confiance
+    déclarée par Anvil et la présence d'un utilisateur. Une propriété absente
+    vaut None ; les erreurs techniques ne sont pas interceptées.
+    """
+    contexte = getattr(anvil.server, "context", None)
+    appelant = getattr(contexte, "remote_caller", None)
+    client = getattr(contexte, "client", None)
+    return {
+        "context_type": getattr(contexte, "type", None),
+        "remote_caller_type": getattr(appelant, "type", None),
+        "remote_caller_is_trusted": getattr(appelant, "is_trusted", None),
+        "client_type": getattr(client, "type", None),
+        "user_present": anvil.users.get_user() is not None,
+    }
