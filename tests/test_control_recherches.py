@@ -255,7 +255,8 @@ class TestsControlRecherches(unittest.TestCase):
         self.assertEqual(set(self.transaction_functions), {
             "enregistrer_recherche_rao", "marquer_recherche_en_cours",
             "demander_annulation_recherche_rao", "obtenir_etat_recherche_rao",
-            "finaliser_recherche_rao"})
+            "finaliser_recherche_rao", "marquer_recherche_en_cours_uplink",
+            "obtenir_etat_recherche_rao_uplink", "finaliser_recherche_rao_uplink"})
 
     def test_erreur_table_propagee(self):
         with patch.object(self.table, "get", side_effect=RuntimeError("Panne table")):

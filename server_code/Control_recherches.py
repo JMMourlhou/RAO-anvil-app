@@ -1,4 +1,4 @@
-"""Registre RAO privé : toutes les opérations ciblent l'utilisateur connecté."""
+"""Registre RAO privé : accès client par propriétaire et accès Uplink de confiance."""
 from datetime import datetime, timezone
 
 import anvil.users
@@ -58,6 +58,40 @@ def _serialize_state(row):
     }
 
 
+def _marquer_row_en_cours(row, background_task_id):
+    """Transition commune client/Uplink ; appelée dans une transaction."""
+    state = _serialize_state(row)
+    if state["finished"]:
+        return state
+
+    # Un démarrage tardif ne peut pas retirer une demande d'annulation.
+    valeurs = {}
+    if state["status"] == "registered":
+        valeurs["status"] = "running"
+    if row["started_at"] is None:
+        valeurs["started_at"] = datetime.now(timezone.utc)
+    if background_task_id is not None:
+        valeurs["background_task_id"] = background_task_id
+    if valeurs:
+        row.update(**valeurs)
+    return _serialize_state(row)
+
+
+def _finaliser_row(row, issue):
+    """Finalisation commune client/Uplink ; appelée dans une transaction."""
+    state = _serialize_state(row)
+    if state["finished"]:
+        return state
+    etat_final = issue
+    if state["status"] == "cancellation_requested" and issue == "completed":
+        etat_final = "cancelled"
+    valeurs: dict = {"status": etat_final}
+    if row[_COLONNE_FIN] is None:
+        valeurs[_COLONNE_FIN] = datetime.now(timezone.utc)
+    row.update(**valeurs)
+    return _serialize_state(row)
+
+
 @anvil.server.callable
 @tables.in_transaction
 def enregistrer_recherche_rao(search_id):
@@ -102,21 +136,7 @@ def marquer_recherche_en_cours(search_id, background_task_id=None):
     row = _get_row(search_id, user)
     if row is None:
         return _missing_state()
-    state = _serialize_state(row)
-    if state["finished"]:
-        return state
-
-    # Un démarrage tardif ne peut pas retirer une demande d'annulation.
-    valeurs = {}
-    if state["status"] == "registered":
-        valeurs["status"] = "running"
-    if row["started_at"] is None:
-        valeurs["started_at"] = datetime.now(timezone.utc)
-    if background_task_id is not None:
-        valeurs["background_task_id"] = background_task_id
-    if valeurs:
-        row.update(**valeurs)
-    return _serialize_state(row)
+    return _marquer_row_en_cours(row, background_task_id)
 
 
 @anvil.server.callable
@@ -172,17 +192,7 @@ def finaliser_recherche_rao(search_id, issue):
     row = _get_row(search_id, user)
     if row is None:
         return _missing_state()
-    state = _serialize_state(row)
-    if state["finished"]:
-        return state
-    etat_final = issue
-    if state["status"] == "cancellation_requested" and issue == "completed":
-        etat_final = "cancelled"
-    valeurs: dict = {"status": etat_final}
-    if row[_COLONNE_FIN] is None:
-        valeurs[_COLONNE_FIN] = datetime.now(timezone.utc)
-    row.update(**valeurs)
-    return _serialize_state(row)
+    return _finaliser_row(row, issue)
 
 
 @anvil.server.callable
@@ -203,3 +213,82 @@ def diagnostic_origine_appel_rao():
         "client_type": getattr(client, "type", None),
         "user_present": anvil.users.get_user() is not None,
     }
+
+
+# Les endpoints Uplink vérifient l'origine avant tout accès au registre.
+def _uplink_autorise():
+    """Autorise uniquement un appel Uplink serveur attesté par Anvil."""
+    contexte = getattr(anvil.server, "context", None)
+    caller = getattr(contexte, "remote_caller", None)
+    return (
+        caller is not None
+        and getattr(caller, "type", None) == "uplink"
+        and getattr(caller, "is_trusted", None) is True
+    )
+
+
+def _resolve_uplink_row(search_id):
+    """Résout une ligne unique ; appeler uniquement après autorisation Uplink.
+
+    Ne crée aucune ligne. Une deuxième correspondance suffit pour refuser
+    l'identifiant ambigu, sans choisir arbitrairement un propriétaire.
+    """
+    if not isinstance(search_id, str) or not search_id.strip():
+        return None, {"ok": False, "code": "invalid_search_id"}
+    row = None
+    for correspondance in app_tables.bg_task_ctrl.search(search_id=search_id):
+        if row is not None:
+            return None, {"ok": False, "code": "ambiguous_search_id"}
+        row = correspondance
+    if row is None:
+        return None, {"ok": False, "code": "not_found"}
+    return row, None
+
+
+@anvil.server.callable
+@tables.in_transaction
+def marquer_recherche_en_cours_uplink(search_id, background_task_id=None):
+    """Note le démarrage pour un Uplink autorisé, sans session utilisateur.
+
+    Retour : état ou refus structuré. Préserve annulation et états terminaux.
+    Ne crée aucune ligne ; les erreurs techniques remontent.
+    """
+    if not _uplink_autorise():
+        return {"ok": False, "code": "uplink_not_authorized"}
+    if background_task_id is not None:
+        if not isinstance(background_task_id, str) or not background_task_id.strip():
+            return {"ok": False, "code": "invalid_background_task_id"}
+    row, error = _resolve_uplink_row(search_id)
+    if error is not None:
+        return error
+    return _marquer_row_en_cours(row, background_task_id)
+
+
+@anvil.server.callable
+@tables.in_transaction
+def obtenir_etat_recherche_rao_uplink(search_id):
+    """Lit un état unique pour un Uplink autorisé, sans exposer le propriétaire."""
+    if not _uplink_autorise():
+        return {"ok": False, "code": "uplink_not_authorized"}
+    row, error = _resolve_uplink_row(search_id)
+    if error is not None:
+        return error
+    return _serialize_state(row)
+
+
+@anvil.server.callable
+@tables.in_transaction
+def finaliser_recherche_rao_uplink(search_id, issue):
+    """Finalise pour un Uplink autorisé ; retourne l'état réellement retenu.
+
+    issue : completed, cancelled ou failed. Une annulation précède le succès ;
+    un état terminal est immuable. Les erreurs techniques remontent.
+    """
+    if not _uplink_autorise():
+        return {"ok": False, "code": "uplink_not_authorized"}
+    if issue not in _ETATS_TERMINAUX:
+        return {"ok": False, "code": "invalid_issue"}
+    row, error = _resolve_uplink_row(search_id)
+    if error is not None:
+        return error
+    return _finaliser_row(row, issue)

@@ -32,7 +32,7 @@ db_schema:
       client_hidden: false
       name: finished_at
       type: datetime
-    - admin_ui: {width: 200}
+    - admin_ui: {order: 7, width: 290}
       client_hidden: false
       name: background_task_id
       type: string

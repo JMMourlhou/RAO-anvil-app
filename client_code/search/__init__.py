@@ -271,9 +271,6 @@ class search(searchTemplate):
         self.multi_select_drop_down_platformes.width = "100%"
         self.multi_select_drop_down_platformes.background = "#3CD9ED"
 
-        # temp
-        resultat = anvil.server.call("diagnostic_origine_appel_rao")
-        print(resultat)
     
         # ------------------------------------------------------------
         # Texte affiché quand la DropDown est fermée :
