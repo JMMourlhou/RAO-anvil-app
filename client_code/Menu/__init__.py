@@ -221,7 +221,7 @@ class Menu(MenuTemplate):
         
 
     def actualiser_visibilite_derniere_recherche(self):
-        """Affiche le lien uniquement si la dernière recherche contient des offres."""
+        """Affiche le lien si une recherche persistée existe, même sans offre."""
 
         self.navigation_link_user_derniere_recherche.visible = False
 
@@ -229,11 +229,11 @@ class Menu(MenuTemplate):
             return
 
         with anvil.server.no_loading_indicator:
-            nb_offres = anvil.server.call(
-                "obtenir_nb_offres_derniere_recherche"
+            existe_historique = anvil.server.call(
+                "existe_derniere_recherche"
             )
 
-        self.navigation_link_user_derniere_recherche.visible = nb_offres > 0
+        self.navigation_link_user_derniere_recherche.visible = existe_historique
 
     def navigation_link_user_derniere_recherche_click(self, **event_args):
         """Affiche la dernière recherche sauvegardée."""

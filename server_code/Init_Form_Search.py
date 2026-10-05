@@ -78,6 +78,13 @@ def initialiser_form_search(inclure_offres=False):
 
 
 @anvil.server.callable(require_user=True)
+def existe_derniere_recherche():
+    """Retourne un booléen d'existence pour l'utilisateur connecté, sans écriture."""
+    user = anvil.users.get_user()
+    return app_tables.histo.get(email=user["email"]) is not None
+
+
+@anvil.server.callable(require_user=True)
 def obtenir_nb_offres_derniere_recherche():
     """Retourne le nombre d'offres de la dernière recherche de l'utilisateur.
 

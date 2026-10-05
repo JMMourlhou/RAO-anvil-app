@@ -1436,7 +1436,7 @@ class search(searchTemplate):
     # =========================================================================
 
     def button_del_all_click(self, **event_args):
-        """Efface toutes les offres affichées et met histo['offres'] à []."""
+        """Vide les résultats courants sans modifier la recherche persistée."""
 
         r = demander_choix(
             titre="Changement des conditions de recherche",
@@ -1447,9 +1447,8 @@ class search(searchTemplate):
             return
 
         self.list_offres = []
-
-        if self.histo_id:
-            self.sauver_offres_dans_histo()
+        # L'affichage vide ne représente plus les offres sauvegardées.
+        self._offres_correspondent_histo = False
 
         self.afficher_offres(self.list_offres)
         self.set_checkbox_on_off_sans_event(False)
@@ -1465,13 +1464,12 @@ class search(searchTemplate):
         
     def button_del_before_modif_param(self, **event_args):
         """
-        Vide l'affichage courant et les offres de la ligne d'historique.
+        Vide l'affichage courant sans modifier la recherche persistée.
         """
 
         self.list_offres = []
-
-        if self.histo_id:
-            self.sauver_offres_dans_histo()
+        # Conserver l'historique même si ce parcours est réutilisé plus tard.
+        self._offres_correspondent_histo = False
 
         self.afficher_offres(self.list_offres)
         self.set_checkbox_on_off_sans_event(False)
@@ -3502,5 +3500,4 @@ class search(searchTemplate):
 
     def go_down(self, **event_args):
         self.scroll_into_view(smooth=True, align="end")
-
 
