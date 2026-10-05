@@ -2868,7 +2868,13 @@ class search(searchTemplate):
     
         elif etat == "running" and source_nom.upper() in ("AWS", "BOAMP", "TED", "CARIF", "CARIF-OREF"):
             # Les plateformes ont un libellé unique, sans répéter le message source.
-            texte = f"Recherche {source_nom} en cours — {progress_affiche} %"
+            if (self._ctx_recherche or {}).get("mode_recherche") == "cpv" and progress_source == 0:
+                # Le timer rappelle cette méthode même si la progression reste inchangée.
+                self._points_animation_recherche = getattr(self, "_points_animation_recherche", 0) % 3 + 1
+                texte = f"Recherche {source_nom} en cours" + "." * self._points_animation_recherche
+            else:
+                self._points_animation_recherche = 0
+                texte = f"Recherche {source_nom} en cours — {progress_affiche} %"
         else:
             titre = ligne_1 or "🔎 Recherche en cours"
     
