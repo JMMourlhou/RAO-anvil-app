@@ -192,7 +192,7 @@ class TestsRechercheCPV(unittest.TestCase):
             [{"titre": "Offre"}], recherche_limitee=True, message_limite="Message exact moteur",
             nb_resultats_metier=501, nb_retour_client=500))
         self.espace["afficher_information"].assert_called_with("Message exact moteur", titre="Recherche limitée")
-        self.assertIn("501", self.form.afficher_progression_recherche.call_args.kwargs["ligne_2"])
+        self.assertEqual(self.form.afficher_progression_recherche.call_args.kwargs["ligne_2"], "")
 
     def test_erreur_sans_partiel(self):
         self.lancer()

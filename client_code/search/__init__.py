@@ -939,13 +939,9 @@ class search(searchTemplate):
                 if not offre_affichee.get("lien_source"):
                     offre_affichee["lien_source"] = offre_affichee.get("lien", "")
                 offres_affichees.append(offre_affichee)
-            if not self.sauvegarder_derniere_recherche(offres_affichees):
+            if not self.finaliser_recherche(offres_affichees):
                 return
 
-            self.list_offres = offres_affichees
-            self.afficher_offres(self.list_offres)
-            self.checkbox_on_off.visible = bool(offres_affichees)
-            self.display_param_summary()
             message_complementaire = ""
             nombre_metier = resultat.get("nb_resultats_metier")
             nombre_retour = resultat.get("nb_retour_client")
@@ -954,15 +950,6 @@ class search(searchTemplate):
             if resultat.get("errors"):
                 print("Erreurs partielles CPV :", resultat["errors"])
                 message_complementaire += "\nCertaines sources ont signalé une erreur."
-            self.afficher_progression_recherche(
-                ligne_1=(
-                    self.format_nb_offres(len(offres_affichees), "retenue", "retenues")
-                    if offres_affichees else "Pas d'offres correspondant aux critères"
-                ),
-                ligne_2=message_complementaire.strip() if offres_affichees else "",
-                etat="success", progress_global=100, progress_source=100,
-                afficher_jauges=False,
-            )
             if resultat.get("recherche_limitee") and resultat.get("message_limite"):
                 afficher_information(resultat["message_limite"], titre="Recherche limitée")
             self.actualiser_bouton_veille_cpv()
@@ -1051,30 +1038,79 @@ class search(searchTemplate):
             if not sauvegarde_terminee:
                 self.deverrouiller_recherche(cacher_bouton=False)
 
-    def terminer_recherche_classique_sans_offre(self, message):
-        """Sauvegarde un résultat classique vide et termine son affichage."""
+    def finaliser_recherche(
+        self,
+        offres,
+        *,
+        cacher_bouton=False,
+        masquer_parametres=False,
+        message_sans_offre=None
+    ):
+        """Sauvegarde puis publie des offres déjà traitées par leur parcours.
 
+        offres : liste définitive, sans filtre ni tri supplémentaire.
+        Les options conservent la politique du bouton, des panneaux et le
+        message vide classique. Retourne True après finalisation, False si
+        la sauvegarde est refusée. Les erreurs remontent après déverrouillage.
+        """
+        finalisation_terminee = False
+        mode_cpv = (self._ctx_recherche or {}).get("mode_recherche") == "cpv"
         try:
-            if not self.sauvegarder_derniere_recherche([]):
-                return
+            # Publier uniquement après une sauvegarde réussie.
+            if not self.sauvegarder_derniere_recherche(offres):
+                return False
 
-            self.list_offres = []
-            self.afficher_offres([])
-            self.set_checkbox_on_off_sans_event(False)
-            self.checkbox_on_off.visible = False
+            self.list_offres = offres
+            self.afficher_offres(self.list_offres)
+
+            # Conserver les différences de sélection entre les parcours.
+            if mode_cpv:
+                self.checkbox_on_off.visible = bool(offres)
+            elif message_sans_offre is not None and not offres:
+                self.set_checkbox_on_off_sans_event(False)
+                self.checkbox_on_off.visible = False
+
+            if masquer_parametres:
+                self.f.navigation_link_search_go.enabled = False
+                self.column_panel_params.visible = False
+
             self.display_param_summary()
-            self.bloc_selecteur_cpv_complet.visible = True
+            if masquer_parametres:
+                self.column_panel_progress_recherche.visible = True
+                self.text_param_summary.visible = True
+
+            # Les messages vides restent propres à chaque parcours.
+            ligne_2 = ""
+            if not offres and mode_cpv:
+                message_final = "Pas d'offres correspondant aux critères"
+            elif not offres and message_sans_offre is not None:
+                self.bloc_selecteur_cpv_complet.visible = True
+                message_final = "Recherche terminée"
+                ligne_2 = message_sans_offre
+            elif mode_cpv:
+                message_final = self.format_nb_offres(len(offres), "retenue", "retenues")
+            elif len(offres) == 1:
+                message_final = "1 offre retenue"
+            else:
+                message_final = f"{len(offres)} offres retenues"
 
             self.afficher_progression_recherche(
-                ligne_1="Recherche terminée",
-                ligne_2=message,
+                ligne_1=message_final,
+                ligne_2=ligne_2,
                 etat="success",
                 progress_global=100,
                 progress_source=100,
                 afficher_jauges=False
             )
+            finalisation_terminee = True
+            return True
         finally:
-            self.deverrouiller_recherche(cacher_bouton=False)
+            # Sur échec, permettre une nouvelle recherche sans masquer l'erreur.
+            self.deverrouiller_recherche(cacher_bouton=cacher_bouton and finalisation_terminee)
+
+    def terminer_recherche_classique_sans_offre(self, message):
+        """Sauvegarde un résultat classique vide et termine son affichage."""
+        self.finaliser_recherche([], message_sans_offre=message)
 
     def traiter_offres_recuperees_apres_background(self, offres):
         """
@@ -1184,47 +1220,9 @@ class search(searchTemplate):
         # - par taux de mots OU trouvés puis date si mots OU présents
         offres_finales = self.trier_offres_par_interet(offres_finales)
 
-        nb_offres = len(offres_finales)
-
         # --- Sauvegarde de la requête et des offres ---
         self.afficher_etape_traitement_final("Sauvegarde de la recherche...")
-
-        if not self.sauvegarder_derniere_recherche(offres_finales):
-            return
-
-        self.list_offres = offres_finales
-
-        self.afficher_offres(self.list_offres)
-        
-
-        
-        self.f.navigation_link_search_go.enabled = False
-
-        self.column_panel_params.visible = False
-
-        # Affichage du résumé des paramètres de la requête
-        self.display_param_summary()
-
-        self.column_panel_progress_recherche.visible = True
-
-        self.text_param_summary.visible = True
-
-        if nb_offres == 1:
-            message_final = "1 offre retenue"
-        else:
-            message_final = f"{nb_offres} offres retenues"
-        
-        self.afficher_progression_recherche(
-            ligne_1=message_final,
-            ligne_2="",
-            etat="success",
-            progress_global=100,
-            progress_source=100,
-            afficher_jauges=False
-        )
-
-        # Succès : on cache les boutons de recherche
-        self.deverrouiller_recherche(cacher_bouton=True)
+        self.finaliser_recherche(offres_finales, cacher_bouton=True, masquer_parametres=True)
 
     def display_param_summary(self, **event_args):
         if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
