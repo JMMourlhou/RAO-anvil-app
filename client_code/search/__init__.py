@@ -4,6 +4,7 @@ import anvil.server
 from .. import Time
 from datetime import date, datetime
 import re
+import uuid
 from anvil.js import get_dom_node, window    # pour écouteur JS sur le DropDown et conter tps d'éxéction
 from .. import Context_ecran
 
@@ -133,6 +134,7 @@ class search(searchTemplate):
         self.timer_recherche_progress.interval = 0
     
         self.task_recherche = None
+        self.search_id = None
         self._ctx_recherche = {}
         self._recherche_en_cours = False
         self._nouvelle_recherche_cpv_en_attente = False
@@ -889,15 +891,28 @@ class search(searchTemplate):
         self.checkbox_on_off.visible = False
         self._annulation_recherche_demandee = False
         task_recue = None
+        inscription_refusee = False
 
         try:
             self.verrouiller_recherche()
             self.bloc_selecteur_cpv_complet.visible = False
             self.display_param_summary()
 
+            # Un seul identifiant métier, conservé pour l'inscription et le lancement CPV.
+            search_id = str(uuid.uuid4())
+            self.search_id = search_id
             with anvil.server.no_loading_indicator:
+                inscription = anvil.server.call("enregistrer_recherche_rao", search_id)
+                if not isinstance(inscription, dict) or type(inscription.get("ok")) is not bool:
+                    raise ValueError("Réponse d'inscription RAO invalide.")
+                if inscription["ok"] is False:
+                    inscription_refusee = True
+                    return
+                if getattr(self, "_recherche_abandonnee", False):
+                    return
                 task_recue = anvil.server.call(
                     "lancer_recherche_cpv_background",
+                    search_id=search_id,
                     cpv_selectionnes=criteres["cpv_selectionnes"],
                     departements=criteres["departements"],
                     filtre_jours=criteres["filtre_jours"],
@@ -927,6 +942,8 @@ class search(searchTemplate):
                         etat="error",
                         afficher_jauges=False
                     )
+                    if inscription_refusee:
+                        afficher_information("Impossible de lancer la recherche CPV.", titre="Recherche CPV")
 
     def traiter_offres_cpv_apres_background(self, resultat):
         """Affiche un résultat CPV dict déjà traité par le moteur.
