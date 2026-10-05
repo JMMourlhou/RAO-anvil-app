@@ -250,5 +250,91 @@ class TestsRechercheCPV(unittest.TestCase):
         self.assertTrue(self.form.f.navigation_link_search_go.enabled)
 
 
+class TestsProgressionRecherche(unittest.TestCase):
+    def setUp(self):
+        self.form = charger_methodes()["Search"]()
+        self.form._ctx_recherche = {"mode_recherche": "cpv"}
+        self.form._last_progress_role = None
+        self.form.column_panel_progress_recherche = Composant()
+        self.form.label_jauge_globale = Composant()
+        self.form.regler_jauge = Mock()
+
+    def afficher(self, source="AWS", compteur=None, message="", **options):
+        self.form.afficher_progression_recherche(
+            source_nom=source, source_current=compteur, source_total=None,
+            progress_source=0, ligne_2=message, **options
+        )
+        return self.form.label_jauge_globale.text
+
+    def test_compteurs_sans_total_ni_pourcentage(self):
+        for source in ("AWS", "BOAMP", "TED", "CARIF-OREF"):
+            for compteur in (1, 2, 37):
+                with self.subTest(source=source, compteur=compteur):
+                    suffixe = "avis traité" if compteur == 1 else "avis traités"
+                    attendu = f"{source} — {compteur} {suffixe}"
+                    self.assertEqual(self.afficher(source, compteur), attendu)
+                    self.assertNotIn("%", self.form.label_jauge_globale.text)
+                    self.assertEqual(self.form._points_animation_recherche, 0)
+
+    def test_message_utilisateur_prioritaire(self):
+        self.assertEqual(self.afficher(compteur=37, message="AWS — 37 avis traités (collecte)"),
+                         "AWS — 37 avis traités (collecte)")
+        self.assertEqual(self.afficher(compteur=1, message="   "), "AWS — 1 avis traité")
+
+    def test_cycle_sans_compteur_valide(self):
+        for source in ("AWS", "BOAMP", "TED", "CARIF-OREF"):
+            for compteur in (0, None, "37", -1, True):
+                with self.subTest(source=source, compteur=compteur):
+                    self.form._points_animation_recherche = 0
+                    for points in (1, 2, 3, 1):
+                        self.assertEqual(self.afficher(source, compteur, "Collecte"),
+                                         f"Recherche {source} en cours" + "." * points)
+
+    def test_transitions_compteur_et_source(self):
+        self.assertEqual(self.afficher(), "Recherche AWS en cours.")
+        self.assertEqual(self.afficher(compteur=2), "AWS — 2 avis traités")
+        self.assertEqual(self.afficher("TED", 0), "Recherche TED en cours.")
+        self.assertEqual(self.afficher("TED", 1), "TED — 1 avis traité")
+
+    def test_alias_carif(self):
+        self.assertEqual(self.afficher("CARIF", 1), "CARIF-OREF — 1 avis traité")
+        self.assertEqual(self.afficher("CARIF", 2), "CARIF-OREF — 2 avis traités")
+        self.assertEqual(self.afficher("CARIF", None), "Recherche CARIF-OREF en cours.")
+        self.assertEqual(self.afficher("CARIF", 37, "CARIF-OREF — 37 avis traités"),
+                         "CARIF-OREF — 37 avis traités")
+
+    def test_mode_classique_inchange(self):
+        self.form._ctx_recherche = {"mode_recherche": "classique"}
+        for compteur in (None, 0, 37):
+            self.assertEqual(self.afficher(compteur=compteur, message="AWS — 37 avis traités"),
+                             "Recherche AWS en cours — 0 %")
+        self.assertEqual(self.afficher("CARIF", 1), "Recherche CARIF en cours — 0 %")
+
+    def test_etats_finaux_et_arret_inchanges(self):
+        for etat, titre in (("success", "Terminé"), ("error", "Erreur"), ("stopping", "Arrêt")):
+            with self.subTest(etat=etat):
+                attendu = titre if etat == "stopping" else f"{titre} — Message"
+                self.assertEqual(self.afficher(compteur=37, message="Message", etat=etat, ligne_1=titre), attendu)
+
+    def test_timer_transmet_les_champs_et_affiche_le_message(self):
+        self.form._annulation_recherche_demandee = False
+        self.form.task_recherche = Mock()
+        self.form.task_recherche.is_completed.return_value = False
+        self.form.task_recherche.get_state.return_value = {
+            "progress": 15, "source_progress": 0, "source_en_cours": "AWS",
+            "source_current": 37, "source_total": None, "message": "AWS — 37 avis traités"
+        }
+        methode = self.form.afficher_progression_recherche
+        self.form.afficher_progression_recherche = Mock(wraps=methode)
+        self.form.timer_recherche_progress_tick()
+        arguments = self.form.afficher_progression_recherche.call_args.kwargs
+        self.assertEqual(arguments["ligne_2"], "AWS — 37 avis traités")
+        self.assertEqual(arguments["source_nom"], "AWS")
+        self.assertEqual(arguments["source_current"], 37)
+        self.assertIsNone(arguments["source_total"])
+        self.assertEqual(arguments["progress_source"], 0)
+        self.assertEqual(self.form.label_jauge_globale.text, "AWS — 37 avis traités")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2899,10 +2899,21 @@ class search(searchTemplate):
 
         elif etat == "running" and source_nom.upper() in ("AWS", "BOAMP", "TED", "CARIF", "CARIF-OREF"):
             # Les plateformes ont un libellé unique, sans répéter le message source.
-            if (self._ctx_recherche or {}).get("mode_recherche") == "cpv" and progress_source == 0:
-                # Le timer rappelle cette méthode même si la progression reste inchangée.
-                self._points_animation_recherche = getattr(self, "_points_animation_recherche", 0) % 3 + 1
-                texte = f"Recherche {source_nom} en cours" + "." * self._points_animation_recherche
+            if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
+                source_affichee = "CARIF-OREF" if source_nom.upper() == "CARIF" else source_nom
+                # Le compteur d'avis reste utilisable sans pourcentage ni total fiables.
+                compteur_disponible = isinstance(source_current, (int, float)) and not isinstance(source_current, bool) and source_current > 0
+                if compteur_disponible:
+                    self._points_animation_recherche = 0
+                    if ligne_2:
+                        texte = ligne_2
+                    else:
+                        suffixe = "avis traité" if source_current == 1 else "avis traités"
+                        texte = f"{source_affichee} — {source_current} {suffixe}"
+                else:
+                    # Le timer anime l'attente tant qu'aucun avis traité n'est disponible.
+                    self._points_animation_recherche = getattr(self, "_points_animation_recherche", 0) % 3 + 1
+                    texte = f"Recherche {source_affichee} en cours" + "." * self._points_animation_recherche
             else:
                 self._points_animation_recherche = 0
                 texte = f"Recherche {source_nom} en cours — {progress_affiche} %"
@@ -3500,4 +3511,3 @@ class search(searchTemplate):
 
     def go_down(self, **event_args):
         self.scroll_into_view(smooth=True, align="end")
-
