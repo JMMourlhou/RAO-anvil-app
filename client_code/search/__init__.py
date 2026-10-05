@@ -137,6 +137,7 @@ class search(searchTemplate):
         self._recherche_en_cours = False
         self._nouvelle_recherche_cpv_en_attente = False
         self._annulation_recherche_demandee = False
+        self._recherche_abandonnee = False
     
         self.base_app = ""
     
@@ -494,6 +495,9 @@ class search(searchTemplate):
         """
         Déverrouille l'interface après fin, erreur ou interruption de recherche.
         """
+        # Une ancienne finalisation peut revenir après la fermeture de cette Form.
+        if getattr(self, "_recherche_abandonnee", False):
+            return
         annulation_demandee = self._annulation_recherche_demandee
         self._recherche_en_cours = False
         self._annulation_recherche_demandee = False
@@ -536,6 +540,8 @@ class search(searchTemplate):
 
     def annuler_recherche_depuis_menu(self):
         """Demande une seule annulation ; distingue attente et échec technique."""
+        if getattr(self, "_recherche_abandonnee", False):
+            return {"ok": True, "pending": False}
         # Ce garde protège aussi les clics déjà en file pendant un appel serveur.
         if self._annulation_recherche_demandee:
             return {"ok": True, "pending": True}
@@ -560,11 +566,13 @@ class search(searchTemplate):
         return self.envoyer_annulation_recherche()
 
     def envoyer_annulation_recherche(self):
-        """Envoie l'arrêt d'une Task disponible et conserve son suivi jusqu'à terminaison.
+        """Transmet l'arrêt puis abandonne la Task côté interface, sans lire son statut.
 
-        Les erreurs techniques lèvent ; Menu les affiche. Une demande refusée
-        réinitialise le drapeau pour permettre une nouvelle tentative contrôlée.
+        Une erreur technique conserve la Task et autorise une nouvelle tentative.
+        La réponse positive ne garantit pas l'arrêt effectif du moteur Uplink.
         """
+        if getattr(self, "_recherche_abandonnee", False):
+            return {"ok": True, "pending": False}
         task = self.task_recherche
         self.timer_recherche_progress.interval = 0
         demande_acceptee = False
@@ -581,24 +589,23 @@ class search(searchTemplate):
                 }
 
             demande_acceptee = True
-            statut = self.lire_statut_tache_recherche(task)
-            # Un tick déjà engagé peut avoir confirmé et nettoyé la tâche.
-            if self.task_recherche is not task:
-                return {"ok": True, "pending": False}
-            if statut in ("completed", "failed", "killed"):
-                self.finaliser_annulation_recherche()
-                return {"ok": True, "pending": False, "status": statut}
-            return {"ok": True, "pending": True, "status": statut}
+            self.abandonner_recherche()
+            return {"ok": True, "pending": False}
         finally:
-            if self.task_recherche is task:
-                if not demande_acceptee:
-                    self._annulation_recherche_demandee = False
-                    self.f.activer_bouton_arret(True)
+            if not demande_acceptee and self.task_recherche is task:
+                self._annulation_recherche_demandee = False
+                self.f.activer_bouton_arret(True)
                 self.timer_recherche_progress.interval = 1
 
-    def finaliser_annulation_recherche(self):
-        """Nettoie une annulation confirmée et rejoint le menu, quel que soit le lecteur."""
-        self.deverrouiller_recherche(cacher_bouton=False)
+    def abandonner_recherche(self):
+        """Détache définitivement cette Form ; ses appels tardifs ne publient plus rien."""
+        self._recherche_abandonnee = True
+        self.timer_recherche_progress.interval = 0
+        self.task_recherche = None
+        self._recherche_en_cours = False
+        self._annulation_recherche_demandee = False
+        self._ctx_recherche = {}
+        self._offres_correspondent_histo = False
         self.f.revenir_menu_apres_arret(self)
 
     # =========================================================================
@@ -616,6 +623,8 @@ class search(searchTemplate):
         Recherche les offres, applique les critères positifs et les exclusions,
         calcule la correspondance des mots OU, puis sauvegarde le résultat.
         """
+        if getattr(self, "_recherche_abandonnee", False):
+            return
         self.Titre_2.scroll_into_view(smooth=True, align="center")
         if self._recherche_en_cours:
             Notification("Recherche déjà en cours...", timeout=2).show()
@@ -726,6 +735,8 @@ class search(searchTemplate):
                         mots_ou=mots_ou,
                         mots_exclus=mots_exclus
                     )
+                    if getattr(self, "_recherche_abandonnee", False):
+                        return
                     self.task_recherche = task_recue
 
             except (
@@ -749,6 +760,8 @@ class search(searchTemplate):
 
             if erreur_lancement is None and not self._annulation_recherche_demandee:
                 self.display_param_summary()
+                if getattr(self, "_recherche_abandonnee", False):
+                    return
 
                 self.afficher_progression_recherche(
                     ligne_1="🔎 Recherche lancée",
@@ -765,15 +778,16 @@ class search(searchTemplate):
                 self.bloc_selecteur_cpv_complet.visible = False
 
         finally:
-            if task_recue is not None:
-                # Préserver la référence reçue par ce lancement.
-                self.task_recherche = task_recue
-                self.timer_recherche_progress.interval = 1
-                if self._annulation_recherche_demandee:
-                    result = self.f.arreter_recherche_active(task_disponible=True)
-                    self.f.traiter_resultat_arret(result, self)
-            else:
-                self.deverrouiller_recherche(cacher_bouton=False)
+            if not getattr(self, "_recherche_abandonnee", False):
+                if task_recue is not None:
+                    # Préserver la référence reçue par ce lancement.
+                    self.task_recherche = task_recue
+                    self.timer_recherche_progress.interval = 1
+                    if self._annulation_recherche_demandee:
+                        result = self.f.arreter_recherche_active(task_disponible=True)
+                        self.f.traiter_resultat_arret(result, self)
+                else:
+                    self.deverrouiller_recherche(cacher_bouton=False)
 
         if erreur_lancement is not None:
             # L'interface est déjà déverrouillée avant le message.
@@ -845,6 +859,8 @@ class search(searchTemplate):
         les exceptions techniques sont propagées après déverrouillage.
         Aucun appel d'historique ou de sauvegarde de veille.
         """
+        if getattr(self, "_recherche_abandonnee", False):
+            return
         try:
             criteres = self.preparer_criteres_recherche_cpv()
         except ValueError as erreur:
@@ -890,24 +906,27 @@ class search(searchTemplate):
                     mots_ou=criteres["mots_ou"],
                     mots_exclus=criteres["mots_exclus"],
                 )
+                if getattr(self, "_recherche_abandonnee", False):
+                    return
                 self.task_recherche = task_recue
 
         finally:
-            if task_recue is not None:
-                # Préserver la référence reçue par ce lancement.
-                self.task_recherche = task_recue
-                self.timer_recherche_progress.interval = 1
-                if self._annulation_recherche_demandee:
-                    result = self.f.arreter_recherche_active(task_disponible=True)
-                    self.f.traiter_resultat_arret(result, self)
-            else:
-                self.deverrouiller_recherche(cacher_bouton=False)
-                self.bloc_selecteur_cpv_complet.visible = True
-                self.afficher_progression_recherche(
-                    ligne_1="Recherche CPV indisponible",
-                    etat="error",
-                    afficher_jauges=False
-                )
+            if not getattr(self, "_recherche_abandonnee", False):
+                if task_recue is not None:
+                    # Préserver la référence reçue par ce lancement.
+                    self.task_recherche = task_recue
+                    self.timer_recherche_progress.interval = 1
+                    if self._annulation_recherche_demandee:
+                        result = self.f.arreter_recherche_active(task_disponible=True)
+                        self.f.traiter_resultat_arret(result, self)
+                else:
+                    self.deverrouiller_recherche(cacher_bouton=False)
+                    self.bloc_selecteur_cpv_complet.visible = True
+                    self.afficher_progression_recherche(
+                        ligne_1="Recherche CPV indisponible",
+                        etat="error",
+                        afficher_jauges=False
+                    )
 
     def traiter_offres_cpv_apres_background(self, resultat):
         """Affiche un résultat CPV dict déjà traité par le moteur.
@@ -916,6 +935,8 @@ class search(searchTemplate):
         partiel. Une réponse mal formée lève ValueError ; zéro offre est un
         succès. Les champs métier sont copiés sans filtrage ni dédoublonnage.
         """
+        if getattr(self, "_recherche_abandonnee", False):
+            return
         try:
             if not isinstance(resultat, dict) or type(resultat.get("ok")) is not bool:
                 raise ValueError("Réponse de recherche CPV invalide.")
@@ -988,6 +1009,8 @@ class search(searchTemplate):
         Les références précédentes restent intactes si la sauvegarde échoue.
         Les erreurs techniques remontent après déverrouillage.
         """
+        if getattr(self, "_recherche_abandonnee", False):
+            return False
 
         sauvegarde_terminee = False
         try:
@@ -1020,6 +1043,8 @@ class search(searchTemplate):
                     cpv_selectionnes=list(codes_cpv)
                 )
 
+            if getattr(self, "_recherche_abandonnee", False):
+                return False
             if not result["ok"]:
                 afficher_avertissement(
                     result["message"],
@@ -1057,6 +1082,8 @@ class search(searchTemplate):
         message vide classique. Retourne True après finalisation, False si
         la sauvegarde est refusée. Les erreurs remontent après déverrouillage.
         """
+        if getattr(self, "_recherche_abandonnee", False):
+            return False
         finalisation_terminee = False
         mode_cpv = (self._ctx_recherche or {}).get("mode_recherche") == "cpv"
         try:
@@ -1064,6 +1091,8 @@ class search(searchTemplate):
             if not self.sauvegarder_derniere_recherche(offres):
                 return False
 
+            if getattr(self, "_recherche_abandonnee", False):
+                return False
             self.list_offres = offres
             self.afficher_offres(self.list_offres)
 
@@ -1126,6 +1155,8 @@ class search(searchTemplate):
         - sauvegarde histo
         - affichage
         """
+        if getattr(self, "_recherche_abandonnee", False):
+            return
 
         ctx = self._ctx_recherche or {}
 
@@ -2496,27 +2527,7 @@ class search(searchTemplate):
         recherche + filtrage + classement + sauvegarde.
         """
         
-        if self._annulation_recherche_demandee:
-            task = self.task_recherche
-            if task is None:
-                # La Task n'est pas encore revenue du lancement.
-                return
-
-            try:
-                statut = self.lire_statut_tache_recherche(task)
-            except Exception as erreur:
-                print("Statut d'annulation inconnu :", erreur)
-                return
-
-            # Un autre appel peut avoir nettoyé la tâche pendant la lecture.
-            if self.task_recherche is not task:
-                return
-
-            if statut in ("completed", "failed", "killed"):
-                self.finaliser_annulation_recherche()
-
-            # None, missing ou statut inattendu : conserver le suivi.
-            # Aucun résultat n'est traité dans cette branche.
+        if getattr(self, "_recherche_abandonnee", False) or self._annulation_recherche_demandee:
             return
 
         if self.task_recherche is None:
@@ -2528,9 +2539,13 @@ class search(searchTemplate):
         try:
             with anvil.server.no_loading_indicator:
                 state = task.get_state() or {}
+                if self.task_recherche is not task or self._annulation_recherche_demandee:
+                    return
                 task_completed = task.is_completed()
 
         except Exception as erreur:
+            if self.task_recherche is not task or self._annulation_recherche_demandee:
+                return
             print("Erreur de suivi de la recherche :", erreur)
 
             # is_completed() peut aussi lever si la tâche a échoué
@@ -2678,7 +2693,9 @@ class search(searchTemplate):
                 titre="Recherche limitée"
             )
             print("⚠️ Recherche limitée :", message_limite)
-    
+
+        if getattr(self, "_recherche_abandonnee", False):
+            return
         self.afficher_progression_recherche(
             ligne_1="🔎 Préparation des résultats",
             ligne_2="Analyse et classement des offres en cours...",
@@ -2695,6 +2712,8 @@ class search(searchTemplate):
             self.traiter_offres_recuperees_apres_background(offres)
     
         except Exception as e:
+            if getattr(self, "_recherche_abandonnee", False):
+                return
             print(f"Erreur pendant le traitement final des offres : {e}")
     
             self.afficher_progression_recherche(

@@ -305,8 +305,8 @@ class Menu(MenuTemplate):
         node.style.opacity = "" if actif else "0.5"
 
     def navigation_link_retour_click(self, **event_args):
-        """Demande l'arrêt une fois ; le timer assure le retour si la Task attend."""
-        if self._arret_bloque:
+        """Demande l'arrêt une fois ; revient dès sa transmission acceptée."""
+        if self._arret_bloque or self.form_search is None:
             return
         form_search = self.form_search
         result = self.arreter_recherche_active()
@@ -329,7 +329,7 @@ class Menu(MenuTemplate):
         alert(message, title="Erreur d'arrêt de la recherche")
 
     def revenir_menu_apres_arret(self, form_search):
-        """Retour commun après confirmation immédiate ou différée ; protège les doubles retours."""
+        """Retour après abandon côté interface ; protège les doubles retours."""
         if self.form_search is not form_search:
             return
         self.activer_bouton_arret(True)
