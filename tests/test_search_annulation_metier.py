@@ -16,19 +16,10 @@ class TestsAnnulationMetier(unittest.TestCase):
         self.form, self.menu = preparation.form, preparation.menu
         self.form.search_id = "ancienne-recherche"
         self.response = {"ok": True}
-        self.callbacks = None
-        self.async_call = Mock(side_effect=self.complement)
+        self.async_call = Mock(side_effect=AssertionError("Arrêt complémentaire interdit avec search_id"))
         preparation.espace_search["non_blocking"] = SimpleNamespace(call_async=self.async_call)
         preparation.espace_search["uuid"] = uuid
         preparation.serveur.side_effect = self.transport
-
-    def complement(self, nom, task):
-        self.assertIsNone(self.menu.form_search)
-        self.assertEqual(nom, "task_killer")
-        self.assertIs(task, self.p.task)
-        def handlers(result, error):
-            self.callbacks = (result, error)
-        return SimpleNamespace(on_result=handlers)
 
     def transport(self, nom, *args, **kwargs):
         if nom == "demander_annulation_recherche_rao":
@@ -40,7 +31,9 @@ class TestsAnnulationMetier(unittest.TestCase):
     def test_task_presente(self):
         self.menu.navigation_link_retour_click()
         self.p.verifier_menu()
-        self.async_call.assert_called_once_with("task_killer", self.p.task)
+        self.async_call.assert_not_called()
+        self.p.serveur.assert_called_once_with("demander_annulation_recherche_rao", "ancienne-recherche")
+        self.p.task.kill.assert_not_called()
 
     def test_task_absente(self):
         self.form.task_recherche = None
@@ -52,18 +45,14 @@ class TestsAnnulationMetier(unittest.TestCase):
         self.menu.navigation_link_retour_click()
         self.p.serveur.assert_called_once_with("demander_annulation_recherche_rao", "ancienne-recherche")
 
-    def test_retour_sans_attente_complement(self):
+    def test_retour_immediat_sans_arret_anvil(self):
         self.menu.navigation_link_retour_click()
-        self.assertIsNotNone(self.callbacks)
         self.p.verifier_menu()
+        self.async_call.assert_not_called()
+        self.p.task.kill.assert_not_called()
+        self.p.task.get_state.assert_not_called()
         self.p.task.get_return_value.assert_not_called()
-
-    def test_echec_complement_apres_acceptation(self):
-        self.menu.navigation_link_retour_click()
-        self.callbacks[1](RuntimeError("kill indisponible"))
-        self.callbacks[0]({"ok": False})
-        self.p.verifier_menu()
-        self.p.espace_menu["alert"].assert_not_called()
+        self.p.serveur.assert_called_once_with("demander_annulation_recherche_rao", "ancienne-recherche")
 
     def test_refus_registre_et_reessai(self):
         self.response = {"ok": False, "message": "Réessayer"}
@@ -85,7 +74,8 @@ class TestsAnnulationMetier(unittest.TestCase):
         self.p.serveur.side_effect = response
         self.menu.navigation_link_retour_click()
         self.menu.navigation_link_retour_click()
-        self.p.serveur.assert_called_once()
+        self.p.serveur.assert_called_once_with("demander_annulation_recherche_rao", "ancienne-recherche")
+        self.async_call.assert_not_called()
         self.p.verifier_menu()
 
     def test_task_recue_apres_abandon_ignoree(self):
@@ -108,14 +98,39 @@ class TestsAnnulationMetier(unittest.TestCase):
         self.menu.navigation_link_retour_click()
         nouvelle = SimpleNamespace(search_id="nouvelle", task_recherche=object(), timer=1)
         self.menu.form_search = nouvelle
-        self.callbacks[0]({"ok": False})
-        self.callbacks[1](RuntimeError("Réponse tardive"))
+        self.p.task.get_return_value.return_value = {"ok": True, "offres": []}
         self.form.deverrouiller_recherche()
         self.form.timer_recherche_progress_tick()
         self.assertIs(self.menu.form_search, nouvelle)
         self.assertEqual(nouvelle.search_id, "nouvelle")
         self.assertEqual(nouvelle.timer, 1)
         self.assertEqual(self.form.timer_recherche_progress.interval, 0)
+
+    def test_nouvelle_recherche_lancee_independante(self):
+        self.menu.navigation_link_retour_click()
+        preparation = support.TestsAnnulation()
+        preparation.setUp()
+        nouvelle = preparation.form
+        preparation.espace_search["uuid"] = uuid
+        nouvelle.f = self.menu
+        nouvelle._recherche_en_cours = False
+        nouvelle.task_recherche = None
+        nouvelle.afficher_offres = Mock()
+        nouvelle_task = Mock()
+        preparation.serveur.side_effect = lambda nom, *args, **kwargs: (
+            {"ok": True} if nom == "enregistrer_recherche_rao" else nouvelle_task)
+        self.menu.form_search = nouvelle
+        nouvelle.lancer_recherche_offres_cpv()
+        contexte = dict(nouvelle._ctx_recherche)
+        self.form.timer_recherche_progress_tick()
+        self.form.lancer_recherche_offres_cpv()
+        self.form.deverrouiller_recherche()
+        self.assertIs(self.menu.form_search, nouvelle)
+        self.assertIs(nouvelle.task_recherche, nouvelle_task)
+        self.assertEqual(nouvelle._ctx_recherche, contexte)
+        self.assertEqual(nouvelle.timer_recherche_progress.interval, 1)
+        self.assertTrue(nouvelle._recherche_en_cours)
+        self.assertNotEqual(nouvelle.search_id, "ancienne-recherche")
 
     def test_historique_sans_search_id(self):
         del self.form.search_id

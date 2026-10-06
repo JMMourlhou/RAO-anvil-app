@@ -5,7 +5,6 @@ from .. import Time
 from datetime import date, datetime
 import re
 import uuid
-from anvil_extras import non_blocking
 from anvil.js import get_dom_node, window    # pour écouteur JS sur le DropDown et conter tps d'éxéction
 from .. import Context_ecran
 
@@ -573,7 +572,7 @@ class search(searchTemplate):
     def envoyer_annulation_recherche(self, search_id=None):
         """Transmet l'arrêt puis abandonne la Task côté interface, sans lire son statut.
 
-        Avec search_id, le registre autorise l'abandon ; l'arrêt Anvil est facultatif.
+        Avec search_id, seule l'annulation coopérative du registre autorise l'abandon.
         Sans search_id, conserver le parcours historique. Un refus du registre
         conserve la recherche et permet un nouvel essai. Aucune réponse positive
         ne garantit l'arrêt effectif du moteur Uplink.
@@ -598,9 +597,6 @@ class search(searchTemplate):
                 demande_acceptee = True
                 self.timer_recherche_progress.interval = 0
                 self.abandonner_recherche()
-                # L'arrêt Anvil n'est plus une condition du retour au Menu.
-                if task is not None:
-                    self.demander_arret_anvil_complementaire(task)
                 return {"ok": True, "pending": False}
             finally:
                 if not demande_acceptee and not self._recherche_abandonnee:
@@ -630,22 +626,6 @@ class search(searchTemplate):
                 self._annulation_recherche_demandee = False
                 self.f.activer_bouton_arret(True)
                 self.timer_recherche_progress.interval = 1
-
-    def demander_arret_anvil_complementaire(self, task):
-        """Demande l'arrêt Anvil sans attente après acceptation métier.
-
-        task est la référence capturée sur cette ancienne Form. Les réponses
-        tardives servent uniquement au diagnostic, sans modifier l'interface.
-        Une erreur de cet appel facultatif ne remet pas en cause l'annulation.
-        """
-        def resultat_arret(result):
-            if not isinstance(result, dict) or result.get("ok") is not True:
-                print("Arrêt Anvil complémentaire non accepté ; annulation RAO conservée.")
-
-        def erreur_arret(erreur):
-            print("Échec arrêt Anvil complémentaire ; annulation RAO conservée :", erreur)
-
-        non_blocking.call_async("task_killer", task).on_result(resultat_arret, erreur_arret)
 
     def abandonner_recherche(self):
         """Détache définitivement cette Form ; ses appels tardifs ne publient plus rien."""
