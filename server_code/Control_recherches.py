@@ -139,10 +139,9 @@ def marquer_recherche_en_cours(search_id, background_task_id=None):
     return _marquer_row_en_cours(row, background_task_id)
 
 
-@anvil.server.callable
 @tables.in_transaction
-def demander_annulation_recherche_rao(search_id):
-    """Enregistre une demande d'arrêt, sans intervenir sur Anvil ou le Pi.
+def _enregistrer_annulation_recherche_rao(search_id):
+    """Enregistre durablement une demande d'arrêt, sans signal externe.
 
     search_id doit être déjà inscrit pour le user courant. Retour structuré.
     La première date d'annulation et les états terminaux sont conservés.
@@ -161,6 +160,47 @@ def demander_annulation_recherche_rao(search_id):
         valeurs["cancel_requested_at"] = datetime.now(timezone.utc)
     row.update(**valeurs)
     return _serialize_state(row)
+
+
+@anvil.server.background_task
+def _signaler_annulation_recherche_rao(search_id):
+    """Tente une fois le signal Pi après commit, sans modifier le registre.
+
+    Retour diagnostic : sent, not_active ou failed. Aucun retry ni attente UI.
+    Les pannes externes sont tolérées car l'annulation durable fait autorité.
+    Cette tâche n'est pas un callable accessible au navigateur.
+    """
+    try:
+        reponse = anvil.server.call("signaler_annulation_recherche_locale", search_id)
+        if not isinstance(reponse, dict) or reponse.get("ok") is not True:
+            print("[RAO] Signal local d'annulation : réponse invalide ou refusée.")
+            return "failed"
+        if type(reponse.get("signaled")) is not bool:
+            print("[RAO] Signal local d'annulation : réponse invalide.")
+            return "failed"
+        return "sent" if reponse["signaled"] else "not_active"
+    except Exception as erreur:
+        # Frontière best-effort uniquement : aucune erreur de table interceptée.
+        print("[RAO] Signal local d'annulation indisponible :", type(erreur).__name__)
+        return "failed"
+
+
+@anvil.server.callable
+def demander_annulation_recherche_rao(search_id):
+    """Autorise et commit l'annulation, puis programme le signal Pi best-effort.
+
+    Retour : contrat d'état existant, même si la programmation du signal échoue.
+    Les erreurs de transaction remontent avant toute tentative de signal.
+    Une demande répétée conserve sa date et peut retenter le signal local.
+    """
+    state = _enregistrer_annulation_recherche_rao(search_id)
+    # Le décorateur transactionnel a terminé le commit avant ce point.
+    if state["ok"] and state["status"] == "cancellation_requested":
+        try:
+            anvil.server.launch_background_task("_signaler_annulation_recherche_rao", search_id)
+        except Exception as erreur:
+            print("[RAO] Programmation du signal local impossible :", type(erreur).__name__)
+    return state
 
 
 @anvil.server.callable

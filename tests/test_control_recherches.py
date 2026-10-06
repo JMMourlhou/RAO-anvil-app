@@ -3,6 +3,7 @@
 Ces doubles ne simulent pas l'isolation transactionnelle du moteur Anvil.
 """
 import importlib.util
+from functools import wraps
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 import unittest
@@ -51,13 +52,44 @@ class TestsControlRecherches(unittest.TestCase):
         users.get_user = Mock(side_effect=lambda: self.user)
         self.transaction_functions = []
 
+        self.transaction_active = False
+        self.commit_error = None
+        self.events = []
+
         def transaction(function):
             self.transaction_functions.append(function.__name__)
-            return function
+
+            @wraps(function)
+            def execute(*args, **kwargs):
+                before = [dict(row) for row in self.table.rows]
+                self.transaction_active = True
+                try:
+                    result = function(*args, **kwargs)
+                    if self.commit_error is not None:
+                        raise self.commit_error
+                    self.events.append("commit")
+                    return result
+                except Exception:
+                    for row, values in zip(self.table.rows, before):
+                        row.clear()
+                        dict.update(row, values)
+                    raise
+                finally:
+                    self.transaction_active = False
+            return execute
 
         tables.in_transaction = transaction
         tables.app_tables = SimpleNamespace(bg_task_ctrl=self.table)
-        server.callable = lambda function: function
+        self.callable_names = []
+
+        def callable(function):
+            self.callable_names.append(function.__name__)
+            return function
+
+        server.callable = callable
+        server.background_task = lambda function: function
+        server.launch_background_task = Mock()
+        server.call = Mock(return_value={"ok": True, "signaled": True})
         anvil.users, anvil.server, anvil.tables = users, server, tables
         modules = {"anvil": anvil, "anvil.users": users, "anvil.server": server, "anvil.tables": tables}
         path = Path(__file__).resolve().parents[1] / "server_code/Control_recherches.py"
@@ -254,7 +286,7 @@ class TestsControlRecherches(unittest.TestCase):
     def test_toutes_fonctions_transactionnelles(self):
         self.assertEqual(set(self.transaction_functions), {
             "enregistrer_recherche_rao", "marquer_recherche_en_cours",
-            "demander_annulation_recherche_rao", "obtenir_etat_recherche_rao",
+            "_enregistrer_annulation_recherche_rao", "obtenir_etat_recherche_rao",
             "finaliser_recherche_rao", "marquer_recherche_en_cours_uplink",
             "obtenir_etat_recherche_rao_uplink", "finaliser_recherche_rao_uplink"})
 
