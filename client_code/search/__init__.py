@@ -551,7 +551,7 @@ class search(searchTemplate):
         if self._annulation_recherche_demandee:
             return {"ok": True, "pending": True}
 
-        if self.task_recherche is None and not self._recherche_en_cours:
+        if not search_id and self.task_recherche is None and not self._recherche_en_cours:
             self.deverrouiller_recherche(cacher_bouton=False)
             return {"ok": True, "pending": False}
 
@@ -581,10 +581,9 @@ class search(searchTemplate):
         if getattr(self, "_recherche_abandonnee", False):
             return {"ok": True, "pending": False}
         task = self.task_recherche
-        search_id = search_id or getattr(self, "search_id", None)
+        if search_id is None:
+            search_id = getattr(self, "search_id", None)
         if search_id:
-            interval_precedent = self.timer_recherche_progress.interval
-            self.timer_recherche_progress.interval = 0
             demande_acceptee = False
             try:
                 with anvil.server.no_loading_indicator:
@@ -597,6 +596,7 @@ class search(searchTemplate):
                         "message": result.get("message") or "La demande d'arrêt a échoué. Vous pouvez réessayer."
                     }
                 demande_acceptee = True
+                self.timer_recherche_progress.interval = 0
                 self.abandonner_recherche()
                 # L'arrêt Anvil n'est plus une condition du retour au Menu.
                 if task is not None:
@@ -606,8 +606,6 @@ class search(searchTemplate):
                 if not demande_acceptee and not self._recherche_abandonnee:
                     self._annulation_recherche_demandee = False
                     self.f.activer_bouton_arret(True)
-                    if self.task_recherche is task:
-                        self.timer_recherche_progress.interval = interval_precedent
 
         # Compatibilité historique pour les recherches sans identifiant métier.
         self.timer_recherche_progress.interval = 0
@@ -654,6 +652,7 @@ class search(searchTemplate):
         self._recherche_abandonnee = True
         self.timer_recherche_progress.interval = 0
         self.task_recherche = None
+        self.search_id = None
         self._recherche_en_cours = False
         self._annulation_recherche_demandee = False
         self._ctx_recherche = {}

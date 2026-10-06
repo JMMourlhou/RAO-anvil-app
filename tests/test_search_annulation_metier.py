@@ -5,6 +5,7 @@ from unittest.mock import Mock
 import uuid
 
 import test_search_annulation as support
+import test_control_recherches as registre_support
 
 
 class TestsAnnulationMetier(unittest.TestCase):
@@ -131,6 +132,109 @@ class TestsAnnulationMetier(unittest.TestCase):
         self.assertEqual(self.form.timer_recherche_progress.interval, 0)
         self.assertTrue(self.form._recherche_en_cours)
         self.assertFalse(self.menu._arret_bloque)
+
+    def test_identifiant_existant_sans_task_ni_flag_exige_registre(self):
+        self.form.task_recherche = None
+        self.form._recherche_en_cours = False
+        self.response = {"ok": False}
+        self.menu.navigation_link_retour_click()
+        self.p.serveur.assert_called_once_with("demander_annulation_recherche_rao", "ancienne-recherche")
+        self.assertIs(self.menu.form_search, self.form)
+        self.assertEqual(self.form.search_id, "ancienne-recherche")
+
+
+    def test_uuid_du_lancement_et_ecriture_reelle_simulee(self):
+        registre = registre_support.TestsControlRecherches()
+        registre.setUp()
+        self.form._recherche_en_cours = False
+        self.form.task_recherche = None
+        self.form.afficher_offres = Mock()
+        uuid_inscrit = None
+
+        def transport(nom, *args, **kwargs):
+            nonlocal uuid_inscrit
+            if nom == "enregistrer_recherche_rao":
+                uuid_inscrit = args[0]
+                self.assertEqual(self.form.search_id, uuid_inscrit)
+                return registre.api.enregistrer_recherche_rao(*args, **kwargs)
+            if nom == "lancer_recherche_cpv_background":
+                self.assertEqual(kwargs["search_id"], uuid_inscrit)
+                registre.api.marquer_recherche_en_cours(uuid_inscrit, "task-anvil")
+                return self.p.task
+            if nom == "demander_annulation_recherche_rao":
+                self.assertEqual(args, (uuid_inscrit,))
+                self.assertEqual(self.form.search_id, uuid_inscrit)
+                self.assertIs(self.menu.form_search, self.form)
+                self.assertEqual(self.form.timer_recherche_progress.interval, 1)
+                self.assertFalse(self.form._recherche_abandonnee)
+                return registre.api.demander_annulation_recherche_rao(*args)
+            raise AssertionError(nom)
+
+        self.p.serveur.side_effect = transport
+        self.form.lancer_recherche_offres_cpv()
+        self.assertEqual(registre.table.rows[0]["status"], "running")
+        self.menu.navigation_link_retour_click()
+        self.assertEqual(registre.table.rows[0]["status"], "cancellation_requested")
+        self.assertIsNotNone(registre.table.rows[0]["cancel_requested_at"])
+        self.assertIsNone(self.form.search_id)
+        self.p.verifier_menu()
+
+    def test_exception_registre_preserve_identifiant_task_et_timer(self):
+        for task in (self.p.task, None):
+            with self.subTest(task_presente=task is not None):
+                self.setUp()
+                if task is None:
+                    self.form.task_recherche = None
+                    self.form.timer_recherche_progress.interval = 0
+                task_attendue = self.form.task_recherche
+                interval = self.form.timer_recherche_progress.interval
+                self.p.serveur.side_effect = RuntimeError("Erreur registre")
+                self.menu.navigation_link_retour_click()
+                self.assertIs(self.menu.form_search, self.form)
+                self.assertFalse(self.form._recherche_abandonnee)
+                self.assertEqual(self.form.search_id, "ancienne-recherche")
+                self.assertIs(self.form.task_recherche, task_attendue)
+                self.assertEqual(self.form.timer_recherche_progress.interval, interval)
+                self.assertFalse(self.menu._arret_bloque)
+                self.async_call.assert_not_called()
+                self.p.serveur.side_effect = self.transport
+                self.menu.navigation_link_retour_click()
+                self.p.verifier_menu()
+
+    def test_nettoyage_uniquement_apres_acceptation(self):
+        for task_presente in (True, False):
+            with self.subTest(task_presente=task_presente):
+                self.setUp()
+                if not task_presente:
+                    self.form.task_recherche = None
+                def transport(nom, *args, **kwargs):
+                    self.assertEqual(nom, "demander_annulation_recherche_rao")
+                    self.assertEqual(self.form.search_id, "ancienne-recherche")
+                    self.assertIs(self.menu.form_search, self.form)
+                    return {"ok": True}
+                self.p.serveur.side_effect = transport
+                self.menu.navigation_link_retour_click()
+                self.assertIsNone(self.form.search_id)
+                self.p.verifier_menu()
+
+    def test_ok_literal_true_requis(self):
+        for response in ({"ok": False}, {"ok": 1}, {"ok": "True"}, {}, None):
+            with self.subTest(response=response):
+                self.setUp()
+                self.response = response
+                self.menu.navigation_link_retour_click()
+                self.assertIs(self.menu.form_search, self.form)
+                self.assertEqual(self.form.search_id, "ancienne-recherche")
+                self.assertIs(self.form.task_recherche, self.p.task)
+                self.async_call.assert_not_called()
+
+    def test_capture_locale_preservee_pendant_affichage(self):
+        self.form.afficher_progression_recherche = Mock(
+            side_effect=lambda **kwargs: setattr(self.form, "search_id", "autre-valeur"))
+        self.menu.navigation_link_retour_click()
+        self.p.serveur.assert_called_once_with("demander_annulation_recherche_rao", "ancienne-recherche")
+        self.assertIsNone(self.form.search_id)
+
 
 
 if __name__ == "__main__":
