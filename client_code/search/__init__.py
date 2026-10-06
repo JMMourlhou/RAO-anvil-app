@@ -5,6 +5,7 @@ from .. import Time
 from datetime import date, datetime
 import re
 import uuid
+from anvil_extras import non_blocking
 from anvil.js import get_dom_node, window    # pour écouteur JS sur le DropDown et conter tps d'éxéction
 from .. import Context_ecran
 
@@ -543,6 +544,7 @@ class search(searchTemplate):
 
     def annuler_recherche_depuis_menu(self):
         """Demande une seule annulation ; distingue attente et échec technique."""
+        search_id = getattr(self, "search_id", None)
         if getattr(self, "_recherche_abandonnee", False):
             return {"ok": True, "pending": False}
         # Ce garde protège aussi les clics déjà en file pendant un appel serveur.
@@ -561,22 +563,53 @@ class search(searchTemplate):
             afficher_jauges=False
         )
 
-        # Le lancement suspend le client avant de lui remettre la Task.
-        # Son finally transmettra cette demande dès réception de la référence.
-        if self.task_recherche is None:
+        # Sans search_id, garder l'attente historique de la référence Task.
+        # Avec search_id, l'annulation métier peut être transmise immédiatement.
+        if self.task_recherche is None and not search_id:
             return {"ok": True, "pending": True}
 
-        return self.envoyer_annulation_recherche()
+        return self.envoyer_annulation_recherche(search_id=search_id)
 
-    def envoyer_annulation_recherche(self):
+    def envoyer_annulation_recherche(self, search_id=None):
         """Transmet l'arrêt puis abandonne la Task côté interface, sans lire son statut.
 
-        Une erreur technique conserve la Task et autorise une nouvelle tentative.
-        La réponse positive ne garantit pas l'arrêt effectif du moteur Uplink.
+        Avec search_id, le registre autorise l'abandon ; l'arrêt Anvil est facultatif.
+        Sans search_id, conserver le parcours historique. Un refus du registre
+        conserve la recherche et permet un nouvel essai. Aucune réponse positive
+        ne garantit l'arrêt effectif du moteur Uplink.
         """
         if getattr(self, "_recherche_abandonnee", False):
             return {"ok": True, "pending": False}
         task = self.task_recherche
+        search_id = search_id or getattr(self, "search_id", None)
+        if search_id:
+            interval_precedent = self.timer_recherche_progress.interval
+            self.timer_recherche_progress.interval = 0
+            demande_acceptee = False
+            try:
+                with anvil.server.no_loading_indicator:
+                    result = anvil.server.call("demander_annulation_recherche_rao", search_id)
+                if not isinstance(result, dict):
+                    raise ValueError("Réponse d'annulation RAO invalide.")
+                if result.get("ok") is not True:
+                    return {
+                        "ok": False,
+                        "message": result.get("message") or "La demande d'arrêt a échoué. Vous pouvez réessayer."
+                    }
+                demande_acceptee = True
+                self.abandonner_recherche()
+                # L'arrêt Anvil n'est plus une condition du retour au Menu.
+                if task is not None:
+                    self.demander_arret_anvil_complementaire(task)
+                return {"ok": True, "pending": False}
+            finally:
+                if not demande_acceptee and not self._recherche_abandonnee:
+                    self._annulation_recherche_demandee = False
+                    self.f.activer_bouton_arret(True)
+                    if self.task_recherche is task:
+                        self.timer_recherche_progress.interval = interval_precedent
+
+        # Compatibilité historique pour les recherches sans identifiant métier.
         self.timer_recherche_progress.interval = 0
         demande_acceptee = False
         try:
@@ -599,6 +632,22 @@ class search(searchTemplate):
                 self._annulation_recherche_demandee = False
                 self.f.activer_bouton_arret(True)
                 self.timer_recherche_progress.interval = 1
+
+    def demander_arret_anvil_complementaire(self, task):
+        """Demande l'arrêt Anvil sans attente après acceptation métier.
+
+        task est la référence capturée sur cette ancienne Form. Les réponses
+        tardives servent uniquement au diagnostic, sans modifier l'interface.
+        Une erreur de cet appel facultatif ne remet pas en cause l'annulation.
+        """
+        def resultat_arret(result):
+            if not isinstance(result, dict) or result.get("ok") is not True:
+                print("Arrêt Anvil complémentaire non accepté ; annulation RAO conservée.")
+
+        def erreur_arret(erreur):
+            print("Échec arrêt Anvil complémentaire ; annulation RAO conservée :", erreur)
+
+        non_blocking.call_async("task_killer", task).on_result(resultat_arret, erreur_arret)
 
     def abandonner_recherche(self):
         """Détache définitivement cette Form ; ses appels tardifs ne publient plus rien."""
