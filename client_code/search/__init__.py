@@ -414,7 +414,7 @@ class search(searchTemplate):
         t = window.performance.now()
     
         if origine == "":
-            self.column_panel_params.visible = True
+            self.afficher_saisie_recherche()
             self.maj_bouton_recherche_visible()
     
         afficher_temps("traitement origine normale", t)
@@ -427,7 +427,7 @@ class search(searchTemplate):
     
         if origine == "check":
     
-            self.column_panel_params.visible = False
+            self.afficher_saisie_recherche()
     
             if mk != "":
                 self.text_box_mots_obligatoires_cpv.text = mk
@@ -439,6 +439,8 @@ class search(searchTemplate):
     
             if derniere_ligne is not None:
                 self.afficher_offres(self.list_offres)
+                if self.list_offres:
+                    self.display_param_summary()
             else:
                 self.column_panel_select.visible = False
     
@@ -465,6 +467,16 @@ class search(searchTemplate):
         """This method is called when the form is shown on the page"""
         self.text_box_recherche_cpv.focus()
         
+
+    def afficher_saisie_recherche(self, visible=True):
+        """Bascule les panneaux sans modifier les critères ni les résultats."""
+        self.column_panel_saisie_recherche.visible = visible
+        self.column_panel_param_summary.visible = not visible
+        if visible:
+            # Ces enfants pouvaient être masqués par une recherche précédente.
+            self.column_panel_params.visible = True
+            self.bloc_selecteur_cpv_complet.visible = True
+            self.zone_resume_cpv.visible = False
 
     def verrouiller_recherche(self):
         """
@@ -748,6 +760,7 @@ class search(searchTemplate):
 
         try:
             self.verrouiller_recherche()
+            self.display_param_summary()
 
             try:
                 with anvil.server.no_loading_indicator:
@@ -787,7 +800,6 @@ class search(searchTemplate):
                 )
 
             if erreur_lancement is None and not self._annulation_recherche_demandee:
-                self.display_param_summary()
                 if getattr(self, "_recherche_abandonnee", False):
                     return
 
@@ -803,7 +815,6 @@ class search(searchTemplate):
                 self.column_panel_select.visible = False
                 self.text_nb_offres.visible = False
                 self.checkbox_on_off.visible = False
-                self.bloc_selecteur_cpv_complet.visible = False
 
         finally:
             if not getattr(self, "_recherche_abandonnee", False):
@@ -815,6 +826,7 @@ class search(searchTemplate):
                         result = self.f.arreter_recherche_active(task_disponible=True)
                         self.f.traiter_resultat_arret(result, self)
                 else:
+                    self.afficher_saisie_recherche()
                     self.deverrouiller_recherche(cacher_bouton=False)
 
         if erreur_lancement is not None:
@@ -921,7 +933,6 @@ class search(searchTemplate):
 
         try:
             self.verrouiller_recherche()
-            self.bloc_selecteur_cpv_complet.visible = False
             self.display_param_summary()
 
             # Un seul identifiant métier, conservé pour l'inscription et le lancement CPV.
@@ -962,7 +973,7 @@ class search(searchTemplate):
                         self.f.traiter_resultat_arret(result, self)
                 else:
                     self.deverrouiller_recherche(cacher_bouton=False)
-                    self.bloc_selecteur_cpv_complet.visible = True
+                    self.afficher_saisie_recherche()
                     self.afficher_progression_recherche(
                         ligne_1="Recherche CPV indisponible",
                         etat="error",
@@ -980,6 +991,7 @@ class search(searchTemplate):
         """
         if getattr(self, "_recherche_abandonnee", False):
             return
+        traitement_termine = False
         try:
             if not isinstance(resultat, dict) or type(resultat.get("ok")) is not bool:
                 raise ValueError("Réponse de recherche CPV invalide.")
@@ -987,7 +999,7 @@ class search(searchTemplate):
                 self.list_offres = []
                 self.afficher_offres([])
                 self.checkbox_on_off.visible = False
-                self.display_param_summary()
+                self.afficher_saisie_recherche()
                 self.afficher_progression_recherche(
                     ligne_1="Échec de la recherche CPV",
                     ligne_2=resultat.get("message") or "La recherche CPV n’a pas abouti.",
@@ -1021,7 +1033,10 @@ class search(searchTemplate):
             if resultat.get("recherche_limitee") and resultat.get("message_limite"):
                 afficher_information(resultat["message_limite"], titre="Recherche limitée")
             self.actualiser_bouton_veille_cpv()
+            traitement_termine = True
         finally:
+            if not traitement_termine and not getattr(self, "_recherche_abandonnee", False):
+                self.afficher_saisie_recherche()
             self.deverrouiller_recherche(cacher_bouton=False)
 
     def construire_resume_recherche_cpv(self):
@@ -1148,9 +1163,11 @@ class search(searchTemplate):
 
             if masquer_parametres:
                 self.f.navigation_link_search_go.enabled = False
-                self.column_panel_params.visible = False
 
-            self.display_param_summary()
+            if offres:
+                self.display_param_summary()
+            else:
+                self.afficher_saisie_recherche()
             if masquer_parametres:
                 self.column_panel_progress_recherche.visible = True
 
@@ -1159,7 +1176,6 @@ class search(searchTemplate):
             if not offres and mode_cpv:
                 message_final = "Pas d'offres correspondant aux critères"
             elif not offres and message_sans_offre is not None:
-                self.bloc_selecteur_cpv_complet.visible = True
                 message_final = "Recherche terminée"
                 ligne_2 = message_sans_offre
             elif mode_cpv:
@@ -1181,6 +1197,8 @@ class search(searchTemplate):
             return True
         finally:
             # Sur échec, permettre une nouvelle recherche sans masquer l'erreur.
+            if not finalisation_terminee and not getattr(self, "_recherche_abandonnee", False):
+                self.afficher_saisie_recherche()
             self.deverrouiller_recherche(cacher_bouton=cacher_bouton and finalisation_terminee)
 
     def terminer_recherche_classique_sans_offre(self, message):
@@ -1309,11 +1327,6 @@ class search(searchTemplate):
         mode_cpv = ctx.get("mode_recherche") == "cpv"
     
         # --------------------------------------------------
-        # 1. Masquer les résumés des paramètres
-        # --------------------------------------------------
-        self.column_panel_param_summary.visible = False
-    
-        # --------------------------------------------------
         # 2. Vérifier les données du contexte
         # --------------------------------------------------
         if mode_cpv:
@@ -1338,6 +1351,7 @@ class search(searchTemplate):
     
         for cle in cles_requises:
             if cle not in ctx:
+                self.afficher_saisie_recherche()
                 return
     
         # --------------------------------------------------
@@ -1408,15 +1422,13 @@ class search(searchTemplate):
         # --------------------------------------------------
         # 6. Afficher le nouveau résumé
         # --------------------------------------------------
-        self.column_panel_param_summary.visible = True
+        self.afficher_saisie_recherche(False)
         definir_titre_column_panel(
             self.column_panel_param_summary,
             "Résumé de la recherche",
             "tune"
         )
     
-        if mode_cpv:
-            self.column_panel_progress_recherche.visible = True
     
 
     # =========================================================================
@@ -1577,8 +1589,7 @@ class search(searchTemplate):
         self.afficher_offres(self.list_offres)
         self.set_checkbox_on_off_sans_event(False)
         
-        # Affichage du résumé des paramètres de la requête
-        self.display_param_summary()
+        self.afficher_saisie_recherche()
         
         self.checkbox_on_off.visible = False
         self.f.navigation_link_search_go.visible = True
@@ -1597,6 +1608,7 @@ class search(searchTemplate):
 
         self.afficher_offres(self.list_offres)
         self.set_checkbox_on_off_sans_event(False)
+        self.afficher_saisie_recherche()
 
     def del_offre_affichee(self, sender=None, item=None, **event_args):
         """
@@ -1814,8 +1826,6 @@ class search(searchTemplate):
             self.data_grid_1.visible = False
             self.column_panel_select.visible = False
             self.button_selection_mailed.visible = False
-            self.column_panel_params.visible = True
-            self.bloc_selecteur_cpv_complet.visible = True
             return
     
         if nb == 1:
@@ -2687,6 +2697,7 @@ class search(searchTemplate):
                 return
 
             if statut in ("failed", "killed"):
+                self.afficher_saisie_recherche()
                 self.deverrouiller_recherche(cacher_bouton=False)
                 afficher_information(
                     f"La tâche est terminée avec le statut {statut}.\n\n"
@@ -2749,6 +2760,7 @@ class search(searchTemplate):
                 afficher_jauges=False
             )
     
+            self.afficher_saisie_recherche()
             self.deverrouiller_recherche(cacher_bouton=False)
             afficher_information(
                 f"Erreur pendant la recherche :\n\n{e}",
@@ -2774,6 +2786,7 @@ class search(searchTemplate):
                 afficher_jauges=False
             )
     
+            self.afficher_saisie_recherche()
             self.deverrouiller_recherche(cacher_bouton=False)
             afficher_information(
                 "La recherche est terminée, mais aucun résultat "
@@ -2792,6 +2805,7 @@ class search(searchTemplate):
                 afficher_jauges=False
             )
 
+            self.afficher_saisie_recherche()
             self.deverrouiller_recherche(cacher_bouton=False)
             afficher_information(
                 "Le serveur n’a pas renvoyé le dictionnaire attendu.",
@@ -2847,6 +2861,7 @@ class search(searchTemplate):
                 afficher_jauges=False
             )
     
+            self.afficher_saisie_recherche()
             self.deverrouiller_recherche(cacher_bouton=False)
             afficher_information(
                 f"Erreur pendant le traitement final des offres :\n\n{e}",

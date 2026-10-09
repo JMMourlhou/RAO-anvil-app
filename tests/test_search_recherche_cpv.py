@@ -28,6 +28,7 @@ def charger_methodes():
         "afficher_information": Mock(),
         "afficher_avertissement": Mock(),
         "Notification": Mock(),
+        "definir_titre_column_panel": Mock(),
     }
     exec(compile(module, str(SOURCE), "exec"), espace)
     return espace
@@ -64,7 +65,10 @@ class TestsRechercheCPV(unittest.TestCase):
             "checkbox_on_off text_nb_offres data_grid_1 column_panel_select "
             "button_selection_mailed column_panel_params text_param_summary "
             "column_panel_progress_recherche label_progress_recherche "
-            "bloc_selecteur_cpv_complet zone_resume_cpv label_resume_cpv"
+            "bloc_selecteur_cpv_complet zone_resume_cpv label_resume_cpv "
+            "column_panel_saisie_recherche column_panel_param_summary "
+            "label_summary_cpv label_summary_obligatoires label_summary_ou "
+            "label_summary_periode label_summary_departements label_summary_exclus"
         )
         for nom in composants.split():
             setattr(self.form, nom, Composant())
