@@ -961,7 +961,7 @@ Bouton Vérification - niveau d'intérêt
     border-radius: 6px;
 
     padding: 14px 12px 8px 12px;
-    margin-top: 18px;
+    margin-top: 18px !important;
 }
 
 .anvil-role-repeating-panel-rounded::after {

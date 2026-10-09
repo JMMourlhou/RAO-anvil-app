@@ -1401,7 +1401,6 @@ class search(searchTemplate):
             if departements else "Tous départements"
         )
     
-        self.label_summary_plateformes.text = f"Plateformes : {plateformes}"
     
         self.label_summary_exclus.text = f"Exclus : {mots_exclus}"
         self.label_summary_exclus.visible = bool(mots_exclus)
