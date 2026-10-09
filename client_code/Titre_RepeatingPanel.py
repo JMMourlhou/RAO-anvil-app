@@ -7,7 +7,6 @@ from anvil.js import get_dom_node, window
 CLASSE_ROLE = "anvil-role-repeating-panel-rounded"
 SELECTEUR_ROLE = ".anvil-role-repeating-panel-rounded"
 
-
 def obtenir_noeud_cadre(repeating_panel):
     """Retourne le nœud DOM portant le rôle repeating-panel-rounded."""
 

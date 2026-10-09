@@ -1305,41 +1305,120 @@ class search(searchTemplate):
         self.afficher_etape_traitement_final("Sauvegarde de la recherche...")
         self.finaliser_recherche(offres_finales, cacher_bouton=True, masquer_parametres=True)
 
-    def display_param_summary(self, **event_args):
-        if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
-            self.text_param_summary.text = self.construire_resume_recherche_cpv()
-            self.text_param_summary.visible = True
-            self.column_panel_progress_recherche.visible = True
-            return
 
+    def display_param_summary(self, **event_args):
+        """Affiche les critères figés au lancement de la recherche."""
+    
         ctx = self._ctx_recherche or {}
-        cles_requises = (
-            "mots_obligatoires",
-            "mots_ou",
-            "mots_exclus",
-            "periode",
-            "selected_platformes",
-            "departements",
-        )
+        mode_cpv = ctx.get("mode_recherche") == "cpv"
+    
+        # --------------------------------------------------
+        # 1. Masquer les anciens et nouveaux résumés
+        # --------------------------------------------------
+        self.text_param_summary.visible = False
+        self.column_panel_param_summary.visible = False
+    
+        # --------------------------------------------------
+        # 2. Vérifier les données du contexte
+        # --------------------------------------------------
+        if mode_cpv:
+            cles_requises = (
+                "prestations_cpv",
+                "mots_obligatoires",
+                "mots_ou",
+                "mots_exclus",
+                "sources",
+                "filtre_jours",
+                "departements",
+            )
+        else:
+            cles_requises = (
+                "mots_obligatoires",
+                "mots_ou",
+                "mots_exclus",
+                "periode",
+                "selected_platformes",
+                "departements",
+            )
+    
         for cle in cles_requises:
             if cle not in ctx:
-                self.text_param_summary.text = ""
                 return
-
-        # Décrire la recherche lancée, sans relire les champs de saisie.
+    
+        # --------------------------------------------------
+        # 3. Récupérer les critères communs
+        # --------------------------------------------------
         mots_obligatoires = ", ".join(ctx["mots_obligatoires"])
         mots_ou = ", ".join(ctx["mots_ou"])
         mots_exclus = ", ".join(ctx["mots_exclus"])
         departements = ", ".join(ctx["departements"])
-
-        self.text_param_summary.text = (
-            f"Plateformes : {ctx['selected_platformes']} / "
-            f"Obligatoires : {mots_obligatoires or '-'} / "
-            f"Au moins un : {mots_ou or '-'} / "
-            f"Exclus : {mots_exclus or '-'} / "
-            f"sur les {ctx['periode']} derniers jours / "
-            f"Départements : {departements or '-'}"
+    
+        # --------------------------------------------------
+        # 4. Critères spécifiques au mode de recherche
+        # --------------------------------------------------
+        if mode_cpv:
+            prestations = ctx["prestations_cpv"]
+            lignes_cpv = []
+    
+            for prestation in prestations[:10]:
+                code = prestation["code"]
+                libelle = prestation["libelle"]
+                lignes_cpv.append(f"{code} — {libelle}")
+    
+            if len(prestations) > 10:
+                autres = len(prestations) - 10
+                lignes_cpv.append(f"Et {autres} autre(s) secteur(s).")
+    
+            texte_cpv = "\n".join(lignes_cpv)
+            plateformes = ", ".join(ctx["sources"])
+            periode = ctx["filtre_jours"]
+    
+        else:
+            texte_cpv = ""
+            plateformes = ctx["selected_platformes"]
+            periode = ctx["periode"]
+    
+            if isinstance(plateformes, (list, tuple)):
+                plateformes = ", ".join(plateformes)
+    
+        # --------------------------------------------------
+        # 5. Alimenter les nouveaux Labels
+        # --------------------------------------------------
+        self.label_summary_title.text = "Résumé de la recherche :"
+    
+        self.label_summary_cpv.text = texte_cpv
+        self.label_summary_cpv.visible = mode_cpv and bool(texte_cpv)
+    
+        self.label_summary_obligatoires.text = (
+            f"Obligatoires : {mots_obligatoires}"
+            if mots_obligatoires else "Aucun mot obligatoire"
         )
+    
+        self.label_summary_ou.text = (
+            f"Au moins un : {mots_ou}"
+            if mots_ou else "Aucun mot facultatif"
+        )
+    
+        self.label_summary_periode.text = f"Période : {periode} jours"
+    
+        self.label_summary_departements.text = (
+            f"Départements : {departements}"
+            if departements else "Tous départements"
+        )
+    
+        self.label_summary_plateformes.text = f"Plateformes : {plateformes}"
+    
+        self.label_summary_exclus.text = f"Exclus : {mots_exclus}"
+        self.label_summary_exclus.visible = bool(mots_exclus)
+    
+        # --------------------------------------------------
+        # 6. Afficher le nouveau résumé
+        # --------------------------------------------------
+        self.column_panel_param_summary.visible = True
+    
+        if mode_cpv:
+            self.column_panel_progress_recherche.visible = True
+    
 
     # =========================================================================
     # Champs Enter
