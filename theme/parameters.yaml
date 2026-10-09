@@ -68,5 +68,10 @@ roles:
   name: m3-flow-score-compact
   title: 'Jmarc: FlowPanel, hauteur et marge réduites, '
 - components: [RepeatingPanel]
-  display_in_toolbox: false
+  display_in_toolbox: true
   name: repeating-panel-rounded
+  title: Repeating Panel rounded and title inside
+- components: [ColumnPanel]
+  display_in_toolbox: true
+  name: column-panel-rounded
+  title: Column Panel rounded and title inside

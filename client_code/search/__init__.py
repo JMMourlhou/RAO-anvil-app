@@ -8,9 +8,10 @@ import uuid
 from anvil.js import get_dom_node, window    # pour écouteur JS sur le DropDown et conter tps d'éxéction
 from .. import Context_ecran
 
-# Pour entrer le titre des repeating panel dans le cadre
+# Pour entrer le titre des repeating panel et Column Panel dans un cadre arondi
 import anvil.js  
 from ..Titre_RepeatingPanel import definir_titre_repeating_panel
+from ..Titre_ColumnPanel import definir_titre_column_panel
 
 # Alertes :
 from ..Alertes import (
@@ -81,9 +82,6 @@ class search(searchTemplate):
             self.multi_select_drop_down_platformes._dd._dom_node.style.width = "100%"
             self.multi_select_drop_down_platformes._dd._dom_node.style.minWidth = "100%"
 
-            # Afficher cadré à gauche du résumé des param
-            self.text_param_summary.align = "left"
-    
         else:
     
             self.button_selection_mailed.text = "Envoi de la sélection"
@@ -148,7 +146,6 @@ class search(searchTemplate):
         self._last_progress_role = None
     
         self.label_jauge_globale.visible = False
-        self.text_param_summary.visible = False
     
         self.button_creer_veille_cpv.text = "Créer une veille quotidienne"
     
@@ -1156,7 +1153,6 @@ class search(searchTemplate):
             self.display_param_summary()
             if masquer_parametres:
                 self.column_panel_progress_recherche.visible = True
-                self.text_param_summary.visible = True
 
             # Les messages vides restent propres à chaque parcours.
             ligne_2 = ""
@@ -1313,9 +1309,8 @@ class search(searchTemplate):
         mode_cpv = ctx.get("mode_recherche") == "cpv"
     
         # --------------------------------------------------
-        # 1. Masquer les anciens et nouveaux résumés
+        # 1. Masquer les résumés
         # --------------------------------------------------
-        self.text_param_summary.visible = False
         self.column_panel_param_summary.visible = False
     
         # --------------------------------------------------
@@ -1370,21 +1365,16 @@ class search(searchTemplate):
                 lignes_cpv.append(f"Et {autres} autre(s) secteur(s).")
     
             texte_cpv = "\n".join(lignes_cpv)
-            plateformes = ", ".join(ctx["sources"])
             periode = ctx["filtre_jours"]
     
         else:
             texte_cpv = ""
-            plateformes = ctx["selected_platformes"]
             periode = ctx["periode"]
-    
-            if isinstance(plateformes, (list, tuple)):
-                plateformes = ", ".join(plateformes)
     
         # --------------------------------------------------
         # 5. Alimenter les nouveaux Labels
         # --------------------------------------------------
-        self.label_summary_title.text = "Résumé de la recherche :"
+        #self.label_summary_title.text = "Résumé de la recherche :"
     
         self.label_summary_cpv.text = texte_cpv
         self.label_summary_cpv.visible = mode_cpv and bool(texte_cpv)
@@ -1406,8 +1396,6 @@ class search(searchTemplate):
             if departements else "Tous départements"
         )
     
-        self.label_summary_plateformes.text = f"Plateformes : {plateformes}"
-    
         self.label_summary_exclus.text = f"Exclus : {mots_exclus}"
         self.label_summary_exclus.visible = bool(mots_exclus)
     
@@ -1415,6 +1403,11 @@ class search(searchTemplate):
         # 6. Afficher le nouveau résumé
         # --------------------------------------------------
         self.column_panel_param_summary.visible = True
+        definir_titre_column_panel(
+            self.column_panel_param_summary,
+            "Résumé de la recherche",
+            "tune"
+        )
     
         if mode_cpv:
             self.column_panel_progress_recherche.visible = True

@@ -994,3 +994,89 @@ Bouton Vérification - niveau d'intérêt
 
     z-index: 10;
 }
+
+/* ==========================================
+COLUMN PANEL - CADRE ARRONDI
+========================================== */
+
+.anvil-role-column-panel-rounded {
+    position: relative;
+
+    border: 1px solid rgba(169, 223, 181, 0.65);
+    border-radius: 10px;
+
+    padding: 14px 12px 10px 12px;
+    margin-top: 12px;
+
+    background-color: #000000;
+    box-sizing: border-box;
+}
+
+
+
+/* ==========================================
+ICÔNE DANS LA BORDURE d'un column panel
+========================================== */
+/* ==========================================
+COLUMN PANEL - CADRE PRINCIPAL
+========================================== */
+
+.anvil-role-column-panel-rounded {
+    position: relative;
+
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: 10px;
+
+    background-color: #000000;
+
+    padding: 14px 12px 10px 12px;
+    margin-top: 12px;
+
+    box-sizing: border-box;
+}
+
+
+.anvil-role-column-panel-rounded::after {
+    content: attr(data-icone);
+
+    position: absolute;
+    top: -10px;
+    left: 14px;
+
+    padding: 0 3px;
+    background-color: #000000;
+
+    color: var(--couleur-icone-column-panel);
+    font-family: "Material Symbols Outlined";
+    font-size: 19px;
+    font-style: normal;
+    font-weight: normal;
+    line-height: 21px;
+    font-feature-settings: "liga";
+
+    z-index: 10;
+}
+
+/* ==========================================
+TITRE DANS LA BORDURE
+========================================== */
+
+.anvil-role-column-panel-rounded::before {
+    content: attr(data-titre);
+
+    position: absolute;
+    top: -8px;
+    left: 36px;
+
+    padding: 0 5px;
+    background-color: #000000;
+
+    color: rgba(255, 255, 255, 0.78);
+    font-family: inherit;
+    font-size: 12px;
+    font-style: italic;
+    font-weight: normal;
+    line-height: 16px;
+
+    z-index: 10;
+}
