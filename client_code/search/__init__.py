@@ -8,9 +8,10 @@ import uuid
 from anvil.js import get_dom_node, window    # pour écouteur JS sur le DropDown et conter tps d'éxéction
 from .. import Context_ecran
 
-# Pour entrer le titre des repeating panel dans le cadre
+# Pour entrer le titre des repeating panel et Column Panel dans un cadre arondi
 import anvil.js  
 from ..Titre_RepeatingPanel import definir_titre_repeating_panel
+from ..Titre_ColumnPanel import definir_titre_column_panel
 
 # Alertes :
 from ..Alertes import (
@@ -1384,7 +1385,7 @@ class search(searchTemplate):
         # --------------------------------------------------
         # 5. Alimenter les nouveaux Labels
         # --------------------------------------------------
-        self.label_summary_title.text = "Résumé de la recherche :"
+        #self.label_summary_title.text = "Résumé de la recherche :"
     
         self.label_summary_cpv.text = texte_cpv
         self.label_summary_cpv.visible = mode_cpv and bool(texte_cpv)
@@ -1415,6 +1416,11 @@ class search(searchTemplate):
         # 6. Afficher le nouveau résumé
         # --------------------------------------------------
         self.column_panel_param_summary.visible = True
+        definir_titre_column_panel(
+            self.column_panel_param_summary,
+            "Résumé de la recherche",
+            "tune"
+        )
     
         if mode_cpv:
             self.column_panel_progress_recherche.visible = True
