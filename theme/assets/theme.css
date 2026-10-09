@@ -940,7 +940,17 @@ Bouton Vérification - niveau d'intérêt
     color: #ffffff !important;
     font-weight: 900 !important;
 }
+.anvil-role-conteneur-saisie-visible {
+    overflow: visible !important;
+}
 
+.anvil-role-conteneur-saisie-visible > .anvil-panel-row {
+    overflow: visible !important;
+}
+
+.anvil-role-conteneur-saisie-visible .anvil-role-repeating-panel-rounded {
+    overflow: visible !important;
+}
 
 
 .anvil-role-repeating-panel-rounded {
@@ -951,14 +961,14 @@ Bouton Vérification - niveau d'intérêt
     border-radius: 6px;
 
     padding: 14px 12px 8px 12px;
-    margin-top: 10px;
+    margin-top: 18px;
 }
 
 .anvil-role-repeating-panel-rounded::after {
     content: attr(data-icone);
 
     position: absolute;
-    top: -10px;
+    top: 2px;
     left: 14px;
 
     padding: 0 3px;
@@ -979,7 +989,7 @@ Bouton Vérification - niveau d'intérêt
     content: attr(data-titre);
 
     position: absolute;
-    top: -8px;
+    top: 2px;
     left: 36px;
 
     padding: 0 5px;
@@ -994,6 +1004,7 @@ Bouton Vérification - niveau d'intérêt
 
     z-index: 10;
 }
+
 
 /* ==========================================
 COLUMN PANEL - CADRE ARRONDI

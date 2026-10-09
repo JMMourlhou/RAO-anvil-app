@@ -81,9 +81,6 @@ class search(searchTemplate):
             # Le contenu interne prend toute la largeur disponible
             self.multi_select_drop_down_platformes._dd._dom_node.style.width = "100%"
             self.multi_select_drop_down_platformes._dd._dom_node.style.minWidth = "100%"
-
-            # Afficher cadré à gauche du résumé des param
-            self.text_param_summary.align = "left"
     
         else:
     
@@ -149,7 +146,6 @@ class search(searchTemplate):
         self._last_progress_role = None
     
         self.label_jauge_globale.visible = False
-        self.text_param_summary.visible = False
     
         self.button_creer_veille_cpv.text = "Créer une veille quotidienne"
     
@@ -1157,7 +1153,6 @@ class search(searchTemplate):
             self.display_param_summary()
             if masquer_parametres:
                 self.column_panel_progress_recherche.visible = True
-                self.text_param_summary.visible = True
 
             # Les messages vides restent propres à chaque parcours.
             ligne_2 = ""
@@ -1314,9 +1309,8 @@ class search(searchTemplate):
         mode_cpv = ctx.get("mode_recherche") == "cpv"
     
         # --------------------------------------------------
-        # 1. Masquer les anciens et nouveaux résumés
+        # 1. Masquer les résumés des paramètres
         # --------------------------------------------------
-        self.text_param_summary.visible = False
         self.column_panel_param_summary.visible = False
     
         # --------------------------------------------------
