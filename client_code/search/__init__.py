@@ -510,6 +510,7 @@ class search(searchTemplate):
         # Une ancienne finalisation peut revenir après la fermeture de cette Form.
         if getattr(self, "_recherche_abandonnee", False):
             return
+        self.arreter_animation_jauge()
         annulation_demandee = self._annulation_recherche_demandee
         self._recherche_en_cours = False
         self._annulation_recherche_demandee = False
@@ -638,6 +639,7 @@ class search(searchTemplate):
 
     def abandonner_recherche(self):
         """Détache définitivement cette Form ; ses appels tardifs ne publient plus rien."""
+        self.arreter_animation_jauge()
         self._recherche_abandonnee = True
         self.timer_recherche_progress.interval = 0
         self.task_recherche = None
@@ -3004,12 +3006,13 @@ class search(searchTemplate):
             progress_global = 0
     
         progress_global = max(0, min(100, progress_global))
-        try:
-            progress_source = int(progress_source or 0)
-        except (TypeError, ValueError, OverflowError):
-            progress_source = 0
-
-        progress_source = max(0, min(100, progress_source))
+        # None signifie une collecte sans mesure, distincte d'un zéro mesuré.
+        if progress_source is not None:
+            try:
+                progress_source = int(progress_source)
+            except (TypeError, ValueError, OverflowError):
+                progress_source = 0
+            progress_source = max(0, min(100, progress_source))
     
         # =====================================================
         # 4. Construction du texte unique
@@ -3017,10 +3020,13 @@ class search(searchTemplate):
         ligne_1 = str(ligne_1 or "").strip()
         ligne_2 = str(ligne_2 or "").strip()
         source_nom = str(source_nom or "").strip()
+        source_carif = source_nom.upper() in ("CARIF", "CARIF-OREF") or source_nom.upper().startswith("CARIF-OREF ")
+        indeterminee = source_carif and progress_source is None and etat == "running" and afficher_jauges
+        self.label_jauge_globale.role = ["progress-gauge-global", "progress-gauge-indeterminate"] if indeterminee else "progress-gauge-global"
     
         progress_affiche = progress_global
         if afficher_jauges and source_nom:
-            progress_affiche = progress_source
+            progress_affiche = progress_source if progress_source is not None else 0
             libelle_etape = source_nom
             if source_current is not None and source_total is not None:
                 libelle_etape += f" — {source_current}/{source_total}"
@@ -3048,6 +3054,21 @@ class search(searchTemplate):
             # L'attente d'arrêt n'est pas une progression mesurable en pourcentage.
             texte = ligne_1
 
+        elif indeterminee:
+            # Le message du moteur fait foi sur l'opération et son unité.
+            compteur_valide = isinstance(source_current, (int, float)) and not isinstance(source_current, bool) and source_current >= 0
+            total_valide = isinstance(source_total, (int, float)) and not isinstance(source_total, bool) and source_total > 0
+            if isinstance(source_current, (int, float)) and isinstance(source_total, (int, float)):
+                total_valide = total_valide and compteur_valide and source_total >= source_current
+            else:
+                total_valide = False
+            if ligne_2:
+                texte = ligne_2
+            elif compteur_valide:
+                compteur = f"{source_current}/{source_total}" if total_valide else str(source_current)
+                texte = f"{source_nom if source_nom.upper() != 'CARIF' else 'CARIF-OREF'} — {compteur} éléments traités"
+            else:
+                texte = "Recherche CARIF-OREF en cours..."
         elif etat == "running" and source_nom.upper() in ("AWS", "BOAMP", "TED", "CARIF", "CARIF-OREF"):
             # Les plateformes ont un libellé unique, sans répéter le message source.
             if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
@@ -3085,13 +3106,21 @@ class search(searchTemplate):
         # =====================================================
         # 6. Mise à jour visuelle de la barre
         # =====================================================
-        if afficher_jauges:
+        if indeterminee:
+            # Invalider le cache pour rétablir ensuite un remplissage déterminé.
+            self._last_progress_global = None
+        elif afficher_jauges:
             self.regler_jauge(self.label_jauge_globale, progress_affiche, "global")
         else:
             if etat == "success":
                 self.regler_jauge(self.label_jauge_globale, 100, "global")
             else:
                 self.regler_jauge(self.label_jauge_globale, progress_global, "global")
+
+    def arreter_animation_jauge(self):
+        """Retire l'activité indéterminée lors du nettoyage ou de l'abandon."""
+        if hasattr(self, "label_jauge_globale"):
+            self.label_jauge_globale.role = "progress-gauge-global"
 
     def afficher_etape_traitement_final(self, message, progress=100):
         """

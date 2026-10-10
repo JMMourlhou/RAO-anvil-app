@@ -1091,3 +1091,13 @@ TITRE DANS LA BORDURE
 
     z-index: 10;
 }
+/* Activité CARIF sans pourcentage : bande mobile, sans remplissage mesuré. */
+.anvil-role-progress-gauge-global.anvil-role-progress-gauge-indeterminate {
+    background: linear-gradient(to right, #dceff5 0%, #00ff00 50%, #dceff5 100%);
+    background-size: 200% 100%;
+    animation: rao-carif-activity 1.6s linear infinite;
+}
+@keyframes rao-carif-activity {
+    from { background-position: 200% 0; }
+    to { background-position: 0 0; }
+}
