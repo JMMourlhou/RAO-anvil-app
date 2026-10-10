@@ -2,10 +2,12 @@
 import ast
 import copy
 from contextlib import nullcontext
+from datetime import datetime, timezone
 from pathlib import Path
 import re
 from types import SimpleNamespace
 import unittest
+import uuid
 from unittest.mock import Mock
 
 SOURCE = Path(__file__).resolve().parents[1] / "client_code/search/__init__.py"
@@ -24,12 +26,19 @@ def charger_methodes():
     module = ast.fix_missing_locations(ast.Module(body=[classe_test], type_ignores=[]))
     espace = {
         "re": re,
+        "uuid": uuid,
+        # Date fixe : la sauvegarde réelle est exercée sans dépendance Anvil.
+        "Time": SimpleNamespace(french_zone_time=lambda: datetime(2026, 10, 10, 12, tzinfo=timezone.utc)),
         "anvil": SimpleNamespace(server=SimpleNamespace(call=Mock(), no_loading_indicator=nullcontext())),
         "afficher_information": Mock(),
         "afficher_avertissement": Mock(),
         "Notification": Mock(),
         "definir_titre_column_panel": Mock(),
     }
+    # Les exceptions Anvil attendues doivent exister pour le parcours classique.
+    for nom in ("AppOfflineError", "SessionExpiredError", "UplinkDisconnectedError",
+                "TimeoutError", "RuntimeUnavailableError", "NoServerFunctionError"):
+        setattr(espace["anvil"].server, nom, type(nom, (Exception,), {}))
     exec(compile(module, str(SOURCE), "exec"), espace)
     return espace
 
@@ -58,12 +67,13 @@ class TestsRechercheCPV(unittest.TestCase):
         self.form = self.espace["Search"]()
         self.serveur = self.espace["anvil"].server.call
         self.serveur.return_value = Mock()
+        self.serveur.side_effect = self.appel_serveur
         composants = (
             "Titre_2 text_box_mots_obligatoires_cpv text_box_mots_exclus text_box_mot_ou "
             "text_box_nb_jours text_box_departements multi_select_drop_down_platformes "
             "button_creer_veille_cpv timer_recherche_progress repeating_panel_offres "
             "checkbox_on_off text_nb_offres data_grid_1 column_panel_select "
-            "button_selection_mailed column_panel_params text_param_summary "
+            "button_selection_mailed column_panel_params "
             "column_panel_progress_recherche label_progress_recherche "
             "bloc_selecteur_cpv_complet zone_resume_cpv label_resume_cpv "
             "column_panel_saisie_recherche column_panel_param_summary "
@@ -89,6 +99,20 @@ class TestsRechercheCPV(unittest.TestCase):
                     "build_offres_list", "ajouter_correspondance_mots_ou", "trier_offres_par_interet"):
             setattr(self.form, nom, Mock(side_effect=AssertionError("pipeline legacy interdit")))
 
+    def appel_serveur(self, nom, *args, **kwargs):
+        """Simule le protocole serveur sans remplacer les méthodes de la Form."""
+        if nom == "enregistrer_recherche_rao":
+            return {"ok": True}
+        if nom == "backup_requete":
+            return {"ok": True, "histo_id": "nouvel-historique", "revision_recherche": 1}
+        if nom == "update_histo_offres":
+            if args != ("nouvel-historique", self.form.list_offres, 1) or kwargs:
+                raise AssertionError("Arguments de mise à jour d'historique incorrects")
+            return {"ok": True, "offres": args[1]}
+        if nom in ("lancer_recherche_cpv_background", "lancer_recherche_multi_sources_background"):
+            return self.serveur.return_value
+        raise AssertionError(f"Appel serveur non prévu : {nom}")
+
     def lancer(self):
         self.form.lancer_recherche()
         return self.serveur.call_args.kwargs
@@ -102,7 +126,14 @@ class TestsRechercheCPV(unittest.TestCase):
     def test_cpv_seul_et_arguments_exacts(self):
         criteres = self.lancer()
         self.assertEqual(self.serveur.call_args.args, ("lancer_recherche_cpv_background",))
-        self.assertEqual(set(criteres), {"cpv_selectionnes", "departements", "filtre_jours", "sources", "mots_obligatoires", "mots_exclus"})
+        inscription = self.serveur.call_args_list[0]
+        self.assertEqual(inscription.args, ("enregistrer_recherche_rao", self.form.search_id))
+        self.assertEqual(inscription.kwargs, {})
+        self.assertEqual(str(uuid.UUID(self.form.search_id)), self.form.search_id)
+        self.assertEqual(criteres, dict(search_id=self.form.search_id, cpv_selectionnes=["80560000"],
+                                      departements=[], filtre_jours=30, sources=["BOAMP", "CARIF-OREF"],
+                                      mots_obligatoires=[], mots_ou=["ANCIENNE_VALEUR"], mots_exclus=[]))
+        self.assertEqual(self.serveur.call_count, 2)
         self.assertEqual(criteres["cpv_selectionnes"], ["80560000"])
         self.assertEqual(criteres["mots_obligatoires"], [])
         self.assertEqual(criteres["sources"], ["BOAMP", "CARIF-OREF"])
@@ -153,17 +184,18 @@ class TestsRechercheCPV(unittest.TestCase):
         attendu = self.form.construire_resume_recherche_cpv()
         self.form.cpv_selectionnes[0]["libelle"] = "modifié"
         self.form.text_box_mots_obligatoires_cpv.text = "autre"
+        self.form.text_box_mot_ou.text = "NOUVELLE_VALEUR"
         self.form.multi_select_drop_down_platformes.selected.append("TED")
         self.assertEqual(self.form.construire_resume_recherche_cpv(), attendu)
         self.assertIn("80560000 — Formation santé", attendu)
-        self.assertNotIn("ANCIENNE_VALEUR", attendu)
-        self.assertNotIn("Au moins un", attendu)
+        self.assertIn("Au moins un de ces mots : ANCIENNE_VALEUR", attendu)
+        self.assertNotIn("NOUVELLE_VALEUR", self.form.construire_resume_recherche_cpv())
 
     def test_zero_est_succes(self):
         self.lancer()
         self.form.traiter_offres_cpv_apres_background(self.resultat())
         self.assertEqual(self.form.list_offres, [])
-        self.assertEqual(self.form.afficher_progression_recherche.call_args.kwargs["ligne_1"], "0 offre retenue")
+        self.assertEqual(self.form.afficher_progression_recherche.call_args.kwargs["ligne_1"], "Pas d'offres correspondant aux critères")
         self.assertEqual(self.form.afficher_progression_recherche.call_args.kwargs["etat"], "success")
         self.assertFalse(self.form._recherche_en_cours)
         self.assertEqual(self.form.timer_recherche_progress.interval, 0)
@@ -183,7 +215,8 @@ class TestsRechercheCPV(unittest.TestCase):
         self.assertEqual(self.form.list_offres[1]["numero_offre"], 2)
         self.assertEqual(self.form.list_offres[0]["nb_offres_total"], 2)
         self.assertEqual(self.form.list_offres[0]["lien_source"], offre["lien"])
-        self.assertEqual(self.serveur.call_count, 1)
+        self.assertEqual([appel.args[0] for appel in self.serveur.call_args_list],
+                         ["enregistrer_recherche_rao", "lancer_recherche_cpv_background", "backup_requete"])
 
     def test_une_offre(self):
         self.lancer()
@@ -228,9 +261,22 @@ class TestsRechercheCPV(unittest.TestCase):
         self.lancer()
         self.form.traiter_offres_cpv_apres_background(self.resultat([{"titre": "Offre"}]))
         self.assertFalse(hasattr(self.form, "button_daily_survey_creation"))
-        self.assertIsNone(self.form.histo_id)
+        # L'historique CPV est sauvegardé sans créer de veille quotidienne.
+        self.assertEqual(self.form.histo_id, "nouvel-historique")
+        self.assertEqual(self.form.revision_recherche, 1)
+        self.assertTrue(self.form._offres_correspondent_histo)
+        sauvegarde = self.serveur.call_args
+        self.assertEqual(sauvegarde.args, ("backup_requete",))
+        self.assertEqual(sauvegarde.kwargs, dict(
+            sources=["BOAMP", "CARIF-OREF"], mots_cles="", mots_ou="ANCIENNE_VALEUR",
+            mots_exclus="", nb_jours=30, departements="",
+            date_heure=self.espace["Time"].french_zone_time(), offres=self.form.list_offres,
+            mode_recherche="cpv", cpv_selectionnes=["80560000"]))
         self.assertTrue(self.form.sauver_offres_dans_histo())
-        self.assertEqual(self.serveur.call_count, 1)
+        self.assertEqual(self.serveur.call_args.args,
+                         ("update_histo_offres", "nouvel-historique", self.form.list_offres, 1))
+        self.assertEqual([appel.args[0] for appel in self.serveur.call_args_list],
+                         ["enregistrer_recherche_rao", "lancer_recherche_cpv_background", "backup_requete", "update_histo_offres"])
 
     def test_repli_conserve_criteres(self):
         self.form.text_box_mots_obligatoires_cpv.text = "sst"

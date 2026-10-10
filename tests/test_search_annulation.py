@@ -1,5 +1,6 @@
 """Parcours d'arrêt search/Menu, avec serveur et DOM simulés, sans réseau."""
 import ast
+import copy
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -63,6 +64,11 @@ class TestsAnnulation(unittest.TestCase):
         self.form.traiter_offres_recuperees_apres_background = Mock()
 
     def appel_serveur(self, nom, *args, **kwargs):
+        if nom == "enregistrer_recherche_rao":
+            return {"ok": True}
+        if nom == "demander_annulation_recherche_rao":
+            # Les nouvelles recherches CPV sont annulées via leur identifiant métier.
+            return {"ok": True, "status": "cancellation_requested"}
         if nom == "task_killer":
             return self.reponse_killer
         if nom == "statut_tache_recherche":
@@ -206,15 +212,23 @@ class TestsAnnulation(unittest.TestCase):
                         self.menu.navigation_link_retour_click()
                         self.form.timer_recherche_progress_tick()
                         self.menu.navigation_link_retour_click()
-                        self.assertTrue(self.form._recherche_en_cours)
-                        self.assertTrue(self.menu._arret_bloque)
-                        self.assertIs(self.menu.form_search, self.form)
+                        if mode == "classique":
+                            self.assertTrue(self.form._recherche_en_cours)
+                            self.assertTrue(self.menu._arret_bloque)
+                            self.assertIs(self.menu.form_search, self.form)
+                        else:
+                            self.assertTrue(self.form._recherche_abandonnee)
+                            self.verifier_menu()
+                            annulations = [appel for appel in self.serveur.call_args_list
+                                           if appel.args[0] == "demander_annulation_recherche_rao"]
+                            self.assertEqual(len(annulations), 1)
+                            self.assertEqual(annulations[0].args, ("demander_annulation_recherche_rao", kwargs["search_id"]))
                         self.assertEqual(len(self.appels_killer()), 0)
                         return self.task
                     return self.appel_serveur(nom, *args, **kwargs)
                 self.serveur.side_effect = lancement
                 self.form.lancer_recherche()
-                self.assertEqual(len(self.appels_killer()), 1)
+                self.assertEqual(len(self.appels_killer()), 1 if mode == "classique" else 0)
                 self.assertIsNone(self.form.task_recherche)
                 messages = [c.kwargs.get("ligne_1") for c in self.form.afficher_progression_recherche.call_args_list]
                 self.assertEqual(messages.count("Arrêt de la recherche en cours…"), 1)
@@ -232,6 +246,70 @@ class TestsAnnulation(unittest.TestCase):
         self.espace_search["afficher_information"].assert_not_called()
         self.assertTrue(self.form._recherche_abandonnee)
         self.verifier_menu()
+
+    def test_task_cpv_tardive_apres_arret_et_nouveau_lancement(self):
+        """Une ancienne référence reçue après relance ne touche pas la nouvelle Form."""
+        ancienne = self.form
+        ancienne.task_recherche = None
+        ancienne._recherche_en_cours = False
+        preparation = support.TestsRechercheCPV()
+        preparation.setUp()
+        nouvelle = preparation.form
+        nouvelle.f = self.menu
+        nouvelle_task = preparation.serveur.return_value
+        instantane = {}
+
+        def lancement(nom, *args, **kwargs):
+            if nom == "lancer_recherche_cpv_background":
+                identifiant_ancien = kwargs["search_id"]
+                self.assertIsNone(ancienne.task_recherche)
+                self.menu.navigation_link_retour_click()
+                self.verifier_menu()
+                self.assertTrue(ancienne._recherche_abandonnee)
+                self.assertEqual(self.serveur.call_args.args,
+                                 ("demander_annulation_recherche_rao", identifiant_ancien))
+                # La nouvelle recherche démarre avant le retour de l'ancienne Task.
+                self.menu.form_search = nouvelle
+                nouvelle.lancer_recherche()
+                self.assertNotEqual(nouvelle.search_id, identifiant_ancien)
+                self.assertIs(nouvelle.task_recherche, nouvelle_task)
+                self.assertEqual(nouvelle.timer_recherche_progress.interval, 1)
+                instantane["contexte"] = copy.deepcopy(nouvelle._ctx_recherche)
+                instantane["offres"] = copy.deepcopy(nouvelle.list_offres)
+                instantane["affichage"] = (nouvelle.column_panel_saisie_recherche.visible,
+                                           nouvelle.column_panel_param_summary.visible,
+                                           nouvelle.label_summary_ou.text,
+                                           self.menu.navigation_link_search_go.visible,
+                                           self.menu.navigation_link_search_go.enabled)
+                preparation.form.afficher_progression_recherche.reset_mock()
+                self.menu.content_panel.clear.reset_mock()
+                return self.task
+            return self.appel_serveur(nom, *args, **kwargs)
+
+        self.serveur.side_effect = lancement
+        ancienne.lancer_recherche()
+        ancienne.timer_recherche_progress_tick()
+        ancienne.deverrouiller_recherche()
+        self.assertIsNone(ancienne.task_recherche)
+        self.assertEqual(ancienne.timer_recherche_progress.interval, 0)
+        self.assertIs(self.menu.form_search, nouvelle)
+        self.assertIs(nouvelle.task_recherche, nouvelle_task)
+        self.assertEqual(nouvelle.timer_recherche_progress.interval, 1)
+        self.assertTrue(nouvelle._recherche_en_cours)
+        self.assertEqual(nouvelle._ctx_recherche, instantane["contexte"])
+        self.assertEqual(nouvelle.list_offres, instantane["offres"])
+        self.assertEqual(nouvelle.repeating_panel_offres.items, instantane["offres"])
+        self.assertEqual((nouvelle.column_panel_saisie_recherche.visible,
+                          nouvelle.column_panel_param_summary.visible, nouvelle.label_summary_ou.text,
+                          self.menu.navigation_link_search_go.visible,
+                          self.menu.navigation_link_search_go.enabled), instantane["affichage"])
+        nouvelle.afficher_progression_recherche.assert_not_called()
+        self.menu.content_panel.clear.assert_not_called()
+        self.task.get_state.assert_not_called()
+        self.task.get_return_value.assert_not_called()
+        ancienne.traiter_offres_cpv_apres_background.assert_not_called()
+        self.assertEqual([appel.args[0] for appel in self.serveur.call_args_list],
+                         ["enregistrer_recherche_rao", "lancer_recherche_cpv_background", "demander_annulation_recherche_rao"])
 
     def test_lancement_echoue_apres_demande_sans_task(self):
         self.form.task_recherche = None

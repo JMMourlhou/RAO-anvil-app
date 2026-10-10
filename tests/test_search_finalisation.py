@@ -79,8 +79,8 @@ class TestsFinalisation(unittest.TestCase):
         ])
         self.form.build_offres_list.assert_called_once_with([{"titre": "Classique"}], dedoublonner=True)
         self.form.filtrer_offres_criteres_positifs.assert_not_called()
-        self.assertFalse(self.form.column_panel_params.visible)
-        self.assertTrue(self.form.text_param_summary.visible)
+        self.assertFalse(self.form.column_panel_saisie_recherche.visible)
+        self.assertTrue(self.form.column_panel_param_summary.visible)
         self.assertEqual(self.form.afficher_progression_recherche.call_args.kwargs["ligne_1"], "1 offre retenue")
         self.verifier_nettoyage(bouton_actif=False)
 

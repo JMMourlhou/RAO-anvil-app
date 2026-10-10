@@ -799,7 +799,7 @@ class search(searchTemplate):
                     erreur
                 )
 
-            if erreur_lancement is None and not self._annulation_recherche_demandee:
+            if task_recue is not None and erreur_lancement is None and not self._annulation_recherche_demandee:
                 if getattr(self, "_recherche_abandonnee", False):
                     return
 
@@ -815,6 +815,18 @@ class search(searchTemplate):
                 self.column_panel_select.visible = False
                 self.text_nb_offres.visible = False
                 self.checkbox_on_off.visible = False
+
+            elif task_recue is None and erreur_lancement is None and not self._annulation_recherche_demandee:
+                # Un retour sans Task n'est pas un lancement réussi.
+                # Ne pas remplacer le message d'un arrêt volontaire en cours.
+                if not getattr(self, "_recherche_abandonnee", False):
+                    self.afficher_progression_recherche(
+                        ligne_1="Impossible de démarrer la recherche",
+                        etat="error",
+                        progress_global=0,
+                        progress_source=0,
+                        afficher_jauges=False
+                    )
 
         finally:
             if not getattr(self, "_recherche_abandonnee", False):
