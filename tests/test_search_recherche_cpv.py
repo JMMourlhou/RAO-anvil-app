@@ -337,7 +337,7 @@ class TestsProgressionRecherche(unittest.TestCase):
                 with self.subTest(source=source, compteur=compteur):
                     self.form._points_animation_recherche = 0
                     for points in (1, 2, 3, 1):
-                        self.assertEqual(self.afficher(source, compteur, "Collecte"),
+                        self.assertEqual(self.afficher(source, compteur),
                                          f"Recherche {source} en cours" + "." * points)
 
     def test_transitions_compteur_et_source(self):
@@ -357,7 +357,8 @@ class TestsProgressionRecherche(unittest.TestCase):
         self.form._ctx_recherche = {"mode_recherche": "classique"}
         for compteur in (None, 0, 37):
             self.assertEqual(self.afficher(compteur=compteur, message="AWS — 37 avis traités"),
-                             "Recherche AWS en cours — 0 %")
+                             "AWS — 37 avis traités")
+        self.assertEqual(self.afficher(), "Recherche AWS en cours — 0 %")
         self.assertEqual(self.afficher("CARIF", 1), "Recherche CARIF en cours — 0 %")
 
     def test_etats_finaux_et_arret_inchanges(self):

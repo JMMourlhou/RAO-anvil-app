@@ -91,3 +91,56 @@ class TestsProgressionCarif(unittest.TestCase):
         self.assertEqual(self.form.afficher_progression_recherche.call_args.kwargs['progress_global'], 45)
         self.form.regler_jauge.assert_not_called()
         self.assertEqual(self.form.label_jauge_globale.text, 'Occitanie — 3/12 fiches récupérées')
+
+    def test_plateformes_modes_pourcentages_et_messages(self):
+        for mode in ('classique', 'cpv'):
+            for source in ('BOAMP', 'TED', 'AWS', 'CARIF-OREF'):
+                for progress in (None, 0, 100):
+                    for current, total in ((None, None), (0, 12), (3, 12), (3, None)):
+                        for message in ('', f'{source} — collecte partielle : limite atteinte'):
+                            with self.subTest(mode=mode, source=source, progress=progress,
+                                              current=current, total=total, message=message):
+                                self.preparer(mode)
+                                self.afficher(source=source, progress=progress, current=current,
+                                              total=total, message=message)
+                                if message:
+                                    self.assertEqual(self.form.label_jauge_globale.text, message)
+                                if progress is None:
+                                    self.assertIn('progress-gauge-indeterminate', self.form.label_jauge_globale.role)
+                                    self.form.regler_jauge.assert_not_called()
+                                    self.assertNotIn('%', self.form.label_jauge_globale.text)
+                                    if not message:
+                                        if current is None:
+                                            self.assertEqual(self.form.label_jauge_globale.text,
+                                                             f'Recherche {source} en cours...')
+                                        else:
+                                            compteur = f'{current}/{total}' if total else str(current)
+                                            self.assertEqual(self.form.label_jauge_globale.text,
+                                                             f'{source} — {compteur} éléments traités')
+                                else:
+                                    self.assertEqual(self.form.label_jauge_globale.role, 'progress-gauge-global')
+                                    self.assertEqual(self.form.regler_jauge.call_args.args[1], progress)
+
+    def test_sequence_plateformes_et_nettoyage(self):
+        for mode in ('classique', 'cpv'):
+            self.preparer(mode)
+            for source in ('BOAMP', 'TED', 'AWS', 'CARIF-OREF'):
+                self.afficher(source=source, current=0, total=12)
+                self.assertEqual(self.form.label_jauge_globale.text, f'{source} — 0/12 éléments traités')
+                self.assertIn('progress-gauge-indeterminate', self.form.label_jauge_globale.role)
+            self.form.regler_jauge.assert_not_called()
+            self.afficher(source='BOAMP', progress=25)
+            self.assertEqual(self.form.regler_jauge.call_args.args[1], 25)
+            for source in ('BOAMP', 'TED', 'AWS', 'CARIF-OREF'):
+                for etat in ('success', 'error', 'stopping'):
+                    self.afficher(source=source)
+                    self.afficher(source=source, etat=etat, ligne_1='Fin', afficher_jauges=False)
+                    self.assertEqual(self.form.label_jauge_globale.role, 'progress-gauge-global')
+            self.afficher(source='BOAMP')
+            self.form.deverrouiller_recherche()
+            self.assertEqual(self.form.label_jauge_globale.role, 'progress-gauge-global')
+            self.afficher(source='AWS')
+            self.form.f.revenir_menu_apres_arret = Mock()
+            self.form.abandonner_recherche()
+            self.assertEqual(self.form.label_jauge_globale.role, 'progress-gauge-global')
+            self.assertEqual(self.form.timer_recherche_progress.interval, 0)

@@ -3020,8 +3020,8 @@ class search(searchTemplate):
         ligne_1 = str(ligne_1 or "").strip()
         ligne_2 = str(ligne_2 or "").strip()
         source_nom = str(source_nom or "").strip()
-        source_carif = source_nom.upper() in ("CARIF", "CARIF-OREF") or source_nom.upper().startswith("CARIF-OREF ")
-        indeterminee = source_carif and progress_source is None and etat == "running" and afficher_jauges
+        source_affichee = "CARIF-OREF" if source_nom.upper() == "CARIF" else source_nom
+        indeterminee = bool(source_nom) and progress_source is None and etat == "running" and afficher_jauges
         self.label_jauge_globale.role = ["progress-gauge-global", "progress-gauge-indeterminate"] if indeterminee else "progress-gauge-global"
     
         progress_affiche = progress_global
@@ -3066,9 +3066,13 @@ class search(searchTemplate):
                 texte = ligne_2
             elif compteur_valide:
                 compteur = f"{source_current}/{source_total}" if total_valide else str(source_current)
-                texte = f"{source_nom if source_nom.upper() != 'CARIF' else 'CARIF-OREF'} — {compteur} éléments traités"
+                texte = f"{source_affichee} — {compteur} éléments traités"
             else:
-                texte = "Recherche CARIF-OREF en cours..."
+                texte = f"Recherche {source_affichee} en cours..."
+        elif etat == "running" and source_nom and ligne_2:
+            # Conserver notamment les avertissements de collecte partielle,
+            # indépendamment du compteur. Le remplissage numérique ne change pas.
+            texte = ligne_2
         elif etat == "running" and source_nom.upper() in ("AWS", "BOAMP", "TED", "CARIF", "CARIF-OREF"):
             # Les plateformes ont un libellé unique, sans répéter le message source.
             if (self._ctx_recherche or {}).get("mode_recherche") == "cpv":
