@@ -191,7 +191,8 @@ class TestsLibelleFinCPV(unittest.TestCase):
                 self.assertEqual(preparation.form.timer_recherche_progress.interval, 0)
 
     def test_libelle_callback_exact_et_messages_specifiques(self):
-        for message in ('Recherche CPV terminée', 'Erreur CPV', 'Collecte partielle : limite atteinte', 'Arrêt en cours'):
+        for message in ('Recherche CPV terminée', '  Recherche CPV terminée', 'Recherche CPV terminée  ',
+                        '  Recherche CPV terminée  ', 'Erreur CPV', 'Collecte partielle : limite atteinte', 'Arrêt en cours'):
             with self.subTest(message=message):
                 preparation = support.TestsRechercheCPV()
                 preparation.setUp()
@@ -201,5 +202,43 @@ class TestsLibelleFinCPV(unittest.TestCase):
                 form.task_recherche.get_state.return_value = {'message': message}
                 form.task_recherche.is_completed.return_value = False
                 form.timer_recherche_progress_tick()
-                attendu = 'Recherche terminée' if message == 'Recherche CPV terminée' else message
+                attendu = 'Recherche terminée' if message.strip() == 'Recherche CPV terminée' else message
                 self.assertEqual(form.afficher_progression_recherche.call_args.kwargs['ligne_2'], attendu)
+
+    def test_transition_task_finalisation_sans_ancien_libelle(self):
+        for message in ('Recherche CPV terminée', '  Recherche CPV terminée  '):
+            with self.subTest(message=message):
+                preparation = support.TestsRechercheCPV()
+                preparation.setUp()
+                preparation.lancer()
+                form = preparation.form
+                form.label_jauge_globale = support.Composant()
+                form._last_progress_role = None
+                del form.afficher_progression_recherche
+                form.regler_jauge = Mock()
+                afficher = form.afficher_progression_recherche
+                textes = []
+
+                def observer(**arguments):
+                    afficher(**arguments)
+                    textes.append(form.label_jauge_globale.text)
+
+                form.afficher_progression_recherche = Mock(side_effect=observer)
+                task = Mock(spec=['get_state', 'is_completed', 'get_return_value'])
+                task.get_state.return_value = dict(message=message, source_en_cours='BOAMP', source_progress=100)
+                task.is_completed.return_value = True
+
+                def resultat():
+                    # L'état final serveur est affiché avant la lecture du résultat.
+                    self.assertEqual(form.label_jauge_globale.text, 'Recherche terminée')
+                    return preparation.resultat([{'titre': 'Offre'}])
+
+                task.get_return_value.side_effect = resultat
+                form.task_recherche = task
+                form.timer_recherche_progress_tick()
+                self.assertEqual(textes, ['Recherche terminée', 'Recherche terminée'])
+                self.assertEqual(form.label_jauge_globale.text, 'Recherche terminée')
+                self.assertIsNone(form.task_recherche)
+                self.assertEqual(form.timer_recherche_progress.interval, 0)
+                form.timer_recherche_progress_tick()
+                self.assertEqual(textes, ['Recherche terminée', 'Recherche terminée'])

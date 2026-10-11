@@ -2734,7 +2734,7 @@ class search(searchTemplate):
         source_en_cours = state.get("source_en_cours", "")
         source_current = state.get("source_current", None)
         source_total = state.get("source_total", None)
-        message_progression = state.get("message", "")
+        message_progression = str(state.get("message", "") or "").strip()
         # Simplifier uniquement le libellé de fin CPV reçu du moteur.
         if (self._ctx_recherche or {}).get("mode_recherche") == "cpv" and message_progression == "Recherche CPV terminée":
             message_progression = "Recherche terminée"
