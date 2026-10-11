@@ -221,7 +221,8 @@ class TestsRechercheCPV(unittest.TestCase):
     def test_une_offre(self):
         self.lancer()
         self.form.traiter_offres_cpv_apres_background(self.resultat([{"titre": "Une offre"}]))
-        self.assertEqual(self.form.text_nb_offres.text, "1 offre")
+        self.assertEqual(self.form.text_nb_offres.text, "1 offre retenue")
+        self.assertTrue(self.form.text_nb_offres.visible)
 
     def test_limitation_message_exact(self):
         self.lancer()

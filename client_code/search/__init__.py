@@ -1883,11 +1883,11 @@ class search(searchTemplate):
             return
     
         if nb == 1:
-            self.text_nb_offres.text = "1 offre"
+            self.text_nb_offres.text = "1 offre retenue"
         else:
-            self.text_nb_offres.text = f"{nb} offres"
+            self.text_nb_offres.text = f"{nb} offres retenues"
     
-        self.text_nb_offres.visible = False
+        self.text_nb_offres.visible = True
         self.data_grid_1.visible = True
         self.column_panel_select.visible = True
         self.checkbox_on_off.visible = True
