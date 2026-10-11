@@ -271,7 +271,8 @@ class TestsRechercheCPV(unittest.TestCase):
             sources=["BOAMP", "CARIF-OREF"], mots_cles="", mots_ou="ANCIENNE_VALEUR",
             mots_exclus="", nb_jours=30, departements="",
             date_heure=self.espace["Time"].french_zone_time(), offres=self.form.list_offres,
-            mode_recherche="cpv", cpv_selectionnes=["80560000"]))
+            mode_recherche="cpv", cpv_selectionnes=["80560000"],
+            statut_collecte="complete", message_collecte=""))
         self.assertTrue(self.form.sauver_offres_dans_histo())
         self.assertEqual(self.serveur.call_args.args,
                          ("update_histo_offres", "nouvel-historique", self.form.list_offres, 1))

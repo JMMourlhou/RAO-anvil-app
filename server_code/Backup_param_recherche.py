@@ -83,7 +83,9 @@ def backup_requete(
     date_heure,
     offres,
     mode_recherche,
-    cpv_selectionnes
+    cpv_selectionnes,
+    statut_collecte=None,
+    message_collecte=""
 ):
     """Enregistre la dernière recherche et incrémente sa révision.
 
@@ -126,6 +128,21 @@ def backup_requete(
             return refuser(validation["message"])
         codes_cpv = validation["codes"]
 
+        # Les anciens clients CPV sauvegardent implicitement une collecte complète.
+        if statut_collecte is None:
+            statut_collecte = "complete"
+        if not isinstance(statut_collecte, str) or statut_collecte not in ("complete", "partielle"):
+            return refuser("Statut de collecte invalide pour la sauvegarde.")
+        if not isinstance(message_collecte, str):
+            return refuser("Message de collecte invalide pour la sauvegarde.")
+        message_collecte = message_collecte.strip() if statut_collecte == "partielle" else ""
+        if statut_collecte == "partielle" and not message_collecte:
+            return refuser("Le message de collecte partielle est manquant.")
+    else:
+        # Une nouvelle recherche classique efface le statut CPV précédent.
+        statut_collecte = ""
+        message_collecte = ""
+
     sources_nettoyees = nettoyer_sources(sources)
     offres_nettoyees = nettoyer_offres_pour_histo(offres)
 
@@ -148,6 +165,8 @@ def backup_requete(
         "nb_offres": len(offres_nettoyees),
         "mode_recherche": mode_recherche,
         "cpv_selectionnes": codes_cpv,
+        "statut_collecte": statut_collecte,
+        "message_collecte": message_collecte,
         "revision_recherche": nouvelle_revision
     }
 

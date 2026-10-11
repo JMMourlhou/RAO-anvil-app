@@ -441,6 +441,7 @@ class search(searchTemplate):
                 self.afficher_offres(self.list_offres)
                 if self.list_offres:
                     self.display_param_summary()
+                self.restaurer_avertissement_collecte(derniere_ligne)
             else:
                 self.column_panel_select.visible = False
     
@@ -999,9 +1000,10 @@ class search(searchTemplate):
     def traiter_offres_cpv_apres_background(self, resultat):
         """Affiche un résultat CPV dict déjà traité par le moteur.
 
-        Retour : None. ok=False est une erreur contrôlée, jamais un résultat
-        partiel. Une réponse mal formée lève ValueError ; zéro offre est un
-        succès. Les champs métier sont copiés sans filtrage ni dédoublonnage.
+        Retour : None. ok=False ou une collecte échouée est une erreur contrôlée.
+        Une réponse mal formée lève ValueError. Une collecte partielle conserve
+        les offres et signale que le résultat est incomplet, même sans offre.
+        Les champs métier sont copiés sans filtrage ni dédoublonnage.
         """
         if getattr(self, "_recherche_abandonnee", False):
             return
@@ -1009,14 +1011,25 @@ class search(searchTemplate):
         try:
             if not isinstance(resultat, dict) or type(resultat.get("ok")) is not bool:
                 raise ValueError("Réponse de recherche CPV invalide.")
-            if not resultat["ok"]:
+            # L'absence du champ conserve le protocole des anciens moteurs.
+            statut_collecte = resultat.get("statut_collecte")
+            if "statut_collecte" in resultat and (
+                not isinstance(statut_collecte, str)
+                or statut_collecte not in ("complete", "partielle", "echouee")
+            ):
+                raise ValueError("Statut de collecte CPV invalide.")
+            message_collecte = resultat.get("message_collecte")
+            if message_collecte is not None and not isinstance(message_collecte, str):
+                raise ValueError("Message de collecte CPV invalide.")
+            message_collecte = (message_collecte or "").strip()
+            if not resultat["ok"] or statut_collecte == "echouee":
                 self.list_offres = []
                 self.afficher_offres([])
                 self.checkbox_on_off.visible = False
                 self.afficher_saisie_recherche()
                 self.afficher_progression_recherche(
                     ligne_1="Échec de la recherche CPV",
-                    ligne_2=resultat.get("message") or "La recherche CPV n’a pas abouti.",
+                    ligne_2=message_collecte or resultat.get("message") or "La recherche CPV n’a pas abouti.",
                     etat="error", afficher_jauges=False,
                 )
                 print("Erreurs recherche CPV :", resultat.get("errors", []))
@@ -1033,7 +1046,16 @@ class search(searchTemplate):
                 if not offre_affichee.get("lien_source"):
                     offre_affichee["lien_source"] = offre_affichee.get("lien", "")
                 offres_affichees.append(offre_affichee)
-            if not self.finaliser_recherche(offres_affichees):
+            message_final_specifique = None
+            if statut_collecte == "partielle":
+                if offres_affichees:
+                    message_final_specifique = "Recherche partiellement terminée — certaines annonces n'ont pas pu être analysées."
+                else:
+                    message_final_specifique = "Recherche incomplète — aucune offre récupérée. Certaines annonces n'ont pas pu être analysées."
+            # Métadonnées du résultat courant, jamais celles de la recherche précédente.
+            self._ctx_recherche["statut_collecte"] = statut_collecte or "complete"
+            self._ctx_recherche["message_collecte"] = message_final_specifique or ""
+            if not self.finaliser_recherche(offres_affichees, message_final_specifique=message_final_specifique):
                 return
 
             message_complementaire = ""
@@ -1112,7 +1134,9 @@ class search(searchTemplate):
                     date_heure=Time.french_zone_time(),
                     offres=offres,
                     mode_recherche=mode_recherche,
-                    cpv_selectionnes=list(codes_cpv)
+                    cpv_selectionnes=list(codes_cpv),
+                    statut_collecte=ctx.get("statut_collecte", "complete") if mode_recherche == "cpv" else "",
+                    message_collecte=ctx.get("message_collecte", "") if mode_recherche == "cpv" else ""
                 )
 
             if getattr(self, "_recherche_abandonnee", False):
@@ -1139,13 +1163,25 @@ class search(searchTemplate):
             if not sauvegarde_terminee:
                 self.deverrouiller_recherche(cacher_bouton=False)
 
+    def restaurer_avertissement_collecte(self, historique):
+        """Réaffiche le statut partiel sauvegardé, sans Task ni nouvelle sauvegarde."""
+        if historique.get("mode_recherche") != "cpv":
+            return
+        if historique.get("statut_collecte") != "partielle":
+            return
+        message = historique.get("message_collecte") or "Recherche incomplète — certaines annonces n'ont pas pu être analysées."
+        self.afficher_progression_recherche(
+            ligne_1=message, etat="warning", afficher_jauges=False
+        )
+
     def finaliser_recherche(
         self,
         offres,
         *,
         cacher_bouton=False,
         masquer_parametres=False,
-        message_sans_offre=None
+        message_sans_offre=None,
+        message_final_specifique=None
     ):
         """Sauvegarde puis publie des offres déjà traitées par leur parcours.
 
@@ -1153,6 +1189,8 @@ class search(searchTemplate):
         Les options conservent la politique du bouton, des panneaux et le
         message vide classique. Retourne True après finalisation, False si
         la sauvegarde est refusée. Les erreurs remontent après déverrouillage.
+        message_final_specifique : avertissement final CPV, sans preuve de
+        collecte complète ; sans cette option, le comportement reste inchangé.
         """
         if getattr(self, "_recherche_abandonnee", False):
             return False
@@ -1187,7 +1225,9 @@ class search(searchTemplate):
 
             # Les messages vides restent propres à chaque parcours.
             ligne_2 = ""
-            if not offres and mode_cpv:
+            if mode_cpv and message_final_specifique is not None:
+                message_final = message_final_specifique
+            elif not offres and mode_cpv:
                 message_final = "Pas d'offres correspondant aux critères"
             elif not offres and message_sans_offre is not None:
                 message_final = "Recherche terminée"
@@ -1202,9 +1242,9 @@ class search(searchTemplate):
             self.afficher_progression_recherche(
                 ligne_1=message_final,
                 ligne_2=ligne_2,
-                etat="success",
-                progress_global=100,
-                progress_source=100,
+                etat="warning" if mode_cpv and message_final_specifique is not None else "success",
+                progress_global=0 if mode_cpv and message_final_specifique is not None else 100,
+                progress_source=0 if mode_cpv and message_final_specifique is not None else 100,
                 afficher_jauges=False
             )
             finalisation_terminee = True
@@ -3042,7 +3082,7 @@ class search(searchTemplate):
         else:
             libelle_etape = ""
     
-        if etat == "success":
+        if etat in ("success", "warning"):
             if ligne_2:
                 texte = f"{ligne_1 or '✔ Recherche terminée'} — {ligne_2}"
             else:

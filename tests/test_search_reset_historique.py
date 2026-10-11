@@ -56,7 +56,8 @@ class TestsResetHistorique(unittest.TestCase):
             offres=copy.deepcopy(self.form.list_offres), nb_offres=1,
             revision_recherche=7, mots_cles="formation", mots_ou="",
             mots_exclus="", nb_jours=30, departements="", sources=["BOAMP"],
-            mode_recherche="classique", cpv_selectionnes=[]
+            mode_recherche="classique", cpv_selectionnes=[],
+            statut_collecte=None, message_collecte=None
         )
         self.original = copy.deepcopy(self.ligne)
         self.table = Mock()

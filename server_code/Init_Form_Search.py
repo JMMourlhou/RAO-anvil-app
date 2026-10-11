@@ -54,6 +54,8 @@ def initialiser_form_search(inclure_offres=False):
             "mode_recherche": row["mode_recherche"],
             "cpv_selectionnes": list(row["cpv_selectionnes"]),
             "revision_recherche": row["revision_recherche"],
+            "statut_collecte": row["statut_collecte"] or "",
+            "message_collecte": row["message_collecte"] or "",
             "prestations_cpv": []
         }
 
