@@ -54,7 +54,7 @@ class TestsFinalisation(unittest.TestCase):
         self.assertEqual(self.form.list_offres[0]["lien_source"], "source")
         self.assertFalse(self.form.list_offres[0]["vu"])
         self.assertTrue(self.form.column_panel_params.visible)
-        self.assertEqual(self.form.afficher_progression_recherche.call_args.kwargs["ligne_1"], "2 offres retenues")
+        self.assertEqual(self.form.afficher_progression_recherche.call_args.kwargs["ligne_1"], "Recherche terminée")
         self.assertEqual(self.form.afficher_progression_recherche.call_args.kwargs["ligne_2"], "")
         self.assertIn("source indisponible", sortie.getvalue())
         self.espace["afficher_information"].assert_called_once_with("Limite moteur", titre="Recherche limitée")
@@ -172,3 +172,34 @@ class TestsFinalisation(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestsLibelleFinCPV(unittest.TestCase):
+    def test_fin_cpv_avec_et_sans_offres(self):
+        for nombre in (0, 1, 2):
+            with self.subTest(nombre=nombre):
+                preparation = support.TestsRechercheCPV()
+                preparation.setUp()
+                preparation.lancer()
+                offres = [{'titre': 'Offre'}] * nombre
+                preparation.form.traiter_offres_cpv_apres_background(preparation.resultat(offres))
+                arguments = preparation.form.afficher_progression_recherche.call_args.kwargs
+                self.assertEqual(arguments['ligne_1'], 'Recherche terminée' if nombre else "Pas d'offres correspondant aux critères")
+                self.assertEqual(arguments['ligne_2'], '')
+                self.assertEqual(arguments['etat'], 'success')
+                self.assertEqual(len(preparation.form.list_offres), nombre)
+                self.assertEqual(preparation.form.timer_recherche_progress.interval, 0)
+
+    def test_libelle_callback_exact_et_messages_specifiques(self):
+        for message in ('Recherche CPV terminée', 'Erreur CPV', 'Collecte partielle : limite atteinte', 'Arrêt en cours'):
+            with self.subTest(message=message):
+                preparation = support.TestsRechercheCPV()
+                preparation.setUp()
+                preparation.lancer()
+                form = preparation.form
+                form.task_recherche = Mock(spec=['get_state', 'is_completed'])
+                form.task_recherche.get_state.return_value = {'message': message}
+                form.task_recherche.is_completed.return_value = False
+                form.timer_recherche_progress_tick()
+                attendu = 'Recherche terminée' if message == 'Recherche CPV terminée' else message
+                self.assertEqual(form.afficher_progression_recherche.call_args.kwargs['ligne_2'], attendu)

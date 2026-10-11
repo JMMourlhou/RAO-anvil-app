@@ -1193,7 +1193,7 @@ class search(searchTemplate):
                 message_final = "Recherche terminée"
                 ligne_2 = message_sans_offre
             elif mode_cpv:
-                message_final = self.format_nb_offres(len(offres), "retenue", "retenues")
+                message_final = "Recherche terminée"
             elif len(offres) == 1:
                 message_final = "1 offre retenue"
             else:
@@ -2735,6 +2735,9 @@ class search(searchTemplate):
         source_current = state.get("source_current", None)
         source_total = state.get("source_total", None)
         message_progression = state.get("message", "")
+        # Simplifier uniquement le libellé de fin CPV reçu du moteur.
+        if (self._ctx_recherche or {}).get("mode_recherche") == "cpv" and message_progression == "Recherche CPV terminée":
+            message_progression = "Recherche terminée"
     
         self.afficher_progression_recherche(
             ligne_1="🔎 Recherche en cours",
