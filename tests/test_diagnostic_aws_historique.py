@@ -230,6 +230,117 @@ class TestsDiagnosticAWS(unittest.TestCase):
         for interdit in ('SECRET', 'https://', 'personne@', 'champ flux papier', 'motif"'):
             self.assertNotIn(interdit, rendu)
 
+    def sous_categorie(self, motif, etape='format'):
+        categorie = self.api._classer_motif(etape, motif)
+        return self.api._sous_categorie_format(etape, motif, categorie)
+
+    def test_cinq_classes_secondaires_demonstrables(self):
+        cas = (
+            (None, 'motif_absent'), ('', 'motif_absent'),
+            (False, 'motif_type_incorrect'), (0, 'motif_type_incorrect'),
+            ([], 'motif_type_incorrect'), ({}, 'motif_type_incorrect'),
+            ('SECRET', 'enveloppe_non_reconnue'), (' ', 'enveloppe_non_reconnue'),
+            (self.enveloppe_papier('structure de détail flux papier non reconnue'), 'message_ambigu_connu'),
+            (self.enveloppe_papier('SECRET'), 'message_inconnu'),
+            (self.enveloppe_papier('structure de détail flux papier non reconnue suffixe'), 'message_inconnu'),
+            (self.enveloppe_papier('échéance flux papier invalide') + '\n', 'enveloppe_non_reconnue'),
+        )
+        for motif, attendu in cas:
+            with self.subTest(motif=motif):
+                self.assertEqual(self.sous_categorie(motif), attendu)
+                self.assertEqual(self.api.classifier_motif_format(motif), 'motif_non_classe')
+
+    def test_sous_motifs_lots_dates_exacts(self):
+        cas = {
+            'identifiant de lot flux papier absent ou ambigu': 'lot_identifiant_absent_ou_ambigu',
+            'classification CPV imbriquée dans un en-tête de lot': 'lot_cpv_dans_entete',
+            'plusieurs en-têtes de lot dans un même paragraphe': 'lot_entetes_multiples',
+            'structure CPV de lot flux papier non reconnue': 'lot_structure_cpv_non_reconnue',
+            'en-tête de lot flux papier imbriqué ou non reconnu': 'lot_entete_imbrique_ou_non_reconnu',
+            'structure de lot flux papier numéroté non reconnue': 'lot_numerote_structure_non_reconnue',
+            'échéance flux papier imbriquée ou de contexte non reconnu': 'date_contexte_imbrique_ou_non_reconnu',
+            "format d'échéance flux papier non pris en charge": 'date_format_non_pris_en_charge',
+            "mois d'échéance flux papier non reconnu": 'date_mois_non_reconnu',
+            'échéance flux papier invalide': 'date_valeur_invalide',
+            'échéances globales flux papier contradictoires': 'dates_globales_contradictoires',
+            'échéance flux papier numéroté hors rubrique reconnue': 'date_numerotee_hors_rubrique',
+            'format de date flux papier numéroté non reconnu': 'date_numerotee_format_non_reconnu',
+            'échéance flux papier numéroté non reconnue': 'date_numerotee_echeance_non_reconnue',
+            "date d'envoi flux papier numéroté ambiguë": 'date_numerotee_envoi_ambigu',
+            'date flux papier numéroté invalide': 'date_numerotee_valeur_invalide',
+            "jour d'échéance flux papier numéroté contradictoire": 'date_numerotee_jour_contradictoire',
+            'échéances flux papier numéroté contradictoires': 'dates_numerotees_contradictoires',
+        }
+        for message, attendu in cas.items():
+            with self.subTest(message=message):
+                self.assertEqual(self.sous_categorie(self.enveloppe_papier(message)), attendu)
+                self.assertEqual(self.sous_categorie(self.enveloppe_papier(message + ' SECRET')), 'message_inconnu')
+        motif = self.enveloppe_papier('échéance dans le contexte du lot PRIVATE123 non prise en charge')
+        self.assertEqual(self.sous_categorie(motif), 'date_dans_contexte_lot_non_prise_en_charge')
+
+    def test_secondaire_ne_classe_pas_les_autres_etapes(self):
+        for etape in ('cpv', 'FORMAT', None, [], {}):
+            self.assertEqual(self.sous_categorie(None, etape), 'non_applicable')
+        motif = 'Collecte AWS CPV incomplète : format de détail non pris en charge : https://exemple.invalid/SECRET'
+        self.assertEqual(self.sous_categorie(motif), 'sous_motif_non_detaille')
+
+    def test_agregation_par_portee_et_expurgation(self):
+        motif = self.enveloppe_papier('échéance dans le contexte du lot PRIVATE123 non prise en charge')
+        self.task.get_return_value.return_value = {'anomalies': [
+            {'portail': 'gm', 'etape': 'format', 'portee': 'fiche', 'motif': motif},
+            {'portail': 'gm', 'etape': 'format', 'portee': 'fiche', 'motif': motif},
+            {'portail': 'gm', 'etape': 'format', 'portee': 'portail', 'motif': motif},
+            {'portail': 'SECRET', 'etape': 'format', 'portee': 'SECRET', 'motif': self.enveloppe_papier('personne@example.invalid <html>SECRET</html>')},
+            {'portail': 'gm', 'etape': 'format'},
+        ]}
+        rapports = self.api.consulter_diagnostics_aws_historiques()
+        bilan = rapports[0]['bilan']
+        details = bilan['anomalies_par_portail_etape_portee_sous_categorie']
+        self.assertEqual(sum(ligne['nombre'] for ligne in details), 5)
+        self.assertEqual(sum(ligne['nombre'] for ligne in bilan['anomalies_par_portail_et_etape']), 5)
+        self.assertEqual(sum(ligne['nombre'] for ligne in bilan['anomalies_par_portail_et_categorie']), 5)
+        lots = [ligne for ligne in details if ligne['categorie'] == 'papier_date_contexte_invalide']
+        self.assertEqual([(ligne['portee'], ligne['nombre']) for ligne in lots], [('fiche', 2), ('portail', 1)])
+        self.assertTrue(any(ligne['sous_categorie'] == 'motif_absent' for ligne in details))
+        for interdit in ('SECRET', 'PRIVATE123', 'https://', 'personne@', '<html>', 'échéance dans'):
+            self.assertNotIn(interdit, json.dumps(rapports))
+
+    def test_portee_malformee_et_refus_sans_normalisation_approximative(self):
+        self.task.get_return_value.return_value = {'anomalies': [
+            {'portail': 'ml', 'etape': 'format', 'portee': [],
+             'motif': self.enveloppe_papier(' ÉCHÉANCE flux papier invalide ')},
+        ]}
+        ligne = self.api.consulter_diagnostics_aws_historiques()[0]['bilan']['anomalies_par_portail_etape_portee_sous_categorie'][0]
+        self.assertEqual(ligne['portee'], 'portee_non_reconnue')
+        self.assertEqual(ligne['sous_categorie'], 'message_inconnu')
+
+    def test_enveloppes_incertaines_restent_non_classees(self):
+        motif = self.enveloppe_papier('structure de détail flux papier non reconnue')
+        for url in ('https:///SECRET', 'https://<html>SECRET</html>',
+                    'https://exemple.invalid:INVALIDE/SECRET',
+                    'https://exemple.invalid:99999/SECRET',
+                    'https://personne:SECRET@exemple.invalid/',
+                    'https://exemple.invalid/\x00SECRET',
+                    'https://[INVALIDE]/SECRET'):
+            variante = motif.replace('https://exemple.invalid/SECRET', url)
+            with self.subTest(url=url):
+                self.assertEqual(self.api.classifier_motif_format(variante), 'motif_non_classe')
+                self.assertEqual(self.sous_categorie(variante), 'motif_non_classe')
+        imbrique = self.enveloppe_papier(self.enveloppe_papier('SECRET'))
+        self.assertEqual(self.sous_categorie(imbrique), 'motif_non_classe')
+
+    def test_message_inconnu_n_est_pas_valide_par_le_diagnostic(self):
+        motif = self.enveloppe_papier('SECRET <html>personne@example.invalid</html>')
+        self.task.get_return_value.return_value = {'anomalies': [{
+            'portail': 'gm', 'etape': 'format', 'portee': 'fiche', 'motif': motif,
+        }]}
+        rapports = self.api.consulter_diagnostics_aws_historiques()
+        ligne = rapports[0]['bilan']['anomalies_par_portail_etape_portee_sous_categorie'][0]
+        self.assertEqual(ligne['categorie'], 'motif_non_classe')
+        self.assertEqual(ligne['sous_categorie'], 'message_inconnu')
+        for interdit in ('SECRET', '<html>', 'personne@', 'https://'):
+            self.assertNotIn(interdit, json.dumps(rapports))
+
 
 if __name__ == '__main__':
     unittest.main()

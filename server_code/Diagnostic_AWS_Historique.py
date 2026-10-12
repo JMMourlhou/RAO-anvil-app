@@ -6,6 +6,7 @@ import anvil.server
 import anvil.users
 import re
 from typing import Any, cast
+from urllib.parse import urlsplit
 
 
 _TASKS = (
@@ -92,6 +93,38 @@ MESSAGES_PAR_CATEGORIE = {
 }
 
 
+_SOUS_MOTIFS = {
+    "identifiant de lot flux papier absent ou ambigu": "lot_identifiant_absent_ou_ambigu",
+    "classification CPV imbriquée dans un en-tête de lot": "lot_cpv_dans_entete",
+    "plusieurs en-têtes de lot dans un même paragraphe": "lot_entetes_multiples",
+    "structure CPV de lot flux papier non reconnue": "lot_structure_cpv_non_reconnue",
+    "en-tête de lot flux papier imbriqué ou non reconnu": "lot_entete_imbrique_ou_non_reconnu",
+    "structure de lot flux papier numéroté non reconnue": "lot_numerote_structure_non_reconnue",
+    "échéance flux papier imbriquée ou de contexte non reconnu": "date_contexte_imbrique_ou_non_reconnu",
+    "format d'échéance flux papier non pris en charge": "date_format_non_pris_en_charge",
+    "mois d'échéance flux papier non reconnu": "date_mois_non_reconnu",
+    "échéance flux papier invalide": "date_valeur_invalide",
+    "échéances globales flux papier contradictoires": "dates_globales_contradictoires",
+    "échéance flux papier numéroté hors rubrique reconnue": "date_numerotee_hors_rubrique",
+    "format de date flux papier numéroté non reconnu": "date_numerotee_format_non_reconnu",
+    "échéance flux papier numéroté non reconnue": "date_numerotee_echeance_non_reconnue",
+    "date d'envoi flux papier numéroté ambiguë": "date_numerotee_envoi_ambigu",
+    "date flux papier numéroté invalide": "date_numerotee_valeur_invalide",
+    "jour d'échéance flux papier numéroté contradictoire": "date_numerotee_jour_contradictoire",
+    "échéances flux papier numéroté contradictoires": "dates_numerotees_contradictoires",
+}
+
+
+def _extraire_message_papier(motif):
+    """Retire l'enveloppe exacte en mémoire ; aucun contenu libre n'est restitué au client."""
+    enveloppe_papier = (
+        re.escape(PREFIXE_AWS + "détail ") + URL_MOTIF
+        + re.escape(" : " + PREFIXE_AWS) + r"([^\r\n]+)"
+    )
+    correspondance = re.fullmatch(enveloppe_papier, motif)
+    return correspondance.group(1) if correspondance is not None else None
+
+
 def classifier_motif_format(motif):
     """Classe un message complet du collecteur en catégorie technique fixe.
 
@@ -103,14 +136,9 @@ def classifier_motif_format(motif):
     refus_global = re.escape(PREFIXE_AWS + "format de détail non pris en charge : ") + URL_MOTIF
     if re.fullmatch(refus_global, motif):
         return "format_global_non_reconnu"
-    enveloppe_papier = (
-        re.escape(PREFIXE_AWS + "détail ") + URL_MOTIF
-        + re.escape(" : " + PREFIXE_AWS) + r"([^\r\n]+)"
-    )
-    correspondance = re.fullmatch(enveloppe_papier, motif)
-    if correspondance is None:
+    message_parseur = _extraire_message_papier(motif)
+    if message_parseur is None:
         return "motif_non_classe"
-    message_parseur = correspondance.group(1)
     # Le parseur partage ce message entre deux conditions de refus différentes.
     if message_parseur == "structure de détail flux papier non reconnue":
         return "motif_non_classe"
@@ -129,6 +157,61 @@ def _classer_motif(etape, motif):
     if type(etape) is not str or etape != "format":
         return "motif_non_classe"
     return classifier_motif_format(motif)
+
+
+def _enveloppe_papier_certaine(motif):
+    """Vérifie la forme locale de l'enveloppe, sans valider la destination réseau.
+
+    La regex historique reste inchangée dans le classificateur principal.
+    Pour le diagnostic secondaire, URL vide, HTML, contrôles, port invalide ou
+    enveloppes répétées empêchent de conclure. Aucun contenu libre n'est retourné.
+    """
+    modele = (
+        re.escape(PREFIXE_AWS + "détail ") + "(" + URL_MOTIF + ")"
+        + re.escape(" : " + PREFIXE_AWS) + r"([^\r\n]+)"
+    )
+    correspondance = re.fullmatch(modele, motif)
+    if correspondance is None or motif.count(PREFIXE_AWS) != 2:
+        return False
+    url = correspondance.group(1)
+    if any(ord(caractere) < 32 or ord(caractere) == 127 or caractere in '<>"' for caractere in url):
+        return False
+    try:
+        adresse = urlsplit(url)
+        # Lire port déclenche ValueError si sa syntaxe ou sa plage est invalide.
+        port = adresse.port
+        return bool(adresse.hostname) and adresse.username is None and adresse.password is None and (port is None or port > 0)
+    except ValueError:
+        return False
+
+
+def _sous_categorie_format(etape, motif, categorie):
+    """Explique un refus avec des libellés fixes, sans supposer sa cause externe.
+
+    Seul le retrait strict de l'enveloppe normalise le texte. Les autres étapes
+    ne sont pas interprétées avec les règles du parseur format.
+    """
+    if type(etape) is not str or etape != "format":
+        return "non_applicable"
+    if motif is None or (type(motif) is str and motif == ""):
+        return "motif_absent"
+    if type(motif) is not str:
+        return "motif_type_incorrect"
+    message = _extraire_message_papier(motif)
+    if categorie == "motif_non_classe":
+        if message is None:
+            return "enveloppe_non_reconnue"
+        if not _enveloppe_papier_certaine(motif):
+            return "motif_non_classe"
+        if message == "structure de détail flux papier non reconnue":
+            return "message_ambigu_connu"
+        return "message_inconnu"
+    if message in _SOUS_MOTIFS:
+        return _SOUS_MOTIFS[message]
+    if categorie == "papier_date_contexte_invalide" and message is not None:
+        # Le classificateur principal a déjà vérifié le gabarit alphanumérique du lot.
+        return "date_dans_contexte_lot_non_prise_en_charge"
+    return "sous_motif_non_detaille"
 
 
 def _valeur_autorisee(valeur, autorisees, remplacement):
@@ -155,6 +238,7 @@ def _resumer_diagnostics(diagnostics):
         "portails": [],
         "anomalies_par_portail_et_etape": [],
         "anomalies_par_portail_et_categorie": [],
+        "anomalies_par_portail_etape_portee_sous_categorie": [],
     }
     portails = diagnostics["portails"]
     sortie["structure_portails_reconnue"] = isinstance(portails, (dict, list))
@@ -190,23 +274,35 @@ def _resumer_diagnostics(diagnostics):
         return sortie
     groupes = {}
     categories = {}
+    details = {}
     for anomalie in anomalies:
         if isinstance(anomalie, dict):
             portail = _portail(anomalie.get("portail"))
             etape = _valeur_autorisee(anomalie.get("etape"), _ETAPES, "autre_ou_non_reconnue")
             categorie = _classer_motif(anomalie.get("etape"), anomalie.get("motif"))
+            sous_categorie = _sous_categorie_format(anomalie.get("etape"), anomalie.get("motif"), categorie)
+            portee = _valeur_autorisee(anomalie.get("portee"), ("fiche", "portail"), "portee_non_reconnue")
         else:
             portail = "portail_non_reconnu"
             etape = "structure_non_reconnue"
             categorie = "motif_non_classe"
+            sous_categorie = "non_applicable"
+            portee = "portee_non_reconnue"
         cle = (portail, etape)
         groupes[cle] = groupes.get(cle, 0) + 1
         cle_categorie = (portail, etape, categorie)
         categories[cle_categorie] = categories.get(cle_categorie, 0) + 1
+        cle_detail = (portail, etape, portee, categorie, sous_categorie)
+        details[cle_detail] = details.get(cle_detail, 0) + 1
     for (portail, etape), nombre in sorted(groupes.items()):
         sortie["anomalies_par_portail_et_etape"].append({"portail": portail, "etape": etape, "nombre": nombre})
     for (portail, etape, categorie), nombre in sorted(categories.items()):
         sortie["anomalies_par_portail_et_categorie"].append({"portail": portail, "etape": etape, "categorie": categorie, "nombre": nombre})
+    for (portail, etape, portee, categorie, sous_categorie), nombre in sorted(details.items()):
+        sortie["anomalies_par_portail_etape_portee_sous_categorie"].append({
+            "portail": portail, "etape": etape, "portee": portee,
+            "categorie": categorie, "sous_categorie": sous_categorie, "nombre": nombre,
+        })
     return sortie
 
 
