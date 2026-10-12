@@ -81,6 +81,11 @@ class Menu(MenuTemplate):
             # si le user est l'admin, j'affiche le bouton de naviguation 'Admin'
             if user['role']=="A":
                 self.navigation_link_admin.visible = True
+                
+                # -----------------------------------------------------------------------  Ajout pur debug temp
+                bilans = anvil.server.call("consulter_diagnostics_aws_historiques")
+                print(bilans)
+                
             else:
                 self.navigation_link_admin.visible = False
                 
