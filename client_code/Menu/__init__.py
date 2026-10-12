@@ -81,13 +81,13 @@ class Menu(MenuTemplate):
             # si le user est l'admin, j'affiche le bouton de naviguation 'Admin'
             if user['role']=="A":
                 self.navigation_link_admin.visible = True
-                
+                """
                 # -----------------------------------------------------------------------  Ajout pur debug temp
                 bilans = anvil.server.call("consulter_diagnostics_aws_historiques")
                 for rapport in bilans:
                     if rapport["task"] == "Task 3":
                         print(rapport.get("bilan", {}).get("signatures_structurelles_par_portail", []))
-                
+                """
             else:
                 self.navigation_link_admin.visible = False
                 
