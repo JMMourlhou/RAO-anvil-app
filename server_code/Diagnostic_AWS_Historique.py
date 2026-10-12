@@ -4,6 +4,7 @@
 """
 import anvil.server
 import anvil.users
+import re
 from typing import Any, cast
 
 
@@ -22,16 +23,112 @@ _COMPTEURS = (
     "nombre_offres", "nombre_anomalies", "nombre_avis_verifies",
 )
 _BOOLEENS = ("candidats_parcourus", "collecte_exploitable")
-# Aucune règle exacte du parseur Pi5 n'est disponible dans ce projet.
-# N'ajouter ici que des couples (étape, motif exact) vérifiés dans ce parseur.
-_MOTIFS_CONNUS: dict[tuple[str, str], str] = {}
+# Messages exacts du rapport Pi5 du 12 octobre 2026, sans normalisation.
+PREFIXE_AWS = "Collecte AWS CPV incomplète : "
+URL_MOTIF = r"https?://[^\s]+"
+MESSAGES_PAR_CATEGORIE = {
+    "papier_enveloppe_invalide": (
+        "format de détail flux papier non pris en charge",
+    ),
+    "papier_champs_invalides": (
+        "nature de marché flux papier ambiguë",
+    ),
+    "papier_lieu_contradictoire": (
+        "lieu principal flux papier contradictoire",
+    ),
+    "papier_cpv_structure_invalide": (
+        "rattachement du bloc CPV après un en-tête de lot invérifiable",
+        "bloc de classification CPV flux papier ambigu",
+        "classification CPV flux papier hors bloc reconnu",
+        "classification CPV flux papier ambiguë",
+        "bloc de classification CPV flux papier vide",
+        "classification CPV imbriquée ou non reconnue",
+        "structure CPV flux papier non reconnue",
+    ),
+    "papier_lots_structure_invalide": (
+        "identifiant de lot flux papier absent ou ambigu",
+        "classification CPV imbriquée dans un en-tête de lot",
+        "plusieurs en-têtes de lot dans un même paragraphe",
+        "structure CPV de lot flux papier non reconnue",
+        "en-tête de lot flux papier imbriqué ou non reconnu",
+    ),
+    "papier_date_contexte_invalide": (
+        "échéance flux papier imbriquée ou de contexte non reconnu",
+    ),
+    "papier_date_format_invalide": (
+        "format d'échéance flux papier non pris en charge",
+        "mois d'échéance flux papier non reconnu",
+    ),
+    "papier_date_valeur_invalide": ("échéance flux papier invalide",),
+    "papier_dates_contradictoires": ("échéances globales flux papier contradictoires",),
+    "numerote_cpv_non_pris_en_charge": ("classification CPV flux papier numéroté non reconnue",),
+    "numerote_lots_non_pris_en_charge": ("structure de lot flux papier numéroté non reconnue",),
+    "numerote_structure_invalide": (
+        "texte hors paragraphe flux papier numéroté",
+        "structure de rubrique flux papier numéroté non reconnue",
+        "en-tête de rubrique flux papier numéroté imbriqué",
+        "rubrique flux papier numéroté inconnue ou contradictoire",
+        "en-tête de rubrique flux papier numéroté mal structuré",
+        "valeur hors rubrique flux papier numéroté",
+    ),
+    "numerote_champs_invalides": (
+        "rubrique obligatoire flux papier numéroté absente ou vide",
+        "rubrique flux papier numéroté vide",
+        "valeur de rubrique flux papier numéroté ambiguë",
+        "acheteur flux papier numéroté contradictoire",
+        "nature de marché flux papier numéroté non reconnue",
+    ),
+    "numerote_date_contexte_invalide": ("échéance flux papier numéroté hors rubrique reconnue",),
+    "numerote_date_format_invalide": (
+        "format de date flux papier numéroté non reconnu",
+        "échéance flux papier numéroté non reconnue",
+        "date d'envoi flux papier numéroté ambiguë",
+    ),
+    "numerote_date_valeur_invalide": ("date flux papier numéroté invalide",),
+    "numerote_dates_contradictoires": (
+        "jour d'échéance flux papier numéroté contradictoire",
+        "échéances flux papier numéroté contradictoires",
+    ),
+}
+
+
+def classifier_motif_format(motif):
+    """Classe un message complet du collecteur en catégorie technique fixe.
+
+    Les variables URL, libellé et lot sont consommées sans être retournées.
+    Aucun affichage ni effet de bord. Inconnu ou ambigu : motif_non_classe.
+    """
+    if type(motif) is not str:
+        return "motif_non_classe"
+    refus_global = re.escape(PREFIXE_AWS + "format de détail non pris en charge : ") + URL_MOTIF
+    if re.fullmatch(refus_global, motif):
+        return "format_global_non_reconnu"
+    enveloppe_papier = (
+        re.escape(PREFIXE_AWS + "détail ") + URL_MOTIF
+        + re.escape(" : " + PREFIXE_AWS) + r"([^\r\n]+)"
+    )
+    correspondance = re.fullmatch(enveloppe_papier, motif)
+    if correspondance is None:
+        return "motif_non_classe"
+    message_parseur = correspondance.group(1)
+    # Le parseur partage ce message entre deux conditions de refus différentes.
+    if message_parseur == "structure de détail flux papier non reconnue":
+        return "motif_non_classe"
+    for categorie, messages in MESSAGES_PAR_CATEGORIE.items():
+        if message_parseur in messages:
+            return categorie
+    if re.fullmatch(re.escape("champ flux papier absent ou contradictoire : ") + r"[^\r\n]+", message_parseur):
+        return "papier_champs_invalides"
+    if re.fullmatch(re.escape("échéance dans le contexte du lot ") + r"[A-Za-z0-9]+" + re.escape(" non prise en charge"), message_parseur):
+        return "papier_date_contexte_invalide"
+    return "motif_non_classe"
 
 
 def _classer_motif(etape, motif):
     """Classe seulement une correspondance exacte confirmée ; jamais le texte brut."""
-    if type(etape) is not str or type(motif) is not str:
+    if type(etape) is not str or etape != "format":
         return "motif_non_classe"
-    return _MOTIFS_CONNUS.get((etape, motif), "motif_non_classe")
+    return classifier_motif_format(motif)
 
 
 def _valeur_autorisee(valeur, autorisees, remplacement):
