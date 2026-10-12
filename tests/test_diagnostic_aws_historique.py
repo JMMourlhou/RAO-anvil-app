@@ -52,7 +52,12 @@ class TestsDiagnosticAWS(unittest.TestCase):
             self.api.consulter_diagnostics_aws_historiques(role='A', task_id='autre')
         self.server.get_background_task.assert_not_called()
 
-    def test_uniquement_deux_tasks(self):
+    def test_uniquement_trois_tasks_fixes(self):
+        self.assertEqual(self.api._TASKS, (
+            ('Task 1', 'r277srvhoh7zoh7aw5osymxkno5n2awf3u5pyyck'),
+            ('Task 2', 'dgxwmp3vsohth7npt5hczzde5vigpf7hsxjwcqlb'),
+            ('Task 3', 'dryn4orhnlvbcwrcq6f6ugqgdeimq54ykklqhpxp'),
+        ))
         self.api.consulter_diagnostics_aws_historiques()
         self.assertEqual(self.server.get_background_task.call_args_list,
                          [unittest.mock.call(task_id) for _, task_id in self.api._TASKS])
@@ -340,6 +345,78 @@ class TestsDiagnosticAWS(unittest.TestCase):
         self.assertEqual(ligne['sous_categorie'], 'message_inconnu')
         for interdit in ('SECRET', '<html>', 'personne@', 'https://'):
             self.assertNotIn(interdit, json.dumps(rapports))
+
+    def signatures(self, anomalies):
+        self.task.get_return_value.return_value = {'anomalies': anomalies}
+        rapports = self.api.consulter_diagnostics_aws_historiques()
+        return rapports[0]['bilan']['signatures_structurelles_par_portail']
+
+    def test_signature_valide_et_regroupement_par_portail(self):
+        signature = {
+            'nombre_h1_directs': 0, 'nombre_h2_directs': 2,
+            'table_interieure_presente': True, 'titre_h1_reconnu': False,
+            'acheteur_h2_non_vide': True, 'titre_present': False,
+            'nature_presente': True, 'procedure_presente': False, 'portail': 'gm',
+        }
+        anomalies = [
+            {'portail': 'gm', 'etape': 'format', 'signature_structurelle': signature},
+            {'portail': 'gm', 'etape': 'format', 'signature_structurelle': dict(reversed(list(signature.items())))},
+            {'portail': 'ml', 'etape': 'format', 'signature_structurelle': signature},
+        ]
+        groupes = self.signatures(anomalies)
+        self.assertEqual([(g['portail'], g['nombre']) for g in groupes], [('gm', 2), ('ml', 1)])
+        self.assertEqual(groupes[0]['signature_structurelle'], signature)
+
+    def test_signature_absence_none_et_zero_distincts(self):
+        anomalies = [{'portail': 'gm', 'etape': 'format', 'signature_structurelle': s}
+                     for s in ({}, {'nombre_h1_directs': None}, {'nombre_h1_directs': 0})]
+        groupes = self.signatures(anomalies)
+        self.assertEqual(len(groupes), 3)
+        signature = {nom: None for nom in (
+            'branche_parseur', 'categorie_refus', 'nombre_h1_directs', 'nombre_h2_directs',
+            'table_interieure_presente', 'titre_h1_reconnu', 'acheteur_h2_non_vide',
+            'titre_present', 'nature_presente', 'procedure_presente', 'portail')}
+        self.assertEqual(self.api._filtrer_signature_structurelle(signature), signature)
+
+    def test_signature_types_invalides_et_champs_libres_exclus(self):
+        signature = {
+            'branche_parseur': 'SECRET', 'categorie_refus': 'SECRET',
+            'nombre_h1_directs': True, 'nombre_h2_directs': -1,
+            'table_interieure_presente': 1, 'titre_h1_reconnu': 'false',
+            'acheteur_h2_non_vide': [], 'titre_present': {},
+            'nature_presente': 0.0, 'procedure_presente': 'SECRET',
+            'portail': 'https://SECRET', 'url': 'https://SECRET',
+            'html': '<html>SECRET</html>', 'email': 'SECRET@example.invalid',
+        }
+        groupes = self.signatures([{'portail': 'gm', 'etape': 'format', 'signature_structurelle': signature}])
+        self.assertEqual(groupes[0]['signature_structurelle'], {})
+        self.assertNotIn('SECRET', json.dumps(groupes))
+        for valeur in (True, -1, 1.5, '2', [], {}):
+            self.assertEqual(self.api._filtrer_signature_structurelle({'nombre_h1_directs': valeur}), {})
+
+    def test_signature_uniquement_format_et_dictionnaire(self):
+        anomalies = [{'portail': 'gm', 'etape': etape, 'signature_structurelle': {'nombre_h1_directs': 2}}
+                     for etape in ('cpv', 'FORMAT', None, [], {})]
+        anomalies += [{'portail': 'gm', 'etape': 'format', 'signature_structurelle': valeur}
+                      for valeur in (None, [], 'SECRET', 1, False)]
+        anomalies.append({'portail': 'gm', 'etape': 'format'})
+        self.assertEqual(self.signatures(anomalies), [])
+
+    def test_signature_portail_filtre_et_sans_mutation(self):
+        for portail in self.api._PORTAILS:
+            self.assertEqual(self.api._filtrer_signature_structurelle({'portail': portail}), {'portail': portail})
+        signature = {'nombre_h1_directs': 0, 'url': 'SECRET', 'portail': 'SECRET'}
+        original = dict(signature)
+        groupes = self.signatures([{'portail': 'SECRET', 'etape': 'format', 'signature_structurelle': signature}])
+        self.assertEqual(signature, original)
+        self.assertEqual(groupes[0]['portail'], 'portail_non_reconnu')
+        self.assertNotIn('SECRET', json.dumps(groupes))
+
+    def test_vocabulaires_signature_non_confirmes_fermes(self):
+        self.assertEqual(self.api._SIGNATURE_TEXTES, {'branche_parseur': (), 'categorie_refus': ()})
+        for valeur in ('papier', 'numerote', 'SECRET', 1, [], {}):
+            self.assertEqual(self.api._filtrer_signature_structurelle({
+                'branche_parseur': valeur, 'categorie_refus': valeur}), {})
 
 
 if __name__ == '__main__':

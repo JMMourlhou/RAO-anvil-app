@@ -84,14 +84,9 @@ class Menu(MenuTemplate):
                 
                 # -----------------------------------------------------------------------  Ajout pur debug temp
                 bilans = anvil.server.call("consulter_diagnostics_aws_historiques")
-                for bilan in bilans:
-                    print("Task :", bilan["task"])
-                    if bilan.get("bilan"):
-                        for anomalie in bilan["bilan"].get("anomalies_par_portail_et_categorie", []):
-                            print(anomalie)
-                        for nom, valeur in bilan["bilan"].items():
-                            if "sous" in nom or "portee" in nom or "secondaire" in nom:
-                                print(nom, ":", valeur)
+                for rapport in bilans:
+                    if rapport["task"] == "Task 3":
+                        print(rapport.get("bilan", {}).get("signatures_structurelles_par_portail", []))
                 
             else:
                 self.navigation_link_admin.visible = False

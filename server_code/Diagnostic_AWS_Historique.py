@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 _TASKS = (
     ("Task 1", "r277srvhoh7zoh7aw5osymxkno5n2awf3u5pyyck"),
     ("Task 2", "dgxwmp3vsohth7npt5hczzde5vigpf7hsxjwcqlb"),
+    ("Task 3", "dryn4orhnlvbcwrcq6f6ugqgdeimq54ykklqhpxp"),
 )
 _CHAMPS = ("ok", "statut_collecte", "message_collecte", "anomalies", "portails")
 # Identifiants techniques AWS confirmés par l'utilisateur.
@@ -24,6 +25,20 @@ _COMPTEURS = (
     "nombre_offres", "nombre_anomalies", "nombre_avis_verifies",
 )
 _BOOLEENS = ("candidats_parcourus", "collecte_exploitable")
+# Ces deux vocabulaires doivent être confirmés par le collecteur ; ne pas
+# assimiler ses catégories structurelles aux catégories historiques de motifs.
+_SIGNATURE_TEXTES = {
+    "branche_parseur": ("papier_enveloppe", "papier_paragraphes"),
+    "categorie_refus": (
+        "enveloppe_non_reconnue",
+        "champs_descriptifs_incomplets",
+    ),
+}
+_SIGNATURE_NOMBRES = ("nombre_h1_directs", "nombre_h2_directs")
+_SIGNATURE_BOOLEENS = (
+    "table_interieure_presente", "titre_h1_reconnu", "acheteur_h2_non_vide",
+    "titre_present", "nature_presente", "procedure_presente",
+)
 # Messages exacts du rapport Pi5 du 12 octobre 2026, sans normalisation.
 PREFIXE_AWS = "Collecte AWS CPV incomplète : "
 URL_MOTIF = r"https?://[^\s]+"
@@ -225,6 +240,41 @@ def _portail(valeur):
     return _valeur_autorisee(valeur, _PORTAILS, "portail_non_reconnu")
 
 
+def _filtrer_signature_structurelle(signature):
+    """Copie exclusivement les champs et valeurs autorisés d'une signature.
+
+    Un champ absent reste absent ; None signifie non évalué et reste None.
+    Les valeurs malformées sont omises, jamais converties en zéro ou False.
+    Retour : dictionnaire expurgé, ou None si la signature n'est pas un dict.
+    """
+    if type(signature) is not dict:
+        return None
+    propre: dict[str, Any] = {}
+    for nom, autorisees in _SIGNATURE_TEXTES.items():
+        if nom not in signature:
+            continue
+        valeur = signature[nom]
+        if valeur is None or (type(valeur) is str and valeur in autorisees):
+            propre[nom] = valeur
+    for nom in _SIGNATURE_NOMBRES:
+        if nom not in signature:
+            continue
+        valeur = signature[nom]
+        if valeur is None or (type(valeur) is int and valeur >= 0):
+            propre[nom] = valeur
+    for nom in _SIGNATURE_BOOLEENS:
+        if nom not in signature:
+            continue
+        valeur = signature[nom]
+        if valeur is None or type(valeur) is bool:
+            propre[nom] = valeur
+    if "portail" in signature:
+        valeur = signature["portail"]
+        if valeur is None or (type(valeur) is str and valeur in _PORTAILS):
+            propre["portail"] = valeur
+    return propre
+
+
 def _resumer_diagnostics(diagnostics):
     """Retourne uniquement des catégories fixes et des compteurs présents.
 
@@ -239,6 +289,7 @@ def _resumer_diagnostics(diagnostics):
         "anomalies_par_portail_et_etape": [],
         "anomalies_par_portail_et_categorie": [],
         "anomalies_par_portail_etape_portee_sous_categorie": [],
+        "signatures_structurelles_par_portail": [],
     }
     portails = diagnostics["portails"]
     sortie["structure_portails_reconnue"] = isinstance(portails, (dict, list))
@@ -275,6 +326,7 @@ def _resumer_diagnostics(diagnostics):
     groupes = {}
     categories = {}
     details = {}
+    signatures = {}
     for anomalie in anomalies:
         if isinstance(anomalie, dict):
             portail = _portail(anomalie.get("portail"))
@@ -282,6 +334,13 @@ def _resumer_diagnostics(diagnostics):
             categorie = _classer_motif(anomalie.get("etape"), anomalie.get("motif"))
             sous_categorie = _sous_categorie_format(anomalie.get("etape"), anomalie.get("motif"), categorie)
             portee = _valeur_autorisee(anomalie.get("portee"), ("fiche", "portail"), "portee_non_reconnue")
+            if etape == "format" and "signature_structurelle" in anomalie:
+                signature = _filtrer_signature_structurelle(anomalie["signature_structurelle"])
+                if signature is not None:
+                    # Regroupement après filtrage : aucun champ libre dans les clés.
+                    # Le portail de l'anomalie reste le portail de regroupement.
+                    cle_signature = (portail, tuple(signature.items()))
+                    signatures[cle_signature] = signatures.get(cle_signature, 0) + 1
         else:
             portail = "portail_non_reconnu"
             etape = "structure_non_reconnue"
@@ -303,12 +362,16 @@ def _resumer_diagnostics(diagnostics):
             "portail": portail, "etape": etape, "portee": portee,
             "categorie": categorie, "sous_categorie": sous_categorie, "nombre": nombre,
         })
+    for (portail, champs), nombre in signatures.items():
+        sortie["signatures_structurelles_par_portail"].append({
+            "portail": portail, "signature_structurelle": dict(champs), "nombre": nombre,
+        })
     return sortie
 
 
 @anvil.server.callable
 def consulter_diagnostics_aws_historiques():
-    """Lit deux Tasks fixes pour un administrateur authentifié côté serveur.
+    """Lit trois Tasks fixes pour un administrateur authentifié côté serveur.
 
     Retour : bilans expurgés, jamais le résultat brut. Aucune écriture.
     Introuvable/retour absent sont attendus ; les autres erreurs remontent.
