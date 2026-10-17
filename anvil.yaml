@@ -235,7 +235,7 @@ db_schema:
   platformes:
     client: search
     columns:
-    - admin_ui: {width: 288}
+    - admin_ui: {order: -1, width: 80}
       client_hidden: false
       name: id
       type: string
