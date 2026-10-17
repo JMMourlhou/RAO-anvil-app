@@ -148,12 +148,6 @@ db_schema:
     indexes: []
     server: full
     title: daily_survey
-  files:
-    client: none
-    columns: []
-    indexes: []
-    server: full
-    title: files
   global_variables:
     client: none
     columns:
@@ -187,11 +181,11 @@ db_schema:
       client_hidden: false
       name: sources
       type: simpleObject
-    - admin_ui: {width: 200}
-      client_hidden: null
+    - admin_ui: {order: 1, width: 151}
+      client_hidden: false
       name: mots_cles
       type: simpleObject
-    - admin_ui: {width: 263}
+    - admin_ui: {order: 2, width: 127}
       client_hidden: false
       name: mots_ou
       type: string
