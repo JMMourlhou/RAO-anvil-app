@@ -1,6 +1,6 @@
 from anvil import *
-import anvil.files
-from anvil.files import data_files
+#import anvil.files
+#from anvil.files import data_files
 #import anvil.email
 
 from anvil.tables import app_tables
@@ -16,10 +16,10 @@ from datetime import datetime
 from . import Variables_globales # importation du module de lecture des variables globales (de la table Variables_globales) 
 import hmac  #compare deux valeurs sensibles d’une façon conçue pour réduire les fuites d’information par le temps d’exécution.
 
-# Forcer login de l'utilisateur qui se connecte    
-@anvil.server.callable
-def force_log(user_row):
-    user=anvil.users.force_login(user_row,remember=True)
+# Actualiser uniquement le compte authentifié côté serveur.
+@anvil.server.callable(require_user=True)
+def force_log():
+    user=anvil.users.get_user()
     user["last_login"]=Time.french_zone_time()  # Update the login time
     return user
 

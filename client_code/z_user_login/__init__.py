@@ -61,7 +61,7 @@ class z_user_login(z_user_loginTemplate):
         # ------------------------------------------------------------   VALIDATION 
         try:
             user=anvil.users.login_with_email(self.email_box.text, self.password_box.text, remember=True)
-            user=anvil.server.call("force_log",user)
+            user=anvil.server.call("force_log")
         except anvil.users.EmailNotConfirmed:
             alert("Votre mail n'est pas encore confirmé! Nous vous envoyons un nouveau lien par mail !")
             #AlertHTML.info("Erreur :","Votre mail n'est pas encore confirmé! Nous vous envoyons un nouveau lien par mail !")
