@@ -228,18 +228,6 @@ def hash_password(password, salt):
 """ ************************************************************************** """
 """         NEW USER: MAIL CONFIRMATION                                         """    
 """ ************************************************************************** """
-@anvil.server.callable
-def _confirm_email_address(email, api_key):
-  """Confirm a user's email address if the api key matches; return True if it did."""
-  bool=False  
-  bool, user_row = get_user_if_key_correct(email, api_key)
-  if bool:
-    user=anvil.users.get_user()  
-    user['confirmed_email'] = True
-    #user['api_key'] = None
-    anvil.users.force_login(user)
-  return bool
-
 def recup_time(): 
     time=Time.french_zone_time()
     time_str=""
