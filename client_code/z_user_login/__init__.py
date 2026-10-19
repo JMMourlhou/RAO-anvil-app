@@ -69,7 +69,8 @@ class z_user_login(z_user_loginTemplate):
                 #AlertHTML.info("Confirmation de votre mail :", f"Un nouvel email de confirmation vous a été envoyé à {self.email_box.text}.")
                 alert(f"Un nouvel email de confirmation vous a été envoyé à {self.email_box.text}.")
                 #open_form('Main',99)   #je retourne et efface l'url
-                open_form('Main')   #je retourne et efface l'url
+                open_form('Menu')   #je retourne et efface l'url
+            return
         except anvil.users.AuthenticationFailed as e:
             #alert(f"Erreur:\n\n{e}")
             #AlertHTML.error("Erreur :", "Email ou Mot de Passe erroné !")
