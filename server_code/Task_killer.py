@@ -2,7 +2,7 @@ import anvil.server
 import time
 
 
-@anvil.server.callable
+@anvil.server.callable(require_user=True)
 def task_killer(task=None, timing="0"):
     if task is None:
         return {
@@ -60,7 +60,7 @@ def task_killer(task=None, timing="0"):
         }
 
 
-@anvil.server.callable
+@anvil.server.callable(require_user=True)
 def statut_tache_recherche(task):
     """Lit le statut Anvil d'une Task sans modifier son exécution.
 
