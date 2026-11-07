@@ -51,7 +51,7 @@ class search(searchTemplate):
         # ================================================================
         # Personnalisation MultiSelect plateformes
         # ================================================================
-
+        #  voir  la fonction       def multi_select_drop_down_platformes_opened(self, **event_args):
         # Boutons en français
         self.multi_select_drop_down_platformes._dd.select_all_btn.text = "Tout sélectionner"
         self.multi_select_drop_down_platformes._dd.deselect_all_btn.text = "Tout désélectionner"
@@ -73,27 +73,16 @@ class search(searchTemplate):
 
             self.button_selection_mailed.text = "Mail"
 
-            # Largeur du menu ouvert du MultiSelect
-            popover = self.multi_select_drop_down_platformes.popover
-            popover.dom_popover.style.width = "calc(100vw - 10px)"
-            popover.dom_popover.style.maxWidth = "calc(100vw - 10px)"
-
-            # Le contenu interne prend toute la largeur disponible
-            self.multi_select_drop_down_platformes._dd._dom_node.style.width = "100%"
-            self.multi_select_drop_down_platformes._dd._dom_node.style.minWidth = "100%"
-    
         else:
-    
+
             self.button_selection_mailed.text = "Envoi de la sélection"
-    
-            # Largeur du menu ouvert du MultiSelect
-            popover = self.multi_select_drop_down_platformes.popover
-            popover.dom_popover.style.width = "calc(40vw - 50px)"
-            popover.dom_popover.style.maxWidth = "calc(40vw - 50px)"
-    
-            self.multi_select_drop_down_platformes._dd._dom_node.style.width = "60%"
-            self.multi_select_drop_down_platformes._dd._dom_node.style.minWidth = "60%"
-    
+
+        # Le menu est indépendant du FlowPanel : sa largeur est synchronisée
+        # avec le bouton visible à chaque ouverture, après la mise en page.
+        self.multi_select_drop_down_platformes.add_event_handler(
+            "opened", self.multi_select_drop_down_platformes_opened
+        )
+
         # afficher_temps("Context_ecran et adaptation affichage", t)
     
         # ================================================================
@@ -461,6 +450,37 @@ class search(searchTemplate):
         # ================================================================
         #definir_titre_repeating_panel(self.repeating_panel_cpv_selectionnes, "Secteur sélectionné :", icone="factory")
         definir_titre_repeating_panel(self.repeating_panel_suggestions_cpv, "Secteurs à sélectionner :")
+
+    def multi_select_drop_down_platformes_opened(self, **event_args):
+        """Aligne la largeur du menu sur celle du bouton à chaque ouverture.
+
+        Reçoit les arguments de l'événement Anvil opened et ne retourne rien.
+        Modifie uniquement les styles du menu des plateformes. Les accès à
+        popover et _dd dépendent de la structure d'Anvil Extras 3.6.1.
+        """
+        composant = self.multi_select_drop_down_platformes
+        bouton = get_dom_node(composant).querySelector("button")
+        if bouton is None:
+            raise RuntimeError("Bouton du sélecteur de plateformes introuvable")
+        largeur = bouton.getBoundingClientRect().width
+        popover = composant.popover
+
+        # Mesurer le bouton affiché évite les approximations basées sur l'écran.
+        # border-box inclut les bordures et le padding dans la largeur mesurée.
+        largeur_css = f"{largeur}px"
+        popover.dom_popover.style.boxSizing = "border-box"
+        popover.dom_popover.style.width = largeur_css
+        popover.dom_popover.style.minWidth = largeur_css
+        popover.dom_popover.style.maxWidth = largeur_css
+
+        # Le conteneur flex du popover doit pouvoir remplir l'espace intérieur
+        # et rétrécir même si un libellé de plateforme est très long.
+        conteneur = popover.dom_content.parentElement
+        conteneur.style.width = "100%"
+        conteneur.style.minWidth = "0"
+        contenu = get_dom_node(composant._dd)
+        contenu.style.width = "100%"
+        contenu.style.minWidth = "0"
 
     # Pour Initialiser le curseur sur text_box_recherche_cpv
     @handle("", "show")
