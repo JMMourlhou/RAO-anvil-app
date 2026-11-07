@@ -72,7 +72,7 @@ components:
     type: m3._Components.IconButton
   layout_properties: {}
   name: column_panel_1
-  properties: {col_spacing: tiny, col_widths: '{"GFSQUY":8,"KAQUEG":8,"SDCQDR":16,"RGGXRF":16,"UTIYCZ":6,"DQGNLI":16,"TLVFRH":8}', wrap_on: never}
+  properties: {col_spacing: tiny, col_widths: '{"GFSQUY":8,"KAQUEG":8,"SDCQDR":16,"RGGXRF":13,"UTIYCZ":11,"DQGNLI":16,"TLVFRH":6}', wrap_on: never}
   type: ColumnPanel
 - layout_properties: {}
   name: text_titre
