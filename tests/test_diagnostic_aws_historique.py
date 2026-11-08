@@ -412,8 +412,15 @@ class TestsDiagnosticAWS(unittest.TestCase):
         self.assertEqual(groupes[0]['portail'], 'portail_non_reconnu')
         self.assertNotIn('SECRET', json.dumps(groupes))
 
-    def test_vocabulaires_signature_non_confirmes_fermes(self):
-        self.assertEqual(self.api._SIGNATURE_TEXTES, {'branche_parseur': (), 'categorie_refus': ()})
+    def test_vocabulaires_signature_autorises_et_champs_libres_refuses(self):
+        attendu = {
+            'branche_parseur': ('papier_enveloppe', 'papier_paragraphes'),
+            'categorie_refus': ('enveloppe_non_reconnue', 'champs_descriptifs_incomplets'),
+        }
+        self.assertEqual(self.api._SIGNATURE_TEXTES, attendu)
+        for champ, valeurs in attendu.items():
+            for valeur in valeurs:
+                self.assertEqual(self.api._filtrer_signature_structurelle({champ: valeur}), {champ: valeur})
         for valeur in ('papier', 'numerote', 'SECRET', 1, [], {}):
             self.assertEqual(self.api._filtrer_signature_structurelle({
                 'branche_parseur': valeur, 'categorie_refus': valeur}), {})

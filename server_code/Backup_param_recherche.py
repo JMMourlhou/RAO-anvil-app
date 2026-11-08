@@ -40,10 +40,8 @@ def nettoyer_offres_pour_histo(offres):
     offres_nettoyees = []
 
     for offre in offres or []:
-        try:
-            offre_dict = dict(offre)
-        except Exception:
-            continue
+        # Une offre invalide doit interrompre la sauvegarde, jamais disparaître.
+        offre_dict = dict(offre)
 
         offre_propre = nettoyer_valeur_pour_histo(offre_dict)
         offre_propre["vu"] = bool(offre_propre.get("vu", False))
@@ -128,20 +126,21 @@ def backup_requete(
             return refuser(validation["message"])
         codes_cpv = validation["codes"]
 
-        # Les anciens clients CPV sauvegardent implicitement une collecte complète.
-        if statut_collecte is None:
-            statut_collecte = "complete"
-        if not isinstance(statut_collecte, str) or statut_collecte not in ("complete", "partielle"):
-            return refuser("Statut de collecte invalide pour la sauvegarde.")
-        if not isinstance(message_collecte, str):
-            return refuser("Message de collecte invalide pour la sauvegarde.")
-        message_collecte = message_collecte.strip() if statut_collecte == "partielle" else ""
-        if statut_collecte == "partielle" and not message_collecte:
-            return refuser("Le message de collecte partielle est manquant.")
-    else:
-        # Une nouvelle recherche classique efface le statut CPV précédent.
-        statut_collecte = ""
-        message_collecte = ""
+    # Le statut doit être explicite avant toute lecture ou écriture d'historique.
+    if not isinstance(statut_collecte, str) or statut_collecte not in ("complete", "partielle"):
+        return refuser("Statut de collecte absent ou invalide pour la sauvegarde.")
+    if not isinstance(message_collecte, str):
+        return refuser("Message de collecte invalide pour la sauvegarde.")
+    message_collecte = message_collecte.strip()
+    if statut_collecte == "partielle" and not message_collecte:
+        return refuser("Le message de collecte partielle est manquant.")
+
+    # Refuser le document entier avant de toucher à la dernière recherche.
+    if not isinstance(offres, list):
+        return refuser("La liste des offres est invalide.")
+    for offre in offres:
+        if not isinstance(offre, dict):
+            return refuser("Une offre est invalide : sauvegarde refusée sans modification de l'historique.")
 
     sources_nettoyees = nettoyer_sources(sources)
     offres_nettoyees = nettoyer_offres_pour_histo(offres)

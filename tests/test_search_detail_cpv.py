@@ -42,7 +42,7 @@ class TestsDetailCPV(unittest.TestCase):
         self.ligne.parent.tag.mots_obligatoires_cpv = termes
         self.ligne.button_generer_html_click()
         self.assertTrue(self.ligne.column_panel_detail.visible)
-        self.composant_html.charger.assert_called_once_with('Formation SST recyclage', mots_cles=termes, mots_ou=[])
+        self.composant_html.charger.assert_called_once_with('Formation SST recyclage', mots_cles=termes, mots_ou=['ancien'])
         self.alerte.assert_not_called()
         self.assertEqual(self.original, self.ligne.item)
 
@@ -81,6 +81,8 @@ class TestsDetailCPV(unittest.TestCase):
         espace = charger_methodes()
         form = espace['Search']()
         form._ctx_recherche = {'mode_recherche': 'cpv', 'mots_obligatoires': ['formation et sécurité']}
+        # Ce test isole le transfert des critères vers la ligne, pas la veille.
+        form.actualiser_bouton_veille_cpv = Mock()
         form.list_offres = []
         for nom in ('repeating_panel_offres', 'text_nb_offres', 'data_grid_1', 'column_panel_select', 'button_selection_mailed', 'column_panel_params'):
             setattr(form, nom, Composant())

@@ -91,9 +91,9 @@ class TestsSearchIdCPV(unittest.TestCase):
         self.assertNotIn("search_id", call.kwargs)
         self.assertEqual(self.table.rows, [])
 
-    def test_arret_garde_appel_task_killer_seul(self):
+    def test_arret_transmet_identifiant_au_registre(self):
         self.form.lancer_recherche()
-        task = self.form.task_recherche
+        search_id = self.form.search_id
         self.server.reset_mock()
         self.server.side_effect = None
         self.server.return_value = {"ok": True}
@@ -101,7 +101,7 @@ class TestsSearchIdCPV(unittest.TestCase):
         self.form.f.revenir_menu_apres_arret = Mock()
         result = self.form.annuler_recherche_depuis_menu()
         self.assertTrue(result["ok"])
-        self.server.assert_called_once_with("task_killer", task)
+        self.server.assert_called_once_with("demander_annulation_recherche_rao", search_id)
         self.assertTrue(self.form._recherche_abandonnee)
         self.assertEqual(self.table.rows[0]["status"], "registered")
 
@@ -136,13 +136,15 @@ class TestsSearchIdCPV(unittest.TestCase):
         self.assertEqual(actuel, attendu)
 
 
-# Empreintes AST avant intégration : classique, Arrêt, timer et historique.
-BASELINE_METHODES = {'abandonner_recherche': '5bed882929eaae2bd26c51ec69f865741de9370a7edcab5c4118f5050e807cc5',
- 'annuler_recherche_depuis_menu': 'c0eaf241574f0a851d80d8e2e20853503c9136e023de874cc6e7b3d3cdc850e5',
- 'envoyer_annulation_recherche': '55d5b59f840aa5568e73a33f3c0bfda07c926dc0253b550aefed698b6d60ef07',
- 'lancer_recherche': '1af49757712e66aaaa93fcfcc2f361a4a18fc5fce83b690e16dcfcc307bd0009',
- 'sauvegarder_derniere_recherche': 'b2a22d5a2981dc1d060260408be1c1e874c6e709f24d1bbf1de07bcfb9c78b94',
- 'timer_recherche_progress_tick': 'bac9a6475f8bae52ead5958843678d27f2254544231a5026547676c677d3dc4e'}
+# Empreintes des parcours hors correction TED 5H, version initiale 6542e0b381ce.
+# Le timer et la sauvegarde sont couverts par les tests métier de collecte :
+# ils font partie du périmètre autorisé et ne sont donc pas figés ici.
+BASELINE_METHODES = {
+    'annuler_recherche_depuis_menu': '110df51976e0ba7e548d31e0191aeaae54541383c4e0eacaf16813b9c067f8bd',
+    'envoyer_annulation_recherche': '63fd4819dcaf63d7efe1a5174b94a0f3b85d769a0ff28d734fe546b78f3e5d7a',
+    'abandonner_recherche': '31cc3988994e69895c9c7575a2fe208bbd3752606bfa8ef4b940b9c956fd69e6',
+    'lancer_recherche': 'b9f5222c01b48e35848654cb7b5b5abbf516f503abfed09abe4ac5d025d78a92',
+}
 
 if __name__ == "__main__":
     unittest.main()

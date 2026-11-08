@@ -24,7 +24,7 @@ class TestsHistoriqueCollecte(unittest.TestCase):
         exec(compile(module, str(source), 'exec'), self.espace)
         self.arguments = dict(sources=['BOAMP'], mots_cles='formation', mots_ou='', mots_exclus='',
                               nb_jours=30, departements='', date_heure='date-test', offres=[{'titre': 'A', 'vu': True}],
-                              mode_recherche='cpv', cpv_selectionnes=['80560000'])
+                              mode_recherche='cpv', cpv_selectionnes=['80560000'], statut_collecte='complete')
 
     def sauvegarder(self, **options):
         arguments = dict(self.arguments)
@@ -38,11 +38,11 @@ class TestsHistoriqueCollecte(unittest.TestCase):
         self.assertEqual(self.row['offres'], self.arguments['offres'])
         self.assertEqual(self.row['revision_recherche'], 1)
         self.assertTrue(self.sauvegarder(statut_collecte='complete', message_collecte='Ancien avertissement')['ok'])
-        self.assertEqual(self.row['message_collecte'], '')
+        self.assertEqual(self.row['message_collecte'], 'Ancien avertissement')
         self.assertEqual(self.row['statut_collecte'], 'complete')
         self.sauvegarder(statut_collecte='partielle', message_collecte='Avertissement')
         self.assertTrue(self.sauvegarder(mode_recherche='classique')['ok'])
-        self.assertEqual((self.row['statut_collecte'], self.row['message_collecte']), ('', ''))
+        self.assertEqual((self.row['statut_collecte'], self.row['message_collecte']), ('complete', ''))
         self.assertEqual(self.row['revision_recherche'], 4)
         self.table.get.assert_called_with(email='test@example.com')
 
@@ -50,7 +50,7 @@ class TestsHistoriqueCollecte(unittest.TestCase):
         self.assertTrue(self.sauvegarder()['ok'])
         self.assertEqual(self.row['statut_collecte'], 'complete')
         original = dict(self.row)
-        for statut, message in [('inconnu', ''), ('echouee', ''), ('partielle', ''), ('partielle', [])]:
+        for statut, message in [(None, ''), ('inconnu', ''), ('echouee', ''), ('partielle', ''), ('partielle', [])]:
             with self.subTest(statut=statut, message=message):
                 self.assertFalse(self.sauvegarder(statut_collecte=statut, message_collecte=message)['ok'])
                 self.assertEqual(self.row, original)
@@ -89,14 +89,55 @@ class TestsHistoriqueCollecte(unittest.TestCase):
             statut_collecte='partielle', message_collecte='Diagnostic moteur', anomalies=['technique'], portails=['AWS']))
         arguments = p.serveur.call_args.kwargs
         self.assertEqual(arguments['statut_collecte'], 'partielle')
-        self.assertEqual(arguments['message_collecte'], "Recherche incomplète — aucune offre récupérée. Certaines annonces n'ont pas pu être analysées.")
+        self.assertEqual(arguments['message_collecte'], 'Diagnostic moteur')
         self.assertNotIn('anomalies', arguments)
         self.assertNotIn('portails', arguments)
 
     def test_restaurations_classique_complete_et_ancienne_sans_avertissement(self):
         p = support.TestsRechercheCPV()
         p.setUp()
-        for historique in ({'mode_recherche': 'classique', 'statut_collecte': 'partielle'},
+        for historique in ({'mode_recherche': 'classique'},
                            {'mode_recherche': 'cpv', 'statut_collecte': 'complete'}, {'mode_recherche': 'cpv'}):
             p.form.restaurer_avertissement_collecte(historique)
         p.form.afficher_progression_recherche.assert_not_called()
+
+
+class TestsCollecteClassique5H(unittest.TestCase):
+    def test_statuts_classiques_et_filtres(self):
+        from test_search_finalisation import TestsFinalisation
+        for statut in ('complete', 'partielle', 'echouee'):
+            for offres in ([], [{'titre': 'Offre'}]):
+                with self.subTest(statut=statut, offres=offres):
+                    p = TestsFinalisation()
+                    p.setUp()
+                    p.mode_classique()
+                    f = p.form
+                    for nom in ('filtrer_offres_exclues', 'build_offres_list',
+                                'ajouter_correspondance_mots_ou', 'trier_offres_par_interet'):
+                        setattr(f, nom, Mock(side_effect=lambda offres, *a, **kw: offres))
+                    f.task_recherche.get_state.return_value = {}
+                    f.task_recherche.is_completed.return_value = True
+                    f.task_recherche.get_return_value.return_value = dict(
+                        ok=statut != 'echouee', statut_collecte=statut,
+                        message_collecte='Diagnostic moteur', offres=offres)
+                    f.timer_recherche_progress_tick()
+                    if statut == 'echouee':
+                        f.sauvegarder_derniere_recherche.assert_not_called()
+                    else:
+                        f.sauvegarder_derniere_recherche.assert_called_once()
+                    self.assertEqual(f.afficher_progression_recherche.call_args.kwargs['etat'],
+                                     'error' if statut == 'echouee' else 'warning' if statut == 'partielle' else 'success')
+                    self.assertIsNone(f.task_recherche)
+                    self.assertEqual(f.timer_recherche_progress.interval, 0)
+
+    def test_filtre_zero_reste_partiel(self):
+        from test_search_finalisation import TestsFinalisation
+        p = TestsFinalisation()
+        p.setUp()
+        p.mode_classique()
+        f = p.form
+        f._ctx_recherche.update(statut_collecte='partielle', message_collecte='Source indisponible')
+        f.filtrer_offres_exclues = Mock(return_value=[])
+        f.traiter_offres_recuperees_apres_background([{'titre': 'Offre exclue'}])
+        self.assertEqual(f.afficher_progression_recherche.call_args.kwargs['etat'], 'warning')
+        self.assertIn("absence d'offres non garantie", f.afficher_progression_recherche.call_args.kwargs['ligne_1'])

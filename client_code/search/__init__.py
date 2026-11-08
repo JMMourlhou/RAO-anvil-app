@@ -1074,7 +1074,7 @@ class search(searchTemplate):
                     message_final_specifique = "Recherche incomplète — aucune offre récupérée. Certaines annonces n'ont pas pu être analysées."
             # Métadonnées du résultat courant, jamais celles de la recherche précédente.
             self._ctx_recherche["statut_collecte"] = statut_collecte or "complete"
-            self._ctx_recherche["message_collecte"] = message_final_specifique or ""
+            self._ctx_recherche["message_collecte"] = message_collecte or message_final_specifique or ""
             if not self.finaliser_recherche(offres_affichees, message_final_specifique=message_final_specifique):
                 return
 
@@ -1155,8 +1155,8 @@ class search(searchTemplate):
                     offres=offres,
                     mode_recherche=mode_recherche,
                     cpv_selectionnes=list(codes_cpv),
-                    statut_collecte=ctx.get("statut_collecte", "complete") if mode_recherche == "cpv" else "",
-                    message_collecte=ctx.get("message_collecte", "") if mode_recherche == "cpv" else ""
+                    statut_collecte=ctx.get("statut_collecte", "complete"),
+                    message_collecte=ctx.get("message_collecte", "")
                 )
 
             if getattr(self, "_recherche_abandonnee", False):
@@ -1185,8 +1185,6 @@ class search(searchTemplate):
 
     def restaurer_avertissement_collecte(self, historique):
         """Réaffiche le statut partiel sauvegardé, sans Task ni nouvelle sauvegarde."""
-        if historique.get("mode_recherche") != "cpv":
-            return
         if historique.get("statut_collecte") != "partielle":
             return
         message = historique.get("message_collecte") or "Recherche incomplète — certaines annonces n'ont pas pu être analysées."
@@ -1217,6 +1215,13 @@ class search(searchTemplate):
         finalisation_terminee = False
         mode_cpv = (self._ctx_recherche or {}).get("mode_recherche") == "cpv"
         try:
+            # Le caractère partiel survit aux filtres, y compris avec zéro offre.
+            if self._ctx_recherche.get("statut_collecte") == "partielle":
+                message_final_specifique = message_final_specifique or (
+                    "Recherche incomplète — certaines sources n'ont pas pu être collectées."
+                    if offres else
+                    "Recherche incomplète — aucune offre retenue parmi les offres reçues ; absence d'offres non garantie."
+                )
             # Publier uniquement après une sauvegarde réussie.
             if not self.sauvegarder_derniere_recherche(offres):
                 return False
@@ -1245,7 +1250,7 @@ class search(searchTemplate):
 
             # Les messages vides restent propres à chaque parcours.
             ligne_2 = ""
-            if mode_cpv and message_final_specifique is not None:
+            if message_final_specifique is not None:
                 message_final = message_final_specifique
             elif not offres and mode_cpv:
                 message_final = "Pas d'offres correspondant aux critères"
@@ -1262,9 +1267,9 @@ class search(searchTemplate):
             self.afficher_progression_recherche(
                 ligne_1=message_final,
                 ligne_2=ligne_2,
-                etat="warning" if mode_cpv and message_final_specifique is not None else "success",
-                progress_global=0 if mode_cpv and message_final_specifique is not None else 100,
-                progress_source=0 if mode_cpv and message_final_specifique is not None else 100,
+                etat="warning" if message_final_specifique is not None else "success",
+                progress_global=0 if message_final_specifique is not None else 100,
+                progress_source=0 if message_final_specifique is not None else 100,
                 afficher_jauges=False
             )
             finalisation_terminee = True
@@ -2889,6 +2894,30 @@ class search(searchTemplate):
                 titre="Erreur de recherche"
             )
             return
+
+        # Conserver le contrat moteur avant de réduire le résultat à ses offres.
+        statut_collecte = result.get("statut_collecte", "complete")
+        message_collecte = result.get("message_collecte") or ""
+        if statut_collecte not in ("complete", "partielle", "echouee") or not isinstance(message_collecte, str):
+            self.deverrouiller_recherche(cacher_bouton=False)
+            raise ValueError("Métadonnées de collecte classique invalides.")
+        if result.get("ok") is False or statut_collecte == "echouee":
+            self.afficher_saisie_recherche()
+            self.deverrouiller_recherche(cacher_bouton=False)
+            self.afficher_progression_recherche(
+                ligne_1="Échec de la recherche",
+                ligne_2=message_collecte or result.get("message") or "La collecte n'a pas abouti.",
+                etat="error", afficher_jauges=False
+            )
+            return
+        if not isinstance(result.get("offres"), list):
+            self.deverrouiller_recherche(cacher_bouton=False)
+            raise ValueError("Liste d'offres classique invalide.")
+        self._ctx_recherche["statut_collecte"] = statut_collecte
+        self._ctx_recherche["message_collecte"] = message_collecte.strip() or (
+            "Recherche incomplète — certaines sources n'ont pas pu être collectées."
+            if statut_collecte == "partielle" else ""
+        )
 
         errors = result.get("errors", [])
     
