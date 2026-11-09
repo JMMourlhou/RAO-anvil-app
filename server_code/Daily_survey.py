@@ -10,7 +10,7 @@ import hashlib
 import json
 import re
 
-from . import CPV_Metier
+from . import CPV_Metier, Maintenance_RAO
 
 
 def nettoyer_espace(valeur):
@@ -158,6 +158,7 @@ def creer_cle_requete(
 
 
 @anvil.server.callable(require_user=True)
+@Maintenance_RAO.proteger_operation("veille_classique")
 def enregistrer_daily_survey(
     sources,
     mots_cles="",
@@ -538,6 +539,7 @@ def repondre_erreur_veille_cpv(message):
 
 
 @anvil.server.callable(require_user=True)
+@Maintenance_RAO.proteger_operation("veille_cpv")
 def enregistrer_daily_survey_cpv(cpv_selectionnes, sources, departements=None, mots_exclus=None, mots_obligatoires=None, mots_ou=None):
     """Crée ou réactive une veille quotidienne CPV pour l'utilisateur connecté.
 

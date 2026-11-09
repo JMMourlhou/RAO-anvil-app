@@ -787,8 +787,8 @@ class search(searchTemplate):
 
             try:
                 with anvil.server.no_loading_indicator:
-                    task_recue = anvil.server.call(
-                        "lancer_recherche_multi_sources_background",
+                    reponse_lancement = anvil.server.call(
+                        "lancer_recherche_classique_rao",
                         mots=mots_clefs,
                         departements=depts,
                         rows=100,
@@ -801,6 +801,12 @@ class search(searchTemplate):
                     )
                     if getattr(self, "_recherche_abandonnee", False):
                         return
+                    if not isinstance(reponse_lancement, dict) or type(reponse_lancement.get("ok")) is not bool:
+                        raise ValueError("Réponse de lancement classique invalide.")
+                    if not reponse_lancement["ok"]:
+                        afficher_avertissement(reponse_lancement["message"], titre="Recherche indisponible")
+                        return
+                    task_recue = reponse_lancement["task"]
                     self.task_recherche = task_recue
 
             except (
@@ -965,6 +971,7 @@ class search(searchTemplate):
         self._annulation_recherche_demandee = False
         task_recue = None
         inscription_refusee = False
+        message_refus = ""
 
         try:
             self.verrouiller_recherche()
@@ -979,11 +986,12 @@ class search(searchTemplate):
                     raise ValueError("Réponse d'inscription RAO invalide.")
                 if inscription["ok"] is False:
                     inscription_refusee = True
+                    message_refus = inscription.get("message") or "Impossible de lancer la recherche CPV."
                     return
                 if getattr(self, "_recherche_abandonnee", False):
                     return
-                task_recue = anvil.server.call(
-                    "lancer_recherche_cpv_background",
+                reponse_lancement = anvil.server.call(
+                    "lancer_recherche_cpv_rao",
                     search_id=search_id,
                     cpv_selectionnes=criteres["cpv_selectionnes"],
                     departements=criteres["departements"],
@@ -995,6 +1003,13 @@ class search(searchTemplate):
                 )
                 if getattr(self, "_recherche_abandonnee", False):
                     return
+                if not isinstance(reponse_lancement, dict) or type(reponse_lancement.get("ok")) is not bool:
+                    raise ValueError("Réponse de lancement CPV invalide.")
+                if not reponse_lancement["ok"]:
+                    inscription_refusee = True
+                    message_refus = reponse_lancement["message"]
+                    return
+                task_recue = reponse_lancement["task"]
                 self.task_recherche = task_recue
 
         finally:
@@ -1010,12 +1025,12 @@ class search(searchTemplate):
                     self.deverrouiller_recherche(cacher_bouton=False)
                     self.afficher_saisie_recherche()
                     self.afficher_progression_recherche(
-                        ligne_1="Recherche CPV indisponible",
+                        ligne_1=message_refus or "Recherche CPV indisponible",
                         etat="error",
                         afficher_jauges=False
                     )
                     if inscription_refusee:
-                        afficher_information("Impossible de lancer la recherche CPV.", titre="Recherche CPV")
+                        afficher_information(message_refus, titre="Recherche CPV")
 
     def traiter_offres_cpv_apres_background(self, resultat):
         """Affiche un résultat CPV dict déjà traité par le moteur.

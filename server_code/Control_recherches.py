@@ -6,6 +6,8 @@ import anvil.tables as tables
 from anvil.tables import app_tables
 import anvil.server
 
+from . import Maintenance_RAO
+
 
 _ETATS_TERMINAUX = ("cancelled", "completed", "failed")
 _ETATS_AUTORISES = ("registered", "running", "cancellation_requested") + _ETATS_TERMINAUX
@@ -103,6 +105,10 @@ def enregistrer_recherche_rao(search_id):
     user, error = _get_identity(search_id)
     if error is not None:
         return error
+    # Contrôle dans la transaction ; le lancement sera contrôlé séparément.
+    refus = Maintenance_RAO.refus_si_maintenance()
+    if refus is not None:
+        return refus
     row = _get_row(search_id, user)
     if row is None:
         valeurs = {
