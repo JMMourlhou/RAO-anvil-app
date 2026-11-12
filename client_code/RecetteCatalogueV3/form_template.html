@@ -1,0 +1,14 @@
+<anvil-form container="LinearPanel">
+    <anvil-component type="Label" name="label_titre" prop:text="Recette PostgreSQL RAO — V3" prop:bold="true" prop:font_size="20"></anvil-component>
+    <anvil-component type="Label" name="label_information" prop:text="Ouverture manuelle uniquement. Compte développeur et Uplink V3 requis. Recherche : 365 jours, BOAMP + TED, 20 annonces par page."></anvil-component>
+    <anvil-component type="TextBox" name="text_box_cpv" prop:text='"80500000"' prop:placeholder="Code CPV de huit chiffres"></anvil-component>
+    <anvil-component type="FlowPanel" name="panel_actions">
+        <anvil-component type="Button" name="button_rechercher" prop:text="Rechercher"></anvil-component>
+        <anvil-component type="Button" name="button_suivante" prop:text="Page suivante" prop:visible="false"></anvil-component>
+    </anvil-component>
+    <anvil-component type="Label" name="label_erreur" prop:foreground="#a4262c" prop:text=""></anvil-component>
+    <anvil-component type="Label" name="label_page" prop:text="Aucune recherche exécutée."></anvil-component>
+    <anvil-component type="RepeatingPanel" name="repeating_panel_annonces" prop:item_template="https___surv_apl_offres_anvil_app.RecetteCatalogueV3.AnnonceRow"></anvil-component>
+    <anvil-component type="Label" name="label_detail" prop:text="Détail de l'annonce" prop:bold="true"></anvil-component>
+    <anvil-component type="TextArea" name="text_area_detail" prop:enabled="false" prop:height="260px" prop:text=""></anvil-component>
+</anvil-form>

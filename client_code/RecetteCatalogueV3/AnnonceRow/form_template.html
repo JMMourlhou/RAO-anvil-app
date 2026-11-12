@@ -1,0 +1,8 @@
+<anvil-form container="LinearPanel" prop:border="1px solid #cccccc">
+    <anvil-component type="Label" name="label_titre" prop:bold="true" bind:text="str(self.item.get('titre') or 'Annonce sans titre')"></anvil-component>
+    <anvil-component type="Label" name="label_acheteur" bind:text="str(self.item.get('acheteur') or '')"></anvil-component>
+    <anvil-component type="Label" name="label_source" bind:text="str(self.item.get('source') or '') + ' — ' + str(self.item.get('reference') or '')"></anvil-component>
+    <anvil-component type="Label" name="label_dates" bind:text="'Publication : ' + str(self.item.get('date_publication') or '') + ' — Échéance : ' + str(self.item.get('date_limite_reponse') or '')"></anvil-component>
+    <anvil-component type="Label" name="label_lien" bind:text="str(self.item.get('lien') or '')"></anvil-component>
+    <anvil-component type="Button" name="button_detail" prop:text="Consulter le détail"></anvil-component>
+</anvil-form>
