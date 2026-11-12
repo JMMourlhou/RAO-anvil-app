@@ -2,6 +2,7 @@ from ._anvil_designer import RecetteCatalogueV3Template
 from anvil import *
 import anvil.server
 import re
+import time
 
 
 _MESSAGES = {
@@ -22,6 +23,7 @@ class RecetteCatalogueV3(RecetteCatalogueV3Template):
         self.init_components(**properties)
         self._page = None
         self._occupe = False
+        self._appels_mesures = []
         self.repeating_panel_annonces.items = []
         self.repeating_panel_annonces.set_event_handler("x-detail", self.afficher_detail)
 
@@ -37,11 +39,27 @@ class RecetteCatalogueV3(RecetteCatalogueV3Template):
     def _appeler(self, nom, **parametres):
         """Affiche une panne technique sans intercepter ni masquer l'exception."""
         retour_recu = False
+        resultat = None
+        debut_appel = time.time()
         try:
             resultat = anvil.server.call(nom, **parametres)
+            fin_appel = time.time()
             retour_recu = True
             return resultat
         finally:
+            fin_mesure = fin_appel if retour_recu else time.time()
+            if nom == "recette_catalogue_v3_rechercher":
+                mesures = {"appel_formulaire_ms": (fin_mesure - debut_appel) * 1000,
+                           "appel_termine": retour_recu, "uplink_ms": None,
+                           "postgresql_duree_ms": None}
+                if isinstance(resultat, dict):
+                    serveur = resultat.get("_mesures_recette_v3")
+                    valeur_uplink = serveur.get("uplink_ms") if isinstance(serveur, dict) else None
+                    for cle, valeur in (("uplink_ms", valeur_uplink),
+                                        ("postgresql_duree_ms", resultat.get("duree_ms"))):
+                        if isinstance(valeur, (int, float)) and not isinstance(valeur, bool) and 0 <= valeur < float("inf"):
+                            mesures[cle] = valeur
+                self._appels_mesures.append(mesures)
             if not retour_recu:
                 self.label_erreur.text = (
                     "L'appel serveur a échoué. Vérifier la session Anvil, la configuration "
@@ -66,6 +84,7 @@ class RecetteCatalogueV3(RecetteCatalogueV3Template):
 
     @handle("button_rechercher", "click")
     def rechercher(self, **event_args):
+        debut_clic = time.time()
         if self._occupe:
             return
         cpv = str(self.text_box_cpv.text or "").strip()
@@ -77,12 +96,13 @@ class RecetteCatalogueV3(RecetteCatalogueV3Template):
         self.text_area_detail.text = ""
         self.label_page.text = "Recherche en cours…"
         self._executer_recherche({
-            "cpv_selectionnes": [cpv], "departements": [], "filtre_jours": 365,
-            "sources": ["BOAMP", "TED"], "limite": 20, "decalage": 0,
-        })
+            "cpv_selectionnes": [cpv], "departements": [], "filtre_jours": 30,
+            "sources": ["TED"], "limite": 20, "decalage": 0,
+        }, debut_clic=debut_clic)
 
     @handle("button_suivante", "click")
     def page_suivante(self, **event_args):
+        debut_clic = time.time()
         if self._occupe or self._page is None or not self._page["suite"]:
             return
         page = self._page
@@ -99,15 +119,23 @@ class RecetteCatalogueV3(RecetteCatalogueV3Template):
             "mots_exclus": criteres["mots_exclus"], "mots_ou": criteres["mots_ou"],
             "limite": page["limite"], "decalage": decalage,
             "empreinte": page["empreinte"], "date_reference": criteres["date_reference"],
-        })
+        }, debut_clic=debut_clic)
 
-    def _executer_recherche(self, parametres):
+    def _executer_recherche(self, parametres, debut_clic=None):
+        if debut_clic is None:
+            debut_clic = time.time()
+        self._appels_mesures = []
+        construction_ms = None
+        resultats_affiches = False
+        nombre_annonces = None
+        code_erreur = None
         self._occupe = True
         self.label_erreur.text = ""
         self._actualiser_boutons()
         try:
             resultat = self._appeler("recette_catalogue_v3_rechercher", **parametres)
             if not self._reponse_valide(resultat):
+                code_erreur = self._code_erreur(resultat)
                 if self._code_erreur(resultat) != "pagination_changed":
                     return
                 # Une seule reprise, sans ancien instantané ni lecture des champs UI.
@@ -117,13 +145,31 @@ class RecetteCatalogueV3(RecetteCatalogueV3Template):
                 parametres.update(decalage=0, empreinte=None, date_reference=None)
                 resultat = self._appeler("recette_catalogue_v3_rechercher", **parametres)
                 if not self._reponse_valide(resultat):
+                    code_erreur = self._code_erreur(resultat)
                     return
-            self._afficher_page(resultat)
+            debut_construction = time.time()
+            try:
+                self._afficher_page(resultat)
+                resultats_affiches = True
+                nombre_annonces = len(resultat["offres"])
+            finally:
+                construction_ms = (time.time() - debut_construction) * 1000
         finally:
             if self._page is None:
                 self.label_page.text = "Aucune page valide reçue ; la recherche n'est pas déclarée complète."
             self._occupe = False
             self._actualiser_boutons()
+            # Ces mesures s'arrêtent au retour des mises à jour des composants.
+            # Elles ne prétendent pas mesurer la peinture des pixels du navigateur.
+            code_public = code_erreur if isinstance(code_erreur, str) and code_erreur in _MESSAGES else None
+            print("[RECETTE V3 FORMULAIRE]", {
+                "nombre_annonces": nombre_annonces,
+                "total_clic_mise_a_jour_ms": (time.time() - debut_clic) * 1000,
+                "construction_resultats_ms": construction_ms,
+                "resultats_affiches": resultats_affiches,
+                "code_erreur": code_public,
+                "appels": self._appels_mesures,
+            })
 
     def _afficher_page(self, resultat):
         offres = resultat.get("offres")

@@ -6,6 +6,7 @@ L'Uplink V3 reste responsable de l'identité native, de remote_caller et du SQL.
 """
 from datetime import date
 import re
+import time
 
 import anvil.server
 import anvil.users
@@ -48,7 +49,8 @@ def recette_catalogue_v3_rechercher(
 ):
     """Valide les paramètres du contrat puis appelle le V3 dans la session native.
 
-    Retour V3 inchangé. Les erreurs fonctionnelles locales sont explicites.
+    Retour V3 complété par _mesures_recette_v3 pour le chronométrage Anvil.
+    Les erreurs fonctionnelles locales sont explicites.
     Les exceptions Uplink se propagent : une panne n'est jamais une liste vide.
     """
     refus = _verifier_developpeur()
@@ -84,13 +86,36 @@ def recette_catalogue_v3_rechercher(
         return _refuser("invalid_parameters", "Une page suivante exige l'empreinte et la date de référence retournées.")
 
     # Aucun e-mail, user_id, rôle SQL ou contexte n'est transmis comme argument.
-    return anvil.server.call(
-        "rechercher_offres_catalogue_pg",
-        cpv_selectionnes=cpv_selectionnes, departements=departements,
-        filtre_jours=filtre_jours, sources=sources,
-        mots_obligatoires=mots_obligatoires, mots_exclus=mots_exclus, mots_ou=mots_ou,
-        limite=limite, decalage=decalage, empreinte=empreinte, date_reference=date_reference
-    )
+    debut_uplink = time.perf_counter()
+    retour_recu = False
+    duree_pg = None
+    try:
+        resultat = anvil.server.call(
+            "rechercher_offres_catalogue_pg",
+            cpv_selectionnes=cpv_selectionnes, departements=departements,
+            filtre_jours=filtre_jours, sources=sources,
+            mots_obligatoires=mots_obligatoires, mots_exclus=mots_exclus, mots_ou=mots_ou,
+            limite=limite, decalage=decalage, empreinte=empreinte, date_reference=date_reference
+        )
+        fin_uplink = time.perf_counter()
+        retour_recu = True
+        if isinstance(resultat, dict):
+            valeur = resultat.get("duree_ms")
+            if type(valeur) in (int, float) and 0 <= valeur < float("inf"):
+                duree_pg = valeur
+    finally:
+        fin_mesure = fin_uplink if retour_recu else time.perf_counter()
+        duree_uplink_ms = (fin_mesure - debut_uplink) * 1000
+        # Ne journaliser ni critères, ni identité, ni annonces, ni erreur brute.
+        print("[RECETTE V3 SERVEUR]", {
+            "uplink_ms": duree_uplink_ms,
+            "postgresql_duree_ms": duree_pg,
+            "appel_termine": retour_recu,
+        })
+    if isinstance(resultat, dict):
+        resultat = dict(resultat)
+        resultat["_mesures_recette_v3"] = {"uplink_ms": duree_uplink_ms}
+    return resultat
 
 
 @anvil.server.callable(require_user=True)
