@@ -11,8 +11,13 @@ import time
 import anvil.server
 import anvil.users
 
+from . import Maintenance_RAO
+
 
 DEVELOPPEUR_USER_ID = "[1019693,7152250813]"
+
+# Ne passer à True qu'après confirmation de la fin du rattrapage côté Pi5.
+COUVERTURE_TED_COMPLETE = False
 
 
 def _refuser(code, message):
@@ -128,3 +133,51 @@ def recette_catalogue_v3_detail(offre_ids):
             or not all(isinstance(identifiant, str) and re.fullmatch(r"[0-9]+", identifiant) for identifiant in offre_ids)):
         return _refuser("invalid_parameters", "Fournir de 1 à 10 identifiants décimaux sous forme de chaînes.")
     return anvil.server.call("obtenir_detail_offre_catalogue_pg", offre_ids)
+
+
+@anvil.server.callable(require_user=True)
+def rechercher_page_catalogue_search(
+    cpv_selectionnes, departements, filtre_jours, sources,
+    mots_obligatoires=None, mots_exclus=None, mots_ou=None,
+    limite=100, decalage=0, empreinte=None, date_reference=None
+):
+    """Page pour search : même session native et même autorisation que la recette.
+
+    Pas de Task Anvil : remote_caller reste server_module pour le V3.
+    Le contrôle de maintenance est renouvelé à chaque nouvelle page.
+    """
+    refus = _verifier_developpeur()
+    if refus is not None:
+        return refus
+    ticket, refus = Maintenance_RAO._admettre("recherche_catalogue")
+    if refus is not None:
+        return refus
+    try:
+        resultat = recette_catalogue_v3_rechercher(
+            cpv_selectionnes, departements, filtre_jours, sources,
+            mots_obligatoires, mots_exclus, mots_ou, limite, decalage,
+            empreinte, date_reference
+        )
+        if not isinstance(resultat, dict) or type(resultat.get("ok")) is not bool:
+            raise ValueError("Réponse catalogue PostgreSQL invalide.")
+        if resultat["ok"]:
+            if not isinstance(resultat.get("offres"), list):
+                raise ValueError("Liste d'annonces PostgreSQL invalide.")
+            resultat = dict(resultat)
+            offres = []
+            for offre in resultat["offres"]:
+                if not isinstance(offre, dict):
+                    raise ValueError("Annonce PostgreSQL invalide.")
+                offre = dict(offre)
+                offre["moteur_recherche"] = "catalogue_pg"
+                offre["date_limite_rep"] = offre.get("date_limite_reponse") or offre.get("date_limite_rep") or ""
+                offre["lien_source"] = offre.get("lien") or ""
+                offre["idweb"] = str(offre.get("reference") or offre.get("offre_id") or "")
+                offres.append(offre)
+            resultat["offres"] = offres
+            resultat["couverture_ted_complete"] = COUVERTURE_TED_COMPLETE
+    except Exception:
+        Maintenance_RAO._noter_issue(ticket, "inconnue")
+        raise
+    Maintenance_RAO._noter_issue(ticket, "terminee")
+    return resultat

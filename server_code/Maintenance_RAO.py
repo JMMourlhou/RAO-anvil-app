@@ -22,7 +22,7 @@ _VERSION_CODE = "maintenance-rao-v1"
 _VERSION_BASE = "2c9cba0a23cd4eaa74085e76455c7af635a60f65"
 _MESSAGE = "RAO est en maintenance. Les nouvelles recherches et veilles sont temporairement indisponibles."
 _TERMINAUX_TASK = ("completed", "failed", "killed")
-_POINTS = ("recherche_classique", "recherche_cpv", "veille_classique", "veille_cpv")
+_POINTS = ("recherche_classique", "recherche_cpv", "recherche_catalogue", "veille_classique", "veille_cpv")
 
 
 def _maintenant():
@@ -57,14 +57,19 @@ def _ecrire_etat(row, etat):
         row.update(value=etat)
 
 
-def refus_si_maintenance():
+def _bloque(etat, point):
+    recherches = ("recherche_classique", "recherche_cpv", "recherche_catalogue")
+    return etat["actif"] and not (point in recherches and etat.get("recherches_autorisees") is True)
+
+
+def refus_si_maintenance(point=None):
     """Contrôle serveur utilisable dans une transaction ou à l'entrée d'une Task.
 
     Ne remplace pas l'admission suivie pour une opération avec effet de bord.
     Aucune lecture d'historique, aucun appel externe.
     """
     _, etat = _charger_etat()
-    if etat["actif"]:
+    if _bloque(etat, point):
         return {"ok": False, "error": "maintenance", "message": _MESSAGE,
                 "statut": "erreur", "daily_survey_id": None}
     return None
@@ -84,9 +89,9 @@ def activer_maintenance_rao():
     """Ferme les nouvelles admissions, sans tuer les opérations déjà admises."""
     operateur = _administrateur()
     row, etat = _charger_etat()
-    if not etat["actif"]:
+    if not etat["actif"] or etat.get("recherches_autorisees") is True:
         etat.update(actif=True, activation=_maintenant(), modification=_maintenant(),
-                    operateur=operateur, verification_services=None)
+                    operateur=operateur, verification_services=None, recherches_autorisees=False)
         _ecrire_etat(row, etat)
     return {"ok": True, "maintenance": etat["actif"], "activation": etat["activation"],
             "message": "Barrière active ; vérifier les tâches et le gel Pi5 séparément."}
@@ -112,11 +117,27 @@ def desactiver_maintenance_rao(services_verifies=False, reference_verification="
     return {"ok": True, "maintenance": False, "message": "Admissions Anvil rouvertes manuellement."}
 
 
+@anvil.server.callable(require_user=True)
+@tables.in_transaction
+def rouvrir_recherches_rao():
+    """Rouvre uniquement les recherches. Ne change ni les veilles ni le Pi5.
+
+    Une nouvelle activation de maintenance referme aussi cette exception.
+    À appeler manuellement dans la session administrateur de l'environnement visé.
+    """
+    operateur = _administrateur()
+    row, etat = _charger_etat()
+    etat.update(recherches_autorisees=True, modification=_maintenant(), operateur=operateur)
+    _ecrire_etat(row, etat)
+    return {"ok": True, "recherches_autorisees": True, "maintenance": etat["actif"],
+            "message": "Recherches rouvertes ; état des veilles inchangé."}
+
+
 @tables.in_transaction
 def _admettre(point):
     """Sérialise admission et activation sur la même ligne durable."""
     row, etat = _charger_etat()
-    if etat["actif"]:
+    if _bloque(etat, point):
         return None, {"ok": False, "error": "maintenance", "message": _MESSAGE,
                       "statut": "erreur", "daily_survey_id": None}
     ticket = str(uuid.uuid4())
@@ -248,6 +269,7 @@ def attestation_maintenance_rao():
         "version_code": _VERSION_CODE, "version_base": _VERSION_BASE,
         "version_publiee": "non_verifiee", "date_observation": _maintenant(),
         "operateur_attestation": operateur, "maintenance": apres["actif"],
+        "recherches_autorisees": not _bloque(apres, "recherche_cpv"),
         "activation": apres["activation"], "operateur_modification": apres["operateur"],
         "verification_services": apres["verification_services"],
         "points_proteges": list(_POINTS) + ["enregistrer_recherche_rao"],

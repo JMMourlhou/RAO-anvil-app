@@ -106,7 +106,7 @@ def enregistrer_recherche_rao(search_id):
     if error is not None:
         return error
     # Contrôle dans la transaction ; le lancement sera contrôlé séparément.
-    refus = Maintenance_RAO.refus_si_maintenance()
+    refus = Maintenance_RAO.refus_si_maintenance("recherche_cpv")
     if refus is not None:
         return refus
     row = _get_row(search_id, user)

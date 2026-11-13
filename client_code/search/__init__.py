@@ -41,10 +41,14 @@ class search(searchTemplate):
         # Création des composants
         # ================================================================
 
-        self.data_grid_2.rows_per_page = 5
-
         t = window.performance.now()
         self.init_components(**properties)
+        self.data_grid_2.rows_per_page = 5
+        self.drop_down_moteur_catalogue.items = [
+            ("PostgreSQL BOAMP/TED (par défaut)", "postgresql"),
+            ("Historique — secours BOAMP/TED", "historique"),
+        ]
+        self.drop_down_moteur_catalogue.selected_value = "postgresql"
         self.initialiser_selecteur_cpv()
         afficher_temps("init_components", t)
 
@@ -574,6 +578,11 @@ class search(searchTemplate):
 
     def annuler_recherche_depuis_menu(self):
         """Demande une seule annulation ; distingue attente et échec technique."""
+        if getattr(self, "_catalogue_actif", False):
+            # Laisser finir le SELECT en cours, mais ignorer son retour et ne plus
+            # demander de page. Aucun kill n'est envoyé au Pi5/rattrapage.
+            self.abandonner_recherche()
+            return {"ok": True, "pending": False}
         search_id = getattr(self, "search_id", None)
         if getattr(self, "_recherche_abandonnee", False):
             return {"ok": True, "pending": False}
@@ -696,6 +705,8 @@ class search(searchTemplate):
         if bool(self.cpv_selectionnes):
             self.lancer_recherche_offres_cpv()
             return
+
+        self.label_route_moteur.text = "Moteur historique — recherche sans CPV ; PostgreSQL exige une sélection CPV."
 
         # --- Lecture des champs ---
         mots_obligatoires_texte = self.text_box_mots_obligatoires_cpv.text or ""
@@ -969,6 +980,10 @@ class search(searchTemplate):
         self.afficher_offres([])
         self.checkbox_on_off.visible = False
         self._annulation_recherche_demandee = False
+        if self.utiliser_catalogue_postgresql(criteres):
+            self.lancer_recherche_catalogue(criteres)
+            return
+        self.label_route_moteur.text = "Moteur historique — critères conservés ; AWS/CARIF inchangés."
         task_recue = None
         inscription_refusee = False
         message_refus = ""
@@ -1087,6 +1102,8 @@ class search(searchTemplate):
                     message_final_specifique = "Recherche partiellement terminée — certaines annonces n'ont pas pu être analysées."
                 else:
                     message_final_specifique = "Recherche incomplète — aucune offre récupérée. Certaines annonces n'ont pas pu être analysées."
+                if resultat.get("moteur_recherche") == "catalogue_pg":
+                    message_final_specifique = message_collecte
             # Métadonnées du résultat courant, jamais celles de la recherche précédente.
             self._ctx_recherche["statut_collecte"] = statut_collecte or "complete"
             self._ctx_recherche["message_collecte"] = message_collecte or message_final_specifique or ""
@@ -1109,6 +1126,134 @@ class search(searchTemplate):
             if not traitement_termine and not getattr(self, "_recherche_abandonnee", False):
                 self.afficher_saisie_recherche()
             self.deverrouiller_recherche(cacher_bouton=False)
+
+    def utiliser_catalogue_postgresql(self, criteres):
+        """Un seul moteur par recherche : aucune fusion PG/historique hasardeuse."""
+        selecteur = getattr(self, "drop_down_moteur_catalogue", None)
+        moteur = getattr(selecteur, "selected_value", "postgresql")
+        sources = criteres.get("sources") or []
+        return moteur != "historique" and bool(criteres.get("cpv_selectionnes")) and bool(sources) and all(
+            source in ("BOAMP", "TED") for source in sources
+        )
+
+    def lancer_recherche_catalogue(self, criteres):
+        """Lit des pages synchrones, puis réutilise la finalisation CPV existante.
+
+        Arrêt détache la Form : le SELECT courant peut finir, sans autre page
+        ni sauvegarde. Les recherches mixtes restent entièrement historiques.
+        """
+        self._catalogue_actif = True
+        self.search_id = None
+        self.task_recherche = None
+        self.timer_recherche_progress.interval = 0
+        self._ctx_recherche["moteur_recherche"] = "catalogue_pg"
+        try:
+            self.verrouiller_recherche()
+            self.display_param_summary()
+            self.label_route_moteur.text = "Catalogue PostgreSQL — BOAMP/TED. Historique disponible dans le sélecteur de moteur."
+            resultat = self.charger_pages_catalogue(criteres)
+            if resultat is None or getattr(self, "_recherche_abandonnee", False):
+                return
+            self.traiter_offres_cpv_apres_background(resultat)
+            if not getattr(self, "_recherche_abandonnee", False) and self._offres_correspondent_histo:
+                self.text_nb_offres.text = (
+                    str(len(self.list_offres)) + " annonces affichées / "
+                    + str(resultat["total_catalogue"]) + " trouvées dans le catalogue"
+                )
+        finally:
+            self._catalogue_actif = False
+            if not getattr(self, "_recherche_abandonnee", False):
+                self.deverrouiller_recherche(cacher_bouton=False)
+
+    def charger_pages_catalogue(self, criteres):
+        """Respecte empreinte/date/critères du V3 et sa fenêtre maximale de 600.
+
+        Le total est celui du catalogue, jamais une preuve d'exhaustivité TED.
+        Un changement de pagination invalide le résultat entier, sans sauvegarde.
+        """
+        parametres = dict(criteres)
+        parametres.update(limite=100, decalage=0)
+        offres = []
+        identifiants_vus = set()
+        empreinte = None
+        date_reference = None
+        total = None
+        suite = False
+        couverture_ted_complete = False
+        while True:
+            if getattr(self, "_recherche_abandonnee", False):
+                return None
+            with anvil.server.no_loading_indicator:
+                page = anvil.server.call("rechercher_page_catalogue_search", **parametres)
+            if getattr(self, "_recherche_abandonnee", False):
+                return None
+            if not isinstance(page, dict) or type(page.get("ok")) is not bool:
+                raise ValueError("Réponse de pagination PostgreSQL invalide.")
+            if not page["ok"]:
+                code = page.get("error") or page.get("code") or page.get("error_code")
+                if isinstance(code, dict):
+                    code = code.get("code")
+                message = page.get("message")
+                if code == "pagination_changed":
+                    message = "Le catalogue a changé pendant la pagination. Relancer la recherche ou choisir le moteur historique. Aucun résultat sauvegardé."
+                if not isinstance(message, str) or not message:
+                    message = "Catalogue indisponible ou accès refusé. Le moteur historique reste sélectionnable sans ressaisir les critères."
+                self.afficher_progression_recherche(ligne_1=message, etat="error", afficher_jauges=False)
+                self.label_route_moteur.text = message
+                return None
+            champs = ("cpv_selectionnes", "departements", "nb_jours", "sources", "mots_obligatoires",
+                      "mots_exclus", "mots_ou", "date_reference")
+            c = page.get("criteres")
+            if (not isinstance(page.get("offres"), list) or not isinstance(c, dict)
+                    or not all(champ in c for champ in champs)
+                    or type(page.get("total")) is not int or page["total"] < 0
+                    or type(page.get("suite")) is not bool
+                    or type(page.get("limite")) is not int or not 1 <= page["limite"] <= 100
+                    or len(page["offres"]) > page["limite"]
+                    or page.get("decalage") != parametres["decalage"]
+                    or not isinstance(page.get("empreinte"), str)
+                    or not isinstance(c["date_reference"], str)):
+                raise ValueError("Métadonnées de pagination PostgreSQL invalides.")
+            if empreinte is not None and (page["empreinte"] != empreinte or c["date_reference"] != date_reference or page["total"] != total):
+                raise ValueError("Instantané PostgreSQL modifié : relancer sans sauvegarder ces pages.")
+            empreinte = page["empreinte"]
+            date_reference = c["date_reference"]
+            total = page["total"]
+            couverture_ted_complete = page.get("couverture_ted_complete") is True
+            for offre in page["offres"]:
+                if not isinstance(offre, dict):
+                    raise ValueError("Annonce PostgreSQL invalide.")
+                cle = str(offre.get("offre_id") or "")
+                if not cle:
+                    cle = str(offre.get("source") or "") + "|" + str(offre.get("reference") or offre.get("lien") or "")
+                if cle not in identifiants_vus:
+                    identifiants_vus.add(cle)
+                    offres.append(offre)
+            suite = page["suite"]
+            self.afficher_progression_recherche(
+                ligne_1="Lecture du catalogue", ligne_2=str(len(offres)) + " annonces chargées / " + str(total) + " trouvées",
+                source_nom="Catalogue PostgreSQL", progress_source=None, source_current=len(offres), source_total=total
+            )
+            decalage = page["decalage"] + page["limite"]
+            if not suite or decalage > 500:
+                break
+            if not page["offres"]:
+                raise ValueError("Pagination PostgreSQL sans progression : aucune sauvegarde.")
+            parametres = {
+                "cpv_selectionnes": c["cpv_selectionnes"], "departements": c["departements"],
+                "filtre_jours": c["nb_jours"], "sources": c["sources"],
+                "mots_obligatoires": c["mots_obligatoires"], "mots_exclus": c["mots_exclus"], "mots_ou": c["mots_ou"],
+                "limite": page["limite"], "decalage": decalage, "empreinte": empreinte, "date_reference": date_reference,
+            }
+        avertissements = []
+        if "TED" in criteres["sources"] and not couverture_ted_complete:
+            avertissements.append("Couverture TED encore incomplète pendant le rattrapage. Des annonces peuvent manquer ; le moteur historique reste disponible.")
+        if suite or len(offres) < total:
+            avertissements.append("Pagination limitée par le contrat V3 (décalage maximal 500) : toutes les annonces trouvées ne sont pas chargées.")
+        message = str(len(offres)) + " annonces chargées / " + str(total) + " trouvées dans le catalogue. " + " ".join(avertissements)
+        self.label_route_moteur.text = message
+        return {"ok": True, "offres": offres, "moteur_recherche": "catalogue_pg", "total_catalogue": total,
+                "statut_collecte": "partielle" if avertissements else "complete", "message_collecte": message}
 
     def construire_resume_recherche_cpv(self):
         """Retourne un résumé str borné des critères figés au lancement.

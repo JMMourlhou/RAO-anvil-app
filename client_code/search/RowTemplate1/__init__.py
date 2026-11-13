@@ -379,9 +379,10 @@ class RowTemplate1(RowTemplate1Template):
         return self.extraire_liste_depuis_parent_tag("mots_et_saisis")
 
     def button_generer_html_click(self, **event_args):
-        """
-        Affiche le texte avec les mots-clés recherchés surlignés.
-        """
+        """Ouvre le détail catalogue ou le texte historique avec surlignage."""
+        if self.item.get("moteur_recherche") == "catalogue_pg":
+            self.afficher_detail_catalogue()
+            return
         self.scroll_into_view(smooth=True, align="start")
         # Changement apparence du bouton
         if self.column_panel_detail.visible is False:
@@ -439,6 +440,39 @@ class RowTemplate1(RowTemplate1Template):
         )
 
         self.column_panel_detail.visible = True
+
+    def afficher_detail_catalogue(self):
+        """Détail natif V3 dans le panneau existant ; parcours « vu » conservé.
+
+        Le document complet est présenté en texte : ne pas supposer un schéma
+        de détail unique ni injecter le contenu externe dans du HTML.
+        """
+        if self.column_panel_detail.visible:
+            self.column_panel_detail.visible = False
+            self.button_generer_html.icon = "mi:keyboard_double_arrow_down"
+            return
+        ids = self.item.get("offre_ids") or [self.item.get("offre_id")]
+        parent_initial = self.parent
+        self.button_generer_html.enabled = False
+        try:
+            resultat = anvil.server.call("recette_catalogue_v3_detail", offre_ids=ids)
+            if self.parent is not parent_initial or self.parent is None:
+                return
+            if not isinstance(resultat, dict) or type(resultat.get("ok")) is not bool:
+                raise ValueError("Réponse de détail catalogue invalide.")
+            if not resultat["ok"]:
+                alert(resultat.get("message") or "Détail catalogue indisponible ou accès refusé.", title="Catalogue PostgreSQL")
+                return
+            # Afficher tous les champs sans tronquer les provenances/offre_ids.
+            self.column_panel_affichage.clear()
+            self.column_panel_affichage.add_component(TextArea(text=str(resultat), enabled=False, height="350px"))
+            self.column_panel_detail.visible = True
+            self.button_generer_html.icon = "mi:keyboard_double_arrow_up"
+            if self.checkbox_vu.checked is not True:
+                self.set_checkbox_vu_sans_event(True)
+                self.checkbox_vu_change()
+        finally:
+            self.button_generer_html.enabled = True
 
     def format_search_text_for_display(self, texte):
         """
