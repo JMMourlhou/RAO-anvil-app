@@ -3,7 +3,7 @@ import anvil.users
 import anvil.tables as tables
 from anvil.tables import app_tables
 
-from . import Variables_globales, CPV_API
+from . import Variables_globales, CPV_API, CatalogueRecetteV3
 
 
 @anvil.server.callable
@@ -26,7 +26,8 @@ def initialiser_form_search(inclure_offres=False):
             "user": None,
             "base_app": "",
             "plateformes": [],
-            "histo": None
+            "histo": None,
+            "catalogue_v4_active": False
         }
 
     plateformes = [
@@ -75,7 +76,8 @@ def initialiser_form_search(inclure_offres=False):
         "user": user,
         "base_app": Variables_globales.get_variable_value("code_app1"),
         "plateformes": plateformes,
-        "histo": histo
+        "histo": histo,
+        "catalogue_v4_active": CatalogueRecetteV3.CATALOGUE_V4_ACTIVE is True and user["enabled"] is True
     }
 
 

@@ -22,6 +22,7 @@ def charger_initialisation(anvil, app_tables):
     espace = {
         "anvil": anvil, "app_tables": app_tables,
         "tables": SimpleNamespace(order_by=Mock()),
+        "CatalogueRecetteV3": SimpleNamespace(CATALOGUE_V4_ACTIVE=False),
         "Variables_globales": SimpleNamespace(get_variable_value=Mock(return_value="app")),
     }
     exec(compile(module, str(source), "exec"), espace)

@@ -442,7 +442,7 @@ class RowTemplate1(RowTemplate1Template):
         self.column_panel_detail.visible = True
 
     def afficher_detail_catalogue(self):
-        """Détail natif V3 dans le panneau existant ; parcours « vu » conservé.
+        """Détail natif du catalogue dans le panneau existant ; parcours « vu » conservé.
 
         Seuls les champs métier sont présentés, sans HTML externe ni métadonnées.
         """
@@ -472,7 +472,7 @@ class RowTemplate1(RowTemplate1Template):
             self.button_generer_html.enabled = True
 
     def presenter_detail_catalogue(self, resultat):
-        """Présente les champs métier du détail V3 dans le panneau existant.
+        """Présente chaque fiche V4 avec ses propres champs et liens.
 
         Les identifiants restent dans les données ; aucun dictionnaire technique
         n'est converti en texte. Les valeurs absentes sont simplement omises.
@@ -488,13 +488,6 @@ class RowTemplate1(RowTemplate1Template):
                 libelle = texte(valeur.get("libelle") or valeur.get("nom"))
                 return " — ".join(filter(None, [code, libelle]))
             return str(valeur).strip()
-
-        def premier(document, *cles):
-            for cle in cles:
-                valeur = document.get(cle)
-                if texte(valeur):
-                    return valeur
-            return None
 
         # Les mots proviennent de l'instantané de recherche, jamais des exclusions.
         mots = list(self.extraire_mots_et())
@@ -517,49 +510,39 @@ class RowTemplate1(RowTemplate1Template):
             simples = "aaaaaaceeeeiiiinooooouuuuyy"
             return "".join(simples[accents.index(c)] if c in accents else c for c in valeur.lower())
 
-        def echapper(valeur):
-            # Le contenu externe reste du texte Markdown, jamais du HTML actif.
-            valeur = valeur.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            return re.sub(r"([\\`*_{}\[\]()#+.!|>~-])", r"\\\1", valeur)
+        termes = [normaliser(str(mot).strip()) for mot in mots if mot and str(mot).strip()]
 
-        def enrichir(contenu, surligner):
-            intervalles = []
-            if surligner:
-                normalise = normaliser(contenu)
-                for mot in mots:
-                    terme = normaliser(str(mot or "").strip())
-                    if not terme:
-                        continue
-                    for occurrence in re.finditer(re.escape(terme), normalise):
-                        intervalles.append((occurrence.start(), occurrence.end()))
-            fusion = []
-            for debut, fin in sorted(intervalles):
-                if fusion and debut <= fusion[-1][1]:
-                    fusion[-1] = (fusion[-1][0], max(fin, fusion[-1][1]))
-                else:
-                    fusion.append((debut, fin))
-            morceaux = []
-            position = 0
-            for debut, fin in fusion:
-                morceaux.append(echapper(contenu[position:debut]))
-                morceaux.append("**" + echapper(contenu[debut:fin]) + "**")
-                position = fin
-            morceaux.append(echapper(contenu[position:]))
-            return "".join(morceaux).replace("\n", "  \n")
+        def ajouter_texte(panneau, contenu, surligner=False):
+            if not surligner or not termes:
+                panneau.add_component(Label(text=contenu, spacing_above="none", spacing_below="none"))
+                return
+            # Les lignes contenant une correspondance sont mises en gras
+            # avec des Labels pour afficher les caractères de la source tels quels.
+            for ligne in contenu.split("\n"):
+                normalisee = normaliser(ligne)
+                panneau.add_component(Label(
+                    text=ligne, bold=any(terme in normalisee for terme in termes),
+                    spacing_above="none", spacing_below="none"))
 
-        lignes_fiche = []
-
-        def rubrique(titre, valeur, surligner=False, cible=None):
+        def rubrique(panneau, libelle, valeur, surligner=False):
             contenu = texte(valeur)
             if contenu:
-                # Une seule ligne Markdown par rubrique, sans paragraphes vides.
-                contenu = "\n".join(ligne for ligne in contenu.splitlines() if ligne.strip())
-                lignes_fiche.append("**" + titre + " :** " + enrichir(contenu, surligner))
+                ajouter_texte(panneau, libelle + " : " + contenu, surligner)
+
+        def urls(entrees):
+            """Extrait les URL des valeurs et des objets de provenance."""
+            if isinstance(entrees, dict):
+                return urls(entrees.get("lien") or entrees.get("url")) + urls(entrees.get("liens"))
+            if isinstance(entrees, list):
+                liens = []
+                for entree in entrees:
+                    liens.extend(urls(entree))
+                return liens
+            if isinstance(entrees, str) and entrees.lower().startswith(("https://", "http://")):
+                return [entrees]
+            return []
 
         documents = resultat.get("offres")
-        if documents is None:
-            document = resultat.get("offre") or resultat.get("detail")
-            documents = [document] if isinstance(document, dict) else []
         if not isinstance(documents, list) or not documents:
             raise ValueError("Le détail catalogue ne contient aucune fiche exploitable.")
         if any(not isinstance(document, dict) for document in documents):
@@ -567,63 +550,46 @@ class RowTemplate1(RowTemplate1Template):
 
         self.column_panel_affichage.clear()
         for document in documents:
-            lignes_fiche.clear()
-            rubrique("Titre", document.get("titre") or self.item.get("titre"), surligner=True)
-            rubrique("Acheteur", document.get("acheteur") or self.item.get("acheteur"))
-            rubrique("Description", premier(document, "description", "description_complete", "objet"), surligner=True)
-            for libelle, cles in [("Publication", ("date_publication",)),
-                                  ("Date limite de réponse", ("date_limite_reponse", "date_limite_rep"))]:
-                date = premier(document, *cles)
-                if date:
-                    rubrique(libelle, self.format_date_fr(date))
+            fiche = ColumnPanel()
+            rubrique(fiche, "Titre", document.get("titre"), surligner=True)
+            rubrique(fiche, "Acheteur", document.get("acheteur"))
+            rubrique(fiche, "Description", document.get("description"), surligner=True)
+            rubrique(fiche, "Publication", document.get("date_publication"))
+            rubrique(fiche, "Date limite de réponse", document.get("date_limite_reponse"))
+            rubrique(fiche, "Date et heure limites de réponse", document.get("date_limite_reponse_horodatee"))
+            rubrique(fiche, "Fin de diffusion", document.get("date_fin_diffusion"))
+            rubrique(fiche, "CPV principal", document.get("cpv_principal"))
+            rubrique(fiche, "CPV additionnels", document.get("cpv_additionnels"))
+            rubrique(fiche, "CPV des lots", document.get("cpv_lots"))
+            for numero, lot in enumerate(document.get("lots") or [], 1):
+                if not isinstance(lot, dict):
+                    continue
+                reference = texte(lot.get("numero") or lot.get("numero_lot") or lot.get("lot_id")) or str(numero)
+                description = " — ".join(filter(None, [
+                    texte(lot.get("titre")), texte(lot.get("description")),
+                ]))
+                rubrique(fiche, "Lot " + reference, description or reference, surligner=True)
+                rubrique(fiche, "CPV du lot", lot.get("cpv_principal") or lot.get("cpv"))
+                rubrique(fiche, "CPV additionnels du lot", lot.get("cpv_additionnels"))
+            rubrique(fiche, "Source", document.get("source"))
 
-            rubrique("Département", premier(document, "departement", "departements"))
-            rubrique("CPV principal", premier(document, "cpv_principal"))
-            rubrique("CPV additionnels", premier(document, "cpv_additionnels", "cpv_complementaires", "cpv_codes"))
+            liens = urls(document.get("liens")) + urls(document.get("provenances"))
+            if not liens:
+                liens = urls(document.get("lien"))
+            for lien in dict.fromkeys(liens):
+                fiche.add_component(Link(text=lien, url=lien, spacing_above="none", spacing_below="none"))
 
-            # Les lots sont réunis dans une rubrique compacte, sans perdre leur description.
-            lignes_lots = []
-            lots = document.get("lots") or []
-            if isinstance(lots, list):
-                for numero, lot in enumerate(lots, 1):
-                    if not isinstance(lot, dict):
-                        continue
-                    entete = "Lot " + (texte(premier(lot, "numero", "numero_lot", "lot_id")) or str(numero))
-                    titre = texte(lot.get("titre"))
-                    description = texte(lot.get("description"))
-                    cpv = texte(premier(lot, "cpv_principal", "cpv"))
-                    additionnels = texte(premier(lot, "cpv_additionnels", "cpv_codes"))
-                    parties = [entete, titre, description]
-                    if cpv:
-                        parties.append("CPV : " + cpv)
-                    if additionnels:
-                        parties.append("CPV additionnels : " + additionnels)
-                    lignes_lots.append(" — ".join(filter(None, parties)))
-            rubrique("Lots", "\n".join(lignes_lots))
-            rubrique("Source", document.get("source") or self.item.get("source"))
-            self.column_panel_affichage.add_component(RichText(
-                content="  \n".join(lignes_fiche), format="markdown", enable_slots=False,
-                spacing_above="none", spacing_below="none"))
-            lien = texte(premier(document, "lien", "lien_source") or self.item.get("lien") or self.item.get("lien_source"))
-            if lien.startswith("https://") or lien.startswith("http://"):
-                self.column_panel_affichage.add_component(Link(text="Lien : " + lien, url=lien, spacing_above="none", spacing_below="none"))
-
-            # Aucun appel serveur inventé : seul un champ intégral explicite
-            # peut activer ce composant. Le résumé ne sert jamais de remplacement.
-            integral = premier(document, "texte_integral", "texte_complet", "contenu_integral")
-            if not isinstance(integral, str) or not integral.strip():
-                self.column_panel_affichage.add_component(Label(
+            integral = document.get("texte_integral")
+            if isinstance(integral, str) and integral.strip():
+                self.preparer_texte_complet_catalogue(fiche, integral, ajouter_texte)
+            else:
+                fiche.add_component(Label(
                     text="Texte complet non disponible actuellement.", italic=True,
                     font_size=12, spacing_above="none", spacing_below="none"))
-                continue
-            self.preparer_texte_complet_catalogue(integral, enrichir)
+            self.column_panel_affichage.add_component(fiche)
 
-    def preparer_texte_complet_catalogue(self, integral, enrichir):
-        """Prépare le texte déjà fourni ; construit son rendu seulement au clic.
-
-        Point de raccordement d'un futur détail V3 enrichi. Aucun appel Uplink.
-        Les longs textes sont paginés sans troncature pour limiter la hauteur.
-        """
+    def preparer_texte_complet_catalogue(self, fiche, integral, ajouter_texte):
+        """Affiche sur demande le document intégral fourni, page par page."""
         bouton = Button(text="Afficher le texte complet", spacing_above="none", spacing_below="none")
         panneau = ColumnPanel(visible=False, spacing_above="none", spacing_below="none")
         etat = {"page": 0, "construit": False}
@@ -641,9 +607,7 @@ class RowTemplate1(RowTemplate1Template):
 
         def afficher_page(**event_args):
             panneau.clear()
-            panneau.add_component(RichText(
-                content=enrichir(pages[etat["page"]], True), format="markdown",
-                enable_slots=False, spacing_above="none", spacing_below="none"))
+            ajouter_texte(panneau, pages[etat["page"]], True)
             if len(pages) > 1:
                 panneau.add_component(Label(text="Page %s / %s" % (etat["page"] + 1, len(pages))))
                 precedent = Button(text="Précédente", enabled=etat["page"] > 0)
@@ -664,8 +628,8 @@ class RowTemplate1(RowTemplate1Template):
             bouton.text = "Masquer le texte complet" if panneau.visible else "Afficher le texte complet"
 
         bouton.set_event_handler("click", basculer)
-        self.column_panel_affichage.add_component(bouton)
-        self.column_panel_affichage.add_component(panneau)
+        fiche.add_component(bouton)
+        fiche.add_component(panneau)
 
     def format_search_text_for_display(self, texte):
         """

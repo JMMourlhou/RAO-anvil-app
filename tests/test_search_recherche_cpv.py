@@ -69,7 +69,7 @@ class TestsRechercheCPV(unittest.TestCase):
         self.serveur.return_value = Mock()
         self.serveur.side_effect = self.appel_serveur
         composants = (
-            "Titre_2 text_box_mots_obligatoires_cpv text_box_mots_exclus text_box_mot_ou "
+            "Titre_2 label_route_moteur text_box_mots_obligatoires_cpv text_box_mots_exclus text_box_mot_ou "
             "text_box_nb_jours text_box_departements multi_select_drop_down_platformes "
             "button_creer_veille_cpv timer_recherche_progress repeating_panel_offres "
             "checkbox_on_off text_nb_offres data_grid_1 column_panel_select "

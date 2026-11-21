@@ -1,8 +1,6 @@
 """Passerelles synchrones de recette ; aucun accès direct à PostgreSQL.
 
-Renseigner DEVELOPPEUR_USER_ID avec l'identifiant Anvil du compte autorisé.
-La valeur vide ferme la recette. Aucun état ni aucune table n'est modifié.
-L'Uplink V3 reste responsable de l'identité native, de remote_caller et du SQL.
+L'Uplink V4 contrôle de nouveau la session native et l'origine du relais.
 """
 from datetime import date
 import re
@@ -14,7 +12,8 @@ import anvil.users
 from . import Maintenance_RAO
 
 
-DEVELOPPEUR_USER_ID = "[1019693,7152250813]"
+# Ouvrir uniquement après installation et activation de l’Uplink Pi5 en recette.
+CATALOGUE_V4_ACTIVE = False
 
 # Ne passer à True qu'après confirmation de la fin du rattrapage côté Pi5.
 COUVERTURE_TED_COMPLETE = False
@@ -24,17 +23,20 @@ def _refuser(code, message):
     return {"ok": False, "error": code, "message": message}
 
 
-def _verifier_developpeur():
-    """Relit l'utilisateur courant à chaque recherche/détail, sans identité cliente."""
+def _verifier_acces_catalogue():
+    """Contrôle la ligne Users native et le verrou avant tout relais."""
     utilisateur = anvil.users.get_user()
     if utilisateur is None:
         return _refuser("authentication_required", "Connexion Anvil requise.")
-    if not DEVELOPPEUR_USER_ID:
-        return _refuser("access_denied", "Recette désactivée : DEVELOPPEUR_USER_ID reste à renseigner côté serveur.")
-    if utilisateur.get_id() != DEVELOPPEUR_USER_ID or utilisateur["enabled"] is not True:
-        return _refuser("access_denied", "Ce compte n'est pas autorisé à utiliser la recette.")
+    try:
+        habilite = bool(utilisateur.get_id()) and utilisateur["enabled"] is True
+    except (KeyError, TypeError):
+        habilite = False
+    if not habilite:
+        return _refuser("access_denied", "Ce compte n'est pas autorisé à utiliser le catalogue.")
+    if CATALOGUE_V4_ACTIVE is not True:
+        return _refuser("catalogue_unavailable", "Catalogue V4 désactivé. Le moteur historique est disponible.")
     return None
-
 
 def _entier_borne(valeur, minimum, maximum):
     return type(valeur) is int and minimum <= valeur <= maximum
@@ -52,13 +54,13 @@ def recette_catalogue_v3_rechercher(
     mots_obligatoires=None, mots_exclus=None, mots_ou=None,
     limite=50, decalage=0, empreinte=None, date_reference=None
 ):
-    """Valide les paramètres du contrat puis appelle le V3 dans la session native.
+    """Valide les paramètres du contrat puis appelle la V4 dans la session native.
 
-    Retour V3 complété par _mesures_recette_v3 pour le chronométrage Anvil.
+    Retour Uplink complété par _mesures_recette_v3 pour le chronométrage Anvil.
     Les erreurs fonctionnelles locales sont explicites.
     Les exceptions Uplink se propagent : une panne n'est jamais une liste vide.
     """
-    refus = _verifier_developpeur()
+    refus = _verifier_acces_catalogue()
     if refus is not None:
         return refus
 
@@ -72,8 +74,9 @@ def recette_catalogue_v3_rechercher(
     if (not isinstance(sources, list) or not 1 <= len(sources) <= 2
             or not all(isinstance(source, str) and source in ("BOAMP", "TED") for source in sources)):
         return _refuser("invalid_parameters", "Les sources doivent être BOAMP et/ou TED.")
-    if not _entier_borne(limite, 1, 100) or not _entier_borne(decalage, 0, 500):
-        return _refuser("invalid_parameters", "Limite attendue : 1 à 100 ; décalage attendu : 0 à 500.")
+    # Le plafond V4 de candidats est contrôlé par le Pi, indépendamment du décalage.
+    if not _entier_borne(limite, 1, 100) or type(decalage) is not int or decalage < 0:
+        return _refuser("invalid_parameters", "Limite attendue de 1 à 100 et décalage entier positif ou nul.")
     if not all(_liste_textes(valeur, optionnelle=True) for valeur in (mots_obligatoires, mots_exclus, mots_ou)):
         return _refuser("invalid_parameters", "Les mots de filtrage doivent être des listes de chaînes ou None.")
     if empreinte is not None and not isinstance(empreinte, str):
@@ -97,8 +100,7 @@ def recette_catalogue_v3_rechercher(
     try:
         resultat = anvil.server.call(
             "rechercher_offres_catalogue_pg",
-            cpv_selectionnes=cpv_selectionnes, departements=departements,
-            filtre_jours=filtre_jours, sources=sources,
+            cpv_selectionnes, departements, filtre_jours, sources,
             mots_obligatoires=mots_obligatoires, mots_exclus=mots_exclus, mots_ou=mots_ou,
             limite=limite, decalage=decalage, empreinte=empreinte, date_reference=date_reference
         )
@@ -126,7 +128,7 @@ def recette_catalogue_v3_rechercher(
 @anvil.server.callable(require_user=True)
 def recette_catalogue_v3_detail(offre_ids):
     """Obtient le détail de 1 à 10 identifiants décimaux, après nouvelle autorisation."""
-    refus = _verifier_developpeur()
+    refus = _verifier_acces_catalogue()
     if refus is not None:
         return refus
     if (not isinstance(offre_ids, list) or not 1 <= len(offre_ids) <= 10
@@ -143,10 +145,10 @@ def rechercher_page_catalogue_search(
 ):
     """Page pour search : même session native et même autorisation que la recette.
 
-    Pas de Task Anvil : remote_caller reste server_module pour le V3.
+    Pas de Task Anvil : remote_caller reste server_module pour la V4.
     Le contrôle de maintenance est renouvelé à chaque nouvelle page.
     """
-    refus = _verifier_developpeur()
+    refus = _verifier_acces_catalogue()
     if refus is not None:
         return refus
     ticket, refus = Maintenance_RAO._admettre("recherche_catalogue")
